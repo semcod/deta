@@ -5,7 +5,7 @@ HTTP health check prober for services.
 import asyncio
 import re
 from dataclasses import dataclass
-from typing import Optional
+from typing import Callable, Coroutine, Optional
 
 from deta.scanner.compose import ServiceDef
 from deta.scanner.ports import PortBinding, parse_port, published_url
@@ -220,19 +220,21 @@ async def probe_all(
     Returns:
         List of ProbeResult objects (one per resolved port per service)
     """
-    probes: list[asyncio.Coroutine[None, None, ProbeResult]] = []
+    probe_factories: list[Callable[[], Coroutine[None, None, ProbeResult]]] = []
     semaphore = asyncio.Semaphore(max(1, max_concurrency))
 
-    async def _run_limited(coro: asyncio.Coroutine[None, None, ProbeResult]) -> ProbeResult:
+    async def _run_limited(
+        probe_factory: Callable[[], Coroutine[None, None, ProbeResult]],
+    ) -> ProbeResult:
         async with semaphore:
-            return await coro
+            return await probe_factory()
 
     for service in services:
         # Use healthcheck URL if defined, otherwise probe each resolved port
         healthcheck_url = _extract_health_url(service)
         if healthcheck_url:
             # Probe the explicit healthcheck
-            probes.append(_run_limited(probe_service(service)))
+            probe_factories.append(lambda service=service: probe_service(service))
         else:
             # Probe each resolved port
             bindings = service.resolved_ports or []
@@ -243,9 +245,12 @@ async def probe_all(
 
             if bindings:
                 for binding in bindings:
-                    probes.append(_run_limited(probe_port(service, binding)))
+                    probe_factories.append(
+                        lambda service=service, binding=binding: probe_port(service, binding)
+                    )
             else:
                 # No ports to probe
-                probes.append(_run_limited(_noop_probe(service)))
+                probe_factories.append(lambda service=service: _noop_probe(service))
 
-    return await asyncio.gather(*probes)
+    tasks = [asyncio.create_task(_run_limited(factory)) for factory in probe_factories]
+    return await asyncio.gather(*tasks)

@@ -4,6 +4,10 @@ Command-line interface for deta infrastructure monitoring tool.
 
 import asyncio
 import json
+import os
+import signal
+import socket
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,6 +30,49 @@ from deta.dsl import (
     format_service_changes,
     status_summary,
 )
+
+
+def _port_in_use(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.2)
+        return sock.connect_ex((host, port)) == 0
+
+
+def _pid_on_port(host: str, port: int) -> int | None:
+    commands = [
+        ["ss", "-ltnp", f"( sport = :{port} )"],
+        ["lsof", "-t", f"-iTCP@{host}:{port}", "-sTCP:LISTEN"],
+    ]
+
+    for cmd in commands:
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        except FileNotFoundError:
+            continue
+
+        output = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        for token in output.replace(",", " ").replace("\n", " ").split():
+            if "pid=" in token:
+                try:
+                    return int(token.split("pid=", 1)[1].split(" ", 1)[0].rstrip(")"))
+                except ValueError:
+                    continue
+            if token.isdigit():
+                try:
+                    pid = int(token)
+                    if pid > 1:
+                        return pid
+                except ValueError:
+                    continue
+    return None
+
+
+def _terminate_pid(pid: int) -> bool:
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        return False
+    return True
 
 
 def _get_topology(root: Path, depth: int, config: DetaConfig = None) -> InfraTopology:
@@ -449,7 +496,35 @@ def main():
         config = load_config(config_file)
         if depth is None:
             depth = config.scan.max_depth if config.scan else 3
-        run_dashboard(root=root, depth=depth, config_file=config_file, host=host, port=port)
+        bind_host = host or config.web.host
+        bind_port = port or config.web.port
+
+        if _port_in_use(bind_host, bind_port):
+            print(f"WARNING: Address {bind_host}:{bind_port} is already in use")
+            pid = _pid_on_port(bind_host, bind_port)
+            if pid:
+                print(f"Detected PID on port {bind_port}: {pid}")
+            should_kill = typer.confirm(
+                f"Port {bind_port} is busy. Kill the current process and start deta web?",
+                default=False,
+            )
+            if should_kill:
+                if pid and _terminate_pid(pid):
+                    print(f"Sent SIGTERM to PID {pid}")
+                else:
+                    print("Could not identify/terminate process automatically. Start aborted.")
+                    raise typer.Exit(code=1)
+            else:
+                print("Start aborted by user.")
+                raise typer.Exit(code=1)
+
+        run_dashboard(
+            root=root,
+            depth=depth,
+            config_file=config_file,
+            host=bind_host,
+            port=bind_port,
+        )
     
     app()
 

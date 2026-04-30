@@ -58,6 +58,7 @@ HTML = """
     <div>
       <strong>deta dashboard</strong>
       <span id="root" class="ts"></span>
+      <span id="refresh-countdown" class="ts" style="margin-left:8px;">refresh in: 10s</span>
     </div>
     <div class="status">
       <span class="pill ok" id="services-pill">services: 0</span>
@@ -89,11 +90,11 @@ HTML = """
         </div>
       </div>
       <div class="tabs">
-        <button class="tab-btn active" data-tab="json">JSON</button>
-        <button class="tab-btn" data-tab="yaml">YAML</button>
-        <button class="tab-btn" data-tab="png">PNG</button>
+        <button class="tab-btn active" data-tab-group="map" data-tab="json">JSON</button>
+        <button class="tab-btn" data-tab-group="map" data-tab="yaml">YAML</button>
+        <button class="tab-btn" data-tab-group="map" data-tab="png">PNG</button>
       </div>
-      <div class="tab-panes">
+      <div class="tab-panes" data-tab-group-pane="map">
         <pre id="json-dump" class="dump active"></pre>
         <pre id="yaml-dump" class="dump"></pre>
         <img id="png-dump" class="dump" alt="infra map png">
@@ -103,12 +104,49 @@ HTML = """
       <h3>Alerts</h3>
       <div id="alerts"></div>
     </section>
+    <section class="card">
+      <h3>Monitor</h3>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab-group="monitor" data-tab="monitor">Table</button>
+        <button class="tab-btn" data-tab-group="monitor" data-tab="notify">Notifications</button>
+      </div>
+      <div class="tab-panes" data-tab-group-pane="monitor">
+        <div id="monitor-dump" class="dump active" style="display:block; max-height:none;">
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead>
+              <tr>
+                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Service</th>
+                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Status</th>
+                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Latency (ms)</th>
+                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Updated</th>
+              </tr>
+            </thead>
+            <tbody id="monitor-table-body"></tbody>
+          </table>
+        </div>
+        <div id="notify-dump" class="dump" style="display:none;">
+          <label style="display:block; margin-bottom:8px;">
+            <input type="checkbox" id="notify-enabled" checked /> Enable browser notifications
+          </label>
+          <label style="display:block; margin-bottom:8px;">
+            Minimum severity:
+            <select id="notify-severity" class="btn" style="margin-left:6px;">
+              <option value="info">info</option>
+              <option value="warning">warning</option>
+              <option value="error">error</option>
+            </select>
+          </label>
+          <button class="btn" id="notify-permission">Request permission</button>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script>
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'loose',
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
       flowchart: {
         useMaxWidth: true,
         nodeSpacing: 40,
@@ -122,9 +160,14 @@ HTML = """
     const anomaliesPill = document.getElementById('anomalies-pill');
     const offlinePill = document.getElementById('offline-pill');
     const rootInfo = document.getElementById('root');
+    const refreshCountdown = document.getElementById('refresh-countdown');
     const jsonDump = document.getElementById('json-dump');
     const yamlDump = document.getElementById('yaml-dump');
     const pngDump = document.getElementById('png-dump');
+    const monitorTableBody = document.getElementById('monitor-table-body');
+    const notifyEnabled = document.getElementById('notify-enabled');
+    const notifySeverity = document.getElementById('notify-severity');
+    const notifyPermissionBtn = document.getElementById('notify-permission');
     const copyMermaidBtn = document.getElementById('copy-mermaid');
     const copyPngBtn = document.getElementById('copy-png');
     const copyJsonBtn = document.getElementById('copy-json');
@@ -132,8 +175,15 @@ HTML = """
     const downloadPngBtn = document.getElementById('download-png');
 
     let latestPayload = null;
+    let latestFullPayload = null;
     let latestPngUrl = null;
     let lastGraphHash = null;
+    let serviceStatusCache = {};
+    let monitorRows = {};
+    let refreshSeconds = 10;
+    let refreshRemaining = 10;
+
+    const severityWeight = { info: 0, warning: 1, error: 2 };
 
     function addAlert(message, severity, ts) {
       const div = document.createElement('div');
@@ -141,37 +191,111 @@ HTML = """
       div.innerHTML = `<div>[${severity}] ${message}</div><div class="ts">${ts}</div>`;
       alerts.prepend(div);
       while (alerts.children.length > 200) alerts.removeChild(alerts.lastChild);
-      if (Notification.permission === 'granted') {
+      const minSeverity = notifySeverity?.value || 'info';
+      const canNotify = notifyEnabled?.checked && (severityWeight[severity] || 0) >= (severityWeight[minSeverity] || 0);
+      if (canNotify && Notification.permission === 'granted') {
         try { new Notification(`[deta] ${severity}`, { body: message }); } catch (e) {}
       }
     }
 
+    function renderMonitorTable() {
+      const rows = Object.values(monitorRows).sort((a, b) => a.service.localeCompare(b.service));
+      monitorTableBody.innerHTML = rows.map(row => `
+        <tr>
+          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.service}</td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.status}</td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.latency_ms ?? '-'}</td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.updated_at || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function rebuildMonitorRowsFromPayload(payload) {
+      const parsed = payload.topology_json ? JSON.parse(payload.topology_json) : { services: {} };
+      const nowTs = new Date().toISOString();
+      const rows = {};
+      Object.entries(parsed.services || {}).forEach(([service, svc]) => {
+        const probes = svc.probes || [];
+        const firstProbe = probes[0] || {};
+        rows[service] = {
+          service,
+          status: svc.status || 'unknown',
+          latency_ms: firstProbe.latency_ms ?? '-',
+          updated_at: nowTs,
+        };
+      });
+      return rows;
+    }
+
     async function render(payload) {
+      const isDelta = payload.type === 'delta';
+      const summary = payload.summary || {};
+
+      if (isDelta && payload.status_delta) {
+        serviceStatusCache = { ...serviceStatusCache, ...payload.status_delta };
+        Object.entries(payload.status_delta).forEach(([service, status]) => {
+          if (status === 'removed') {
+            delete monitorRows[service];
+            return;
+          }
+          monitorRows[service] = {
+            ...(monitorRows[service] || { service, latency_ms: '-' }),
+            service,
+            status,
+            updated_at: new Date().toISOString(),
+          };
+        });
+      }
+
       latestPayload = payload;
       rootInfo.textContent = payload.root || '';
-      servicesPill.textContent = `services: ${payload.summary.services}`;
-      anomaliesPill.textContent = `anomalies: ${payload.summary.anomalies}`;
+      if (payload.refresh_seconds) {
+        refreshSeconds = payload.refresh_seconds;
+      }
+      refreshRemaining = refreshSeconds;
+      servicesPill.textContent = `services: ${summary.services || 0}`;
+      anomaliesPill.textContent = `anomalies: ${summary.anomalies || 0}`;
       const restartPill = document.getElementById('restarting-pill');
-      if (restartPill) restartPill.textContent = `restarting: ${payload.summary.restarting || 0}`;
-      offlinePill.textContent = `offline: ${payload.summary.offline}`;
+      if (restartPill) restartPill.textContent = `restarting: ${summary.restarting || 0}`;
+      offlinePill.textContent = `offline: ${summary.offline || 0}`;
 
       const graphHash = payload.graph_hash || null;
-      if (graphHash !== lastGraphHash) {
+      if (!isDelta && graphHash !== lastGraphHash) {
         lastGraphHash = graphHash;
         graph.removeAttribute('data-processed');
         graph.textContent = payload.mermaid;
         await mermaid.init(undefined, graph);
 
-        const pngBlob = await renderPngBlob();
-        if (pngBlob) {
-          if (latestPngUrl) URL.revokeObjectURL(latestPngUrl);
-          latestPngUrl = URL.createObjectURL(pngBlob);
-          pngDump.src = latestPngUrl;
+        try {
+          const pngBlob = await renderPngBlob();
+          if (pngBlob) {
+            if (latestPngUrl) URL.revokeObjectURL(latestPngUrl);
+            latestPngUrl = URL.createObjectURL(pngBlob);
+            pngDump.src = latestPngUrl;
+          }
+        } catch (pngErr) {
+          if (!(pngErr instanceof SecurityError || (pngErr && pngErr.name === 'SecurityError'))) {
+            console.warn('[PNG] renderPngBlob error:', pngErr);
+          }
         }
       }
 
-      jsonDump.textContent = payload.topology_json || '';
-      yamlDump.textContent = payload.graph_yaml || '';
+      if (!isDelta) {
+        latestFullPayload = payload;
+        jsonDump.textContent = payload.topology_json || '';
+        yamlDump.textContent = payload.graph_yaml || '';
+        const serviceRows = payload.service_rows || [];
+        if (serviceRows.length > 0) {
+          monitorRows = {};
+          serviceRows.forEach((row) => {
+            monitorRows[row.service] = row;
+          });
+        } else {
+          monitorRows = rebuildMonitorRowsFromPayload(payload);
+        }
+      }
+
+      renderMonitorTable();
 
       (payload.events || []).forEach(ev => addAlert(ev.message, ev.severity, ev.timestamp));
     }
@@ -268,20 +392,35 @@ HTML = """
       addAlert('PNG downloaded', 'info', new Date().toISOString());
     }
 
-    copyMermaidBtn.addEventListener('click', () => copyText('Mermaid', latestPayload?.mermaid || ''));
-    copyJsonBtn.addEventListener('click', () => copyText('JSON', latestPayload?.topology_json || ''));
-    copyYamlBtn.addEventListener('click', () => copyText('YAML', latestPayload?.graph_yaml || ''));
+    copyMermaidBtn.addEventListener('click', () => copyText('Mermaid', latestFullPayload?.mermaid || ''));
+    copyJsonBtn.addEventListener('click', () => copyText('JSON', latestFullPayload?.topology_json || ''));
+    copyYamlBtn.addEventListener('click', () => copyText('YAML', latestFullPayload?.graph_yaml || ''));
     copyPngBtn.addEventListener('click', copyPng);
     downloadPngBtn.addEventListener('click', downloadPng);
+    notifyPermissionBtn.addEventListener('click', () => Notification.requestPermission().catch(() => {}));
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panes .dump').forEach(d => d.classList.remove('active'));
+        const group = btn.dataset.tabGroup || 'map';
+        document.querySelectorAll(`.tab-btn[data-tab-group="${group}"]`).forEach(b => b.classList.remove('active'));
+        document.querySelectorAll(`[data-tab-group-pane="${group}"] .dump`).forEach(d => {
+          d.classList.remove('active');
+          d.style.display = 'none';
+        });
         btn.classList.add('active');
-        document.getElementById(`${btn.dataset.tab}-dump`).classList.add('active');
+        const activePane = document.getElementById(`${btn.dataset.tab}-dump`);
+        activePane.classList.add('active');
+        activePane.style.display = 'block';
       });
     });
+
+    setInterval(() => {
+      refreshRemaining = Math.max(0, refreshRemaining - 1);
+      if (refreshRemaining === 0) {
+        refreshRemaining = refreshSeconds;
+      }
+      refreshCountdown.textContent = `refresh in: ${refreshRemaining}s`;
+    }, 1000);
 
     Notification.requestPermission().catch(() => {});
     const wsScheme = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -325,21 +464,26 @@ class ConnectionManager:
     def disconnect(self, websocket) -> None:
         self._connections.discard(websocket)
 
-    async def broadcast(self, payload: dict) -> None:
+    async def broadcast(self, payload: dict) -> tuple[int, int]:
         if not self._connections:
-            return
+            return 0, 0
         message = json.dumps(payload)
+        message_size = len(message.encode("utf-8"))
         dead = []
         connections = list(self._connections)
         results = await asyncio.gather(
             *(conn.send_text(message) for conn in connections),
             return_exceptions=True,
         )
+        delivered = 0
         for conn, result in zip(connections, results):
             if isinstance(result, Exception):
                 dead.append(conn)
+            else:
+                delivered += 1
         for conn in dead:
             self.disconnect(conn)
+        return delivered, message_size
 
 
 def _probe_status(probe: ProbeResult | None) -> str:
@@ -439,6 +583,28 @@ def _topology_json_with_status(
     return json.dumps(map_payload, indent=2)
 
 
+def _service_status_map(
+    topology: InfraTopology,
+    probes: list[ProbeResult] | None,
+) -> dict[str, str]:
+    probes_by_service: dict[str, list[ProbeResult]] = {}
+    for probe in probes or []:
+        probes_by_service.setdefault(probe.service, []).append(probe)
+
+    statuses: dict[str, str] = {}
+    for service_name in topology.services.keys():
+        service_probes = probes_by_service.get(service_name, [])
+        if not service_probes:
+            statuses[service_name] = "unknown"
+        elif any(p.ok for p in service_probes):
+            statuses[service_name] = "online"
+        elif any(p.status is not None and p.status >= 500 for p in service_probes):
+            statuses[service_name] = "restarting"
+        else:
+            statuses[service_name] = "offline"
+    return statuses
+
+
 def _compute_events(
     prev_services: set[str],
     prev_probes: list[ProbeResult] | None,
@@ -511,6 +677,8 @@ def create_app(root: Path, depth: int, config: DetaConfig):
     state = {
         "prev_services": set(),
         "prev_probes": None,
+        "prev_service_status": {},
+        "payload_version": 0,
         "topology": None,
         "topology_services": {},
         "topology_meta": {},
@@ -521,6 +689,14 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         "topology_dirty": True,
         "pending_change_events": [],
         "debounce_task": None,
+        "telemetry": {
+            "full_count": 0,
+            "delta_count": 0,
+            "full_bytes": 0,
+            "delta_bytes": 0,
+            "last_log_ts": datetime.utcnow().timestamp(),
+            "log_interval_seconds": 30,
+        },
     }
 
     _http_client = None
@@ -563,12 +739,58 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         state["topology_dirty"] = False
         return topology
 
-    async def collect_payload(events: list[dict] | None = None, force_rescan: bool = False) -> dict:
+    def _record_telemetry(payload: dict, delivered: int, message_size: int) -> None:
+        if delivered <= 0 or message_size <= 0:
+            return
+
+        telemetry = state["telemetry"]
+        payload_type = payload.get("type", "full")
+        total_bytes = delivered * message_size
+        if payload_type == "delta":
+            telemetry["delta_count"] += delivered
+            telemetry["delta_bytes"] += total_bytes
+        else:
+            telemetry["full_count"] += delivered
+            telemetry["full_bytes"] += total_bytes
+
+        now_ts = datetime.utcnow().timestamp()
+        if now_ts - telemetry["last_log_ts"] < telemetry["log_interval_seconds"]:
+            return
+
+        full_count = telemetry["full_count"]
+        delta_count = telemetry["delta_count"]
+        total_count = full_count + delta_count
+        full_bytes = telemetry["full_bytes"]
+        delta_bytes = telemetry["delta_bytes"]
+        total_bytes_window = full_bytes + delta_bytes
+        delta_ratio = (delta_count / total_count * 100.0) if total_count else 0.0
+        avg_full = int(full_bytes / full_count) if full_count else 0
+        avg_delta = int(delta_bytes / delta_count) if delta_count else 0
+
+        print(
+            "[web.telemetry] "
+            f"window={int(telemetry['log_interval_seconds'])}s "
+            f"msgs full={full_count} delta={delta_count} delta_ratio={delta_ratio:.1f}% "
+            f"bytes total={total_bytes_window} avg_full={avg_full} avg_delta={avg_delta}"
+        )
+
+        telemetry["full_count"] = 0
+        telemetry["delta_count"] = 0
+        telemetry["full_bytes"] = 0
+        telemetry["delta_bytes"] = 0
+        telemetry["last_log_ts"] = now_ts
+
+    async def collect_payload(
+        events: list[dict] | None = None,
+        force_rescan: bool = False,
+        prefer_delta: bool = False,
+    ) -> dict | None:
         if state["topology_dirty"] or force_rescan or state["topology"] is None:
             topology = await _refresh_topology()
         else:
             topology = state["topology"]
 
+        graph_changed = False
         probes = None
         if config.monitor.probe_online:
             probes = await probe_all(list(topology.services.values()))
@@ -576,27 +798,16 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 mermaid_code = generate_mermaid(topology, probes)
                 graph_hash = hashlib.md5(mermaid_code.encode()).hexdigest()[:8]
                 if graph_hash != state["graph_hash"]:
+                    graph_changed = True
                     state["mermaid"] = mermaid_code
                     state["graph_yaml"] = generate_graph_yaml(topology, probes)
                     state["graph_hash"] = graph_hash
 
-        payload = {
-            "root": str(root),
-            "summary": {
-                **_topology_summary(topology, probes, state["anomaly_count"]),
-                "anomalies": state["anomaly_count"],
-            },
-            "mermaid": state["mermaid"],
-            "graph_yaml": state["graph_yaml"],
-            "graph_hash": state["graph_hash"],
-            "topology_json": _topology_json_with_status(
-                topology,
-                probes,
-                state["topology_services"],
-                state["topology_meta"],
-            ),
-            "events": events or [],
+        summary = {
+            **_topology_summary(topology, probes, state["anomaly_count"]),
+            "anomalies": state["anomaly_count"],
         }
+        merged_events = list(events or [])
 
         current_services = set(topology.services.keys())
         payload_events = _compute_events(
@@ -607,23 +818,83 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             set(config.web.push_events),
         )
         if payload_events:
-            payload["events"] = payload["events"] + payload_events
+            merged_events.extend(payload_events)
+
+        current_status = _service_status_map(topology, probes)
+        previous_status = dict(state["prev_service_status"])
+        status_delta = {
+            service: status
+            for service, status in current_status.items()
+            if previous_status.get(service) != status
+        }
+        for service in previous_status.keys() - current_status.keys():
+            status_delta[service] = "removed"
 
         state["prev_services"] = current_services
         state["prev_probes"] = probes
-        return payload
+        state["prev_service_status"] = current_status
+        state["payload_version"] += 1
+
+        if prefer_delta and not force_rescan and not graph_changed:
+            if not status_delta and not merged_events:
+                return None
+            return {
+                "type": "delta",
+                "v": state["payload_version"],
+                "root": str(root),
+                "refresh_seconds": config.web.refresh_seconds,
+                "summary": summary,
+                "graph_hash": state["graph_hash"],
+                "status_delta": status_delta,
+                "events": merged_events,
+            }
+
+        service_rows = []
+        for service_name, service_status in current_status.items():
+            service_probes = [p for p in (probes or []) if p.service == service_name]
+            first_probe = service_probes[0] if service_probes else None
+            service_rows.append(
+                {
+                    "service": service_name,
+                    "status": service_status,
+                    "latency_ms": first_probe.latency_ms if first_probe else None,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            )
+
+        return {
+            "type": "full",
+            "v": state["payload_version"],
+            "root": str(root),
+            "refresh_seconds": config.web.refresh_seconds,
+            "summary": summary,
+            "mermaid": state["mermaid"],
+            "graph_yaml": state["graph_yaml"],
+            "graph_hash": state["graph_hash"],
+            "service_rows": service_rows,
+            "topology_json": _topology_json_with_status(
+                topology,
+                probes,
+                state["topology_services"],
+                state["topology_meta"],
+            ),
+            "events": merged_events,
+        }
 
     async def monitor_loop() -> None:
         payload = await collect_payload(force_rescan=True)
-        await manager.broadcast(payload)
+        delivered, message_size = await manager.broadcast(payload)
+        _record_telemetry(payload, delivered, message_size)
 
         async def periodic_refresh():
             while True:
                 await asyncio.sleep(config.web.refresh_seconds)
                 if not manager.has_connections():
                     continue
-                payload = await collect_payload()
-                await manager.broadcast(payload)
+                payload = await collect_payload(prefer_delta=True)
+                if payload is not None:
+                    delivered, message_size = await manager.broadcast(payload)
+                    _record_telemetry(payload, delivered, message_size)
 
         async def flush_changes_after_debounce(debounce_seconds: float = 0.5):
             try:
@@ -634,7 +905,8 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             pending_events = list(state["pending_change_events"])
             state["pending_change_events"].clear()
             payload = await collect_payload(events=pending_events)
-            await manager.broadcast(payload)
+            delivered, message_size = await manager.broadcast(payload)
+            _record_telemetry(payload, delivered, message_size)
 
         async def on_change(change: dict):
             state["topology_dirty"] = True
@@ -685,6 +957,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             message = json.dumps(payload)
             print(f"[WS] Sending payload to {client}: {len(message)} bytes, {len(payload.get('summary', {}))} summary fields")
             await websocket.send_text(message)
+            _record_telemetry(payload, 1, len(message.encode("utf-8")))
             print(f"[WS] Payload sent to {client}")
             while True:
                 await websocket.receive_text()
@@ -719,4 +992,7 @@ def run_dashboard(
             f"{sys.executable}. Install with: {sys.executable} -m pip install -e '.[web]'"
         ) from exc
 
-    uvicorn.run(app, host=bind_host, port=bind_port)
+    try:
+        uvicorn.run(app, host=bind_host, port=bind_port)
+    except KeyboardInterrupt:
+        print("\n[deta.web] Stopped by Ctrl+C")

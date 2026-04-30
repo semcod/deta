@@ -102,7 +102,7 @@ class WebConfig:
     enabled: bool = False
     host: str = "127.0.0.1"
     port: int = 8765
-    refresh_seconds: int = 5
+    refresh_seconds: int = 10
     title: str = "deta dashboard"
     push_events: list[str] = field(
         default_factory=lambda: [
@@ -257,7 +257,7 @@ def _parse_config(data: dict) -> DetaConfig:
             enabled=web_data.get("enabled", False),
             host=web_data.get("host", "127.0.0.1"),
             port=web_data.get("port", 8765),
-            refresh_seconds=web_data.get("refresh_seconds", 5),
+            refresh_seconds=web_data.get("refresh_seconds", 10),
             title=web_data.get("title", "deta dashboard"),
             push_events=web_data.get(
                 "push_events",
