@@ -73,19 +73,45 @@ class InfraTopology:
                 "severity": "error",
             })
         
-        # Port conflicts
+        # Port conflicts (using resolved host:port pairs)
         port_map: dict[str, str] = {}
         for name, svc in self.services.items():
-            for port in svc.ports:
-                host_port = port.split(":")[0]
-                if host_port in port_map:
+            seen_keys: set[str] = set()
+            bindings = list(svc.resolved_ports or [])
+            if not bindings:
+                # Fallback: best-effort raw split for legacy ServiceDefs
+                for port in svc.ports:
+                    raw_host_port = port.split(":")[0]
+                    if not raw_host_port or not raw_host_port.isdigit():
+                        continue
+                    key = f"localhost:{raw_host_port}"
+                    if key in port_map and port_map[key] != name:
+                        anomalies.append({
+                            "type": "port_conflict",
+                            "port": raw_host_port,
+                            "services": [port_map[key], name],
+                            "severity": "error",
+                        })
+                    port_map[key] = name
+                continue
+
+            for binding in bindings:
+                if not binding.is_resolved:
+                    continue
+                host = binding.host or "localhost"
+                key = f"{host}:{binding.host_port}"
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                if key in port_map and port_map[key] != name:
                     anomalies.append({
                         "type": "port_conflict",
-                        "port": host_port,
-                        "services": [port_map[host_port], name],
+                        "port": binding.host_port,
+                        "host": host,
+                        "services": [port_map[key], name],
                         "severity": "error",
                     })
-                port_map[host_port] = name
+                port_map[key] = name
         
         # Hardcoded secrets
         for name, svc in self.services.items():

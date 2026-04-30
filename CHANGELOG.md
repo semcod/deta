@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-04-30
+
+### Docs
+- Update README.md
+
+### Test
+- Update tests/test_env.py
+
+### Other
+- Update deta/builder/topology.py
+- Update deta/formatter/graph.py
+- Update deta/monitor/prober.py
+- Update deta/scanner/compose.py
+- Update examples/env-driven/docker-compose.yml
+
 ## [0.2.12] - 2026-04-30
 
 ### Docs

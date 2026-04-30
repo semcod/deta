@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from deta.scanner.compose import ServiceDef
+from deta.scanner.ports import PortBinding, parse_port, published_url
 
 
 @dataclass
@@ -21,74 +22,40 @@ class ProbeResult:
     error: Optional[str] = None
 
 
-def _split_port_mapping(port: str) -> tuple[str, str]:
-    brace_depth = 0
-    split_idx = -1
-    for idx, ch in enumerate(port):
-        if ch == "{":
-            brace_depth += 1
-        elif ch == "}":
-            brace_depth = max(0, brace_depth - 1)
-        elif ch == ":" and brace_depth == 0:
-            split_idx = idx
-            break
-
-    if split_idx == -1:
-        value = port.strip()
-        return value, value
-
-    return port[:split_idx].strip(), port[split_idx + 1 :].strip()
+def _first_resolved_binding(service: ServiceDef) -> Optional[PortBinding]:
+    for binding in service.resolved_ports or []:
+        if binding.is_resolved:
+            return binding
+    if service.ports:
+        binding = parse_port(service.ports[0], service.env_resolved)
+        return binding if binding.is_resolved else None
+    return None
 
 
 def _extract_health_url(service: ServiceDef) -> Optional[str]:
     """
     Extract health check URL from service definition.
-    
+
     Looks for healthcheck configuration and constructs URL from ports.
+    Healthcheck strings are already env-interpolated by the scanner.
     """
-    if not service.healthcheck:
-        return None
-    
-    healthcheck = service.healthcheck
-    test = healthcheck.get("test", [])
-    
-    if isinstance(test, list) and len(test) > 0:
-        # Parse healthcheck test command
-        for item in test:
-            if isinstance(item, str):
-                # Look for URL patterns in healthcheck
+    if service.healthcheck:
+        test = service.healthcheck.get("test", [])
+        if isinstance(test, list):
+            for item in test:
+                if not isinstance(item, str):
+                    continue
                 if item.startswith("http://") or item.startswith("https://"):
                     return item
-                # Look for curl commands
                 if "curl" in item and "http" in item:
-                    # Extract URL from curl command
-                    match = re.search(r'https?://[^\s"\'`]+', item)
+                    match = re.search(r"https?://[^\s\"'`]+", item)
                     if match:
                         return match.group(0)
-    
-    # Fallback: construct URL from ports
-    if service.ports:
-        # Use first published port
-        port_str = service.ports[0]
-        host_port, _container_port = _split_port_mapping(port_str)
 
-        # Resolve ${VAR:-1234} / ${VAR-1234} / ${VAR} patterns
-        host_port = host_port.strip()
-        var_match = re.match(r"^\$\{[^}:]+(?::-?([^}]+))?\}$", host_port)
-        if var_match:
-            default_port = var_match.group(1)
-            if default_port and default_port.isdigit():
-                host_port = default_port
-            else:
-                return None
-
-        if not host_port.isdigit():
-            return None
-        
-        # Default to localhost
-        return f"http://localhost:{host_port}/health"
-    
-    return None
+    binding = _first_resolved_binding(service)
+    if binding is None:
+        return None
+    return published_url(binding, "/health")
 
 
 async def probe_service(service: ServiceDef) -> ProbeResult:

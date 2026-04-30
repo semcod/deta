@@ -6,58 +6,18 @@ from pathlib import Path
 
 from deta.builder.topology import InfraTopology
 from deta.monitor.prober import ProbeResult
+from deta.scanner.compose import ServiceDef
+from deta.scanner.ports import PortBinding, parse_ports
 
 
-def _split_port_mapping(port: str) -> tuple[str, str]:
-    brace_depth = 0
-    split_idx = -1
-    for idx, ch in enumerate(port):
-        if ch == "{":
-            brace_depth += 1
-        elif ch == "}":
-            brace_depth = max(0, brace_depth - 1)
-        elif ch == ":" and brace_depth == 0:
-            split_idx = idx
-            break
-
-    if split_idx == -1:
-        value = port.strip()
-        return value, value
-
-    return port[:split_idx].strip(), port[split_idx + 1 :].strip()
+def _service_bindings(service: ServiceDef) -> list[PortBinding]:
+    if service.resolved_ports:
+        return service.resolved_ports
+    return parse_ports(service.ports, service.env_resolved)
 
 
-def _resolve_host_port(host_port: str) -> str:
-    if not host_port:
-        return ""
-    host_port = host_port.strip()
-
-    if host_port.startswith("${") and host_port.endswith("}"):
-        inner = host_port[2:-1]
-        if ":-" in inner:
-            default_val = inner.split(':-', 1)[1]
-            return default_val if default_val.isdigit() else host_port
-        if "-" in inner:
-            default_val = inner.split('-', 1)[1]
-            return default_val if default_val.isdigit() else host_port
-        return host_port
-
-    return host_port
-
-
-def _parse_host_ports(ports: list[str]) -> list[dict[str, str]]:
-    parsed: list[dict[str, str]] = []
-    for port in ports:
-        if not port:
-            continue
-        host_port, container_port = _split_port_mapping(str(port))
-        parsed.append(
-            {
-                "host": _resolve_host_port(host_port),
-                "container": container_port,
-            }
-        )
-    return parsed
+def _binding_host(binding: PortBinding) -> str:
+    return binding.host or "localhost"
 
 
 def _safe_mermaid_id(name: str) -> str:
@@ -84,12 +44,12 @@ def generate_graph_yaml(
         lines.append(f"    - id: {service_name}")
         lines.append(f"      image: {svc.image or ''}")
         lines.append("      hosts:")
-        host_ports = _parse_host_ports(svc.ports)
-        if host_ports:
-            for hp in host_ports:
-                lines.append(f"        - host: localhost")
-                lines.append(f"          port: '{hp['host']}'")
-                lines.append(f"          container_port: '{hp['container']}'")
+        bindings = _service_bindings(svc)
+        if bindings:
+            for binding in bindings:
+                lines.append(f"        - host: {_binding_host(binding)}")
+                lines.append(f"          port: '{binding.host_port}'")
+                lines.append(f"          container_port: '{binding.container_port}'")
         else:
             lines.append("        - host: localhost")
             lines.append("          port: ''")
@@ -123,9 +83,9 @@ def generate_mermaid(
     for service_name, svc in topology.services.items():
         node_id = _safe_mermaid_id(service_name)
         hosts = []
-        for hp in _parse_host_ports(svc.ports):
-            if hp["host"]:
-                hosts.append(f"localhost:{hp['host']}")
+        for binding in _service_bindings(svc):
+            if binding.host_port:
+                hosts.append(f"{_binding_host(binding)}:{binding.host_port}")
 
         label = service_name
         if hosts:
@@ -178,9 +138,9 @@ def save_png(
 
     for service_name, svc in topology.services.items():
         hosts = []
-        for hp in _parse_host_ports(svc.ports):
-            if hp["host"]:
-                hosts.append(f"localhost:{hp['host']}")
+        for binding in _service_bindings(svc):
+            if binding.host_port:
+                hosts.append(f"{_binding_host(binding)}:{binding.host_port}")
 
         label = service_name
         if hosts:
