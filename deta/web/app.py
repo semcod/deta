@@ -254,7 +254,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         return HTMLResponse(HTML.replace("deta dashboard", config.web.title))
 
     @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket):
+    async def websocket_endpoint(websocket):
         await manager.connect(websocket)
         try:
             payload = await collect_payload()
