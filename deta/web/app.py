@@ -10,10 +10,11 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
+from deta.builder.cache import TopologyCache
 from deta.builder.topology import InfraTopology, build_topology
 from deta.config import DetaConfig, load_config
 from deta.formatter.graph import generate_graph_yaml, generate_mermaid
-from deta.monitor.prober import ProbeResult, probe_all
+from deta.monitor.prober import ProbeResult, close_client, probe_all
 from deta.monitor.watcher import watch_configs
 
 HTML = """
@@ -673,6 +674,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
 
     app = FastAPI(title=config.web.title)
     manager = ConnectionManager()
+    topology_cache = TopologyCache(ttl_seconds=config.web.cache_ttl_seconds)
 
     state = {
         "prev_services": set(),
@@ -712,7 +714,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         return _http_client
 
     async def _refresh_topology():
-        topology = build_topology(root, depth)
+        topology = await topology_cache.get(root, depth, build_topology)
         anomalies = topology.detect_anomalies()
         cycles = topology.detect_cycles()
         hubs = topology.find_hubs()
@@ -896,7 +898,9 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                     delivered, message_size = await manager.broadcast(payload)
                     _record_telemetry(payload, delivered, message_size)
 
-        async def flush_changes_after_debounce(debounce_seconds: float = 0.5):
+        async def flush_changes_after_debounce(debounce_seconds: float = None):
+            if debounce_seconds is None:
+                debounce_seconds = config.web.debounce_seconds
             try:
                 await asyncio.sleep(debounce_seconds)
             except asyncio.CancelledError:
@@ -909,6 +913,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             _record_telemetry(payload, delivered, message_size)
 
         async def on_change(change: dict):
+            topology_cache.invalidate()
             state["topology_dirty"] = True
             state["pending_change_events"].append({
                 "severity": "warning",
@@ -939,6 +944,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 await task
             except BaseException:
                 pass
+        await close_client()
 
     @app.get("/")
     async def index():

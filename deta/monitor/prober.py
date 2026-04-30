@@ -18,10 +18,23 @@ async def _get_client():
     try:
         import httpx
         if _shared_client is None or _shared_client.is_closed:
-            _shared_client = httpx.AsyncClient(timeout=1.5)
+            limits = httpx.Limits(max_connections=50, max_keepalive_connections=20)
+            _shared_client = httpx.AsyncClient(
+                timeout=1.5,
+                limits=limits,
+                http2=True,
+            )
         return _shared_client
     except ImportError:
         return None
+
+
+async def close_client():
+    """Close the shared HTTP client."""
+    global _shared_client
+    if _shared_client and not _shared_client.is_closed:
+        await _shared_client.aclose()
+        _shared_client = None
 
 
 @dataclass
@@ -145,9 +158,9 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
 
 
 async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/health") -> ProbeResult:
-    """Probe a specific port binding."""
-    url = published_url(binding, path)
-    if not url:
+    """Probe a specific port binding, trying /health, /healthz and / in order."""
+    base_url = published_url(binding, "")
+    if not base_url:
         return ProbeResult(
             service=service.name,
             url="",
@@ -158,40 +171,51 @@ async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/he
             host_port=binding.host_port,
         )
 
-    start = asyncio.get_event_loop().time()
     client = await _get_client()
     if client is None:
         return ProbeResult(
             service=service.name,
-            url=url,
+            url=published_url(binding, path),
             status=None,
             ok=False,
             latency_ms=0,
             error="httpx not installed",
             host_port=binding.host_port,
         )
-    try:
-        resp = await client.get(url)
-        latency = (asyncio.get_event_loop().time() - start) * 1000
-        return ProbeResult(
-            service=service.name,
-            url=url,
-            status=resp.status_code,
-            ok=resp.is_success,
-            latency_ms=latency,
-            host_port=binding.host_port,
-        )
-    except Exception as e:
-        latency = (asyncio.get_event_loop().time() - start) * 1000
-        return ProbeResult(
-            service=service.name,
-            url=url,
-            status=None,
-            ok=False,
-            latency_ms=latency,
-            error=str(e),
-            host_port=binding.host_port,
-        )
+
+    paths_to_try = [path] if path != "/health" else ["/health", "/healthz", "/"]
+    last_result: Optional[ProbeResult] = None
+
+    for probe_path in paths_to_try:
+        url = published_url(binding, probe_path)
+        start = asyncio.get_event_loop().time()
+        try:
+            resp = await client.get(url)
+            latency = (asyncio.get_event_loop().time() - start) * 1000
+            result = ProbeResult(
+                service=service.name,
+                url=url,
+                status=resp.status_code,
+                ok=resp.is_success,
+                latency_ms=latency,
+                host_port=binding.host_port,
+            )
+            if result.ok:
+                return result
+            last_result = result
+        except Exception as e:
+            latency = (asyncio.get_event_loop().time() - start) * 1000
+            last_result = ProbeResult(
+                service=service.name,
+                url=url,
+                status=None,
+                ok=False,
+                latency_ms=latency,
+                error=str(e),
+                host_port=binding.host_port,
+            )
+
+    return last_result  # type: ignore[return-value]
 
 
 async def _noop_probe(service: ServiceDef) -> ProbeResult:

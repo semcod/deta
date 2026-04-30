@@ -112,6 +112,8 @@ class WebConfig:
             "service_down",
         ]
     )
+    cache_ttl_seconds: float = 30.0
+    debounce_seconds: float = 0.5
 
 
 @dataclass
