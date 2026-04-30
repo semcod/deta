@@ -124,7 +124,11 @@ HTML = """
         <h3>Service Map</h3>
         <div class="actions">
           <button class="btn" id="copy-mermaid">Copy Mermaid</button>
+          <button class="btn" id="download-mermaid">⬇ Mermaid</button>
           <button class="btn" id="copy-png">Copy PNG</button>
+          <button class="btn" id="download-png">⬇ PNG</button>
+          <button class="btn" id="copy-map-yaml">Copy YAML</button>
+          <button class="btn" id="copy-map-json">Copy JSON</button>
         </div>
       </div>
       <div id="graph-wrap">
@@ -237,10 +241,13 @@ HTML = """
     const notifySeverity = document.getElementById('notify-severity');
     const notifyPermissionBtn = document.getElementById('notify-permission');
     const copyMermaidBtn = document.getElementById('copy-mermaid');
+    const downloadMermaidBtn = document.getElementById('download-mermaid');
     const copyPngBtn = document.getElementById('copy-png');
     const copyJsonBtn = document.getElementById('copy-json');
     const copyYamlBtn = document.getElementById('copy-yaml');
     const downloadPngBtn = document.getElementById('download-png');
+    const copyMapYamlBtn = document.getElementById('copy-map-yaml');
+    const copyMapJsonBtn = document.getElementById('copy-map-json');
 
     let latestPayload = null;
     let latestFullPayload = null;
@@ -729,8 +736,16 @@ HTML = """
     })();
 
     copyMermaidBtn.addEventListener('click', () => copyText('Mermaid', latestFullPayload?.mermaid || ''));
+    downloadMermaidBtn.addEventListener('click', () => {
+      const txt = latestFullPayload?.mermaid || '';
+      if (!txt) { addAlert('Mermaid not ready', 'warning', new Date().toISOString()); return; }
+      downloadBlob(new Blob([txt], { type: 'text/plain' }), 'infra-map.mmd');
+      addAlert('infra-map.mmd downloaded', 'info', new Date().toISOString());
+    });
     copyJsonBtn.addEventListener('click', () => copyText('JSON', latestFullPayload?.topology_json || ''));
     copyYamlBtn.addEventListener('click', () => copyText('YAML', latestFullPayload?.graph_yaml || ''));
+    copyMapYamlBtn.addEventListener('click', () => copyText('YAML', latestFullPayload?.graph_yaml || ''));
+    copyMapJsonBtn.addEventListener('click', () => copyText('JSON', latestFullPayload?.topology_json || ''));
     copyPngBtn.addEventListener('click', copyPng);
     downloadPngBtn.addEventListener('click', downloadPng);
     notifyPermissionBtn.addEventListener('click', () => Notification.requestPermission().catch(() => {}));
