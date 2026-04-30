@@ -2,7 +2,7 @@
 deta - Infrastructure anomaly detection and monitoring tool.
 """
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 
 from deta.builder.topology import InfraTopology, build_topology
 from deta.scanner.compose import ServiceDef, scan_compose
