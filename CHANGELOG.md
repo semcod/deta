@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-04-30
+
+### Docs
+- Update README.md
+
+### Other
+- Update deta/scanner/ports.py
+- Update infra-graph.yaml
+
 ## [0.2.13] - 2026-04-30
 
 ### Docs

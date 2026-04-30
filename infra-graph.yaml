@@ -6,210 +6,210 @@ graph:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: postgres
       image: postgres:16-alpine
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: frontend
       image: 
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: backend
       image: 
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: firmware
       image: 
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: c2004-pg
       image: postgres:16-alpine
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: service-id-pilot
       image: 
       hosts:
         - host: localhost
           port: '8111'
           container_port: '8000'
-      online: false
+      status: offline
     - id: service-manager-pilot
       image: 
       hosts:
         - host: localhost
           port: '8112'
           container_port: '8000'
-      online: false
+      status: offline
     - id: connect-id-backend
       image: 
       hosts:
         - host: localhost
           port: '8117'
           container_port: '8117'
-      online: false
+      status: offline
     - id: connect-data-backend
       image: 
       hosts:
         - host: localhost
           port: '8121'
           container_port: '8121'
-      online: true
+      status: online
     - id: connect-manager-backend
       image: 
       hosts:
         - host: localhost
           port: '8107'
           container_port: '8107'
-      online: false
+      status: offline
     - id: connect-template-backend
       image: 
       hosts:
         - host: localhost
           port: '8106'
           container_port: '8106'
-      online: false
+      status: online
     - id: connect-test-backend
       image: 
       hosts:
         - host: localhost
           port: '8119'
           container_port: '8119'
-      online: false
+      status: online
     - id: connect-protocol-backend
       image: 
       hosts:
         - host: localhost
           port: '8120'
           container_port: '8120'
-      online: true
+      status: online
     - id: cql-backend
       image: 
       hosts:
         - host: localhost
           port: '8101'
           container_port: '8101'
-      online: false
+      status: offline
     - id: connect-scenario-backend
       image: 
       hosts:
         - host: localhost
           port: '8105'
           container_port: '8108'
-      online: false
+      status: online
     - id: connect-scenario
       image: 
       hosts:
         - host: localhost
           port: '8096'
           container_port: '80'
-      online: false
+      status: online
     - id: c2004-backup
       image: postgres:16-alpine
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: connect-id
       image: 
       hosts:
         - host: localhost
           port: '8093'
           container_port: '80'
-      online: false
+      status: offline
     - id: connect-config-network
       image: connect-config-network:local
       hosts:
         - host: localhost
           port: '8300'
           container_port: '8300'
-      online: false
+      status: offline
     - id: connect-id-user-list
       image: connect-id-user-list:local
       hosts:
         - host: localhost
           port: '8301'
           container_port: '8301'
-      online: false
+      status: offline
     - id: connect-manager-library
       image: connect-manager-library:local
       hosts:
         - host: localhost
           port: '8302'
           container_port: '8302'
-      online: false
+      status: offline
     - id: connect-reports-month
       image: connect-reports-month:local
       hosts:
         - host: localhost
           port: '8303'
           container_port: '8303'
-      online: false
+      status: offline
     - id: cql-scenario-backend
       image: 
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
     - id: connect-deleted-backend
       image: 
       hosts:
         - host: localhost
           port: '8120'
           container_port: '8120'
-      online: false
+      status: online
     - id: connect-deleted
       image: 
       hosts:
         - host: localhost
           port: '8121'
           container_port: '80'
-      online: false
+      status: online
     - id: connect-test
       image: 
       hosts:
         - host: localhost
           port: '8097'
           container_port: '80'
-      online: false
+      status: offline
     - id: connect-manager
       image: 
       hosts:
         - host: localhost
           port: '8095'
           container_port: '80'
-      online: false
+      status: offline
     - id: connect-template
       image: 
       hosts:
         - host: localhost
           port: '8094'
           container_port: '80'
-      online: false
+      status: offline
     - id: aider
       image: 
       hosts:
         - host: localhost
           port: ''
           container_port: ''
-      online: false
+      status: offline
   edges:
     - from: c2004-pg
       to: backend

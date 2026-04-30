@@ -66,7 +66,7 @@ def parse_port(raw: str, env: dict[str, str] | None = None) -> PortBinding:
         return PortBinding()
 
     text = str(raw).strip()
-    interpolated = interpolate(text, env or {}) if env else text
+    interpolated = interpolate(text, env or {}) if env is not None else text
 
     protocol = ""
     if "/" in interpolated:
