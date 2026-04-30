@@ -19,6 +19,7 @@ from deta.monitor.alerter import (
 )
 from deta.monitor.prober import probe_all
 from deta.monitor.watcher import watch_configs
+from deta.web import run_dashboard
 
 
 def _get_topology(root: Path, depth: int, config: DetaConfig = None) -> InfraTopology:
@@ -336,6 +337,19 @@ def main():
     ):
         config = load_config(config_file)
         diff(baseline, root, config)
+
+    @app.command("web")
+    def web_cmd(
+        root: Path = typer.Argument(Path("."), help="Root directory to monitor"),
+        depth: int = typer.Option(None, help="Max scan depth"),
+        host: str = typer.Option(None, help="Bind host"),
+        port: int = typer.Option(None, help="Bind port"),
+        config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
+    ):
+        config = load_config(config_file)
+        if depth is None:
+            depth = config.scan.max_depth if config.scan else 3
+        run_dashboard(root=root, depth=depth, config_file=config_file, host=host, port=port)
     
     app()
 
