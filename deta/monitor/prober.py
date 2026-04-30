@@ -37,6 +37,57 @@ async def close_client():
         _shared_client = None
 
 
+# Known database ports that need TCP connect check instead of HTTP
+DATABASE_PORTS = {
+    "5432",   # PostgreSQL
+    "3306",   # MySQL
+    "3307",   # MySQL alternate
+    "6379",   # Redis
+    "27017",  # MongoDB
+    "27018",  # MongoDB shard
+    "27019",  # MongoDB config
+    "1433",   # SQL Server
+    "1521",   # Oracle
+    "5433",   # PostgreSQL alternate
+    "6378",   # Redis alternate
+    "5984",   # CouchDB
+    "9042",   # Cassandra
+    "8123",   # ClickHouse
+}
+
+
+def _is_database_port(port: str) -> bool:
+    """Check if port is a known database port."""
+    return port in DATABASE_PORTS
+
+
+async def _tcp_connect_check(host: str, port: int, timeout: float = 2.0) -> tuple[bool, float, Optional[str]]:
+    """
+    Perform TCP connect check.
+
+    Returns: (ok, latency_ms, error)
+    """
+    start = asyncio.get_event_loop().time()
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(host, port),
+            timeout=timeout
+        )
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
+        return True, latency, None
+    except asyncio.TimeoutError:
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        return False, latency, "TCP connect timeout"
+    except Exception as e:
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        return False, latency, str(e)
+
+
 @dataclass
 class ProbeResult:
     """Result of a health check probe."""

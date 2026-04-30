@@ -50,6 +50,12 @@ HTML = """
     .dump.active { display: block; }
     .tabs { display:flex; gap:6px; margin-top: 8px; }
     .tab-btn { background: #1f2a44; color: #93a3b8; border: 1px solid #2f446e; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .s-online { color:#a7f3d0; font-weight:600; }
+    .s-offline { color:#fca5a5; font-weight:600; }
+    .s-unknown { color:#93a3b8; }
+    .s-restarting { color:#fcd34d; font-weight:600; }
+    @keyframes row-flash { 0%{background:#1e2d4a} 100%{background:transparent} }
+    .row-flash { animation: row-flash 0.8s ease-out; }
     .tab-btn.active { background: #2f446e; color: #dbeafe; }
     #png-dump { width: 100%; height: auto; object-fit: contain; padding: 0; }
   </style>
@@ -199,16 +205,57 @@ HTML = """
       }
     }
 
+    const STATUS_ICON = { online: '●', offline: '○', restarting: '↻', unknown: '?' };
+    const STATUS_CLASS = { online: 's-online', offline: 's-offline', restarting: 's-restarting', unknown: 's-unknown' };
+
+    function fmtLatency(ms) {
+      if (ms == null || ms === '-' || ms === 0 && typeof ms === 'string') return '-';
+      const n = parseFloat(ms);
+      if (isNaN(n)) return '-';
+      return n < 1 ? '<1' : Math.round(n) + ' ms';
+    }
+
+    function fmtTs(ts) {
+      if (!ts) return '-';
+      try {
+        const d = new Date(ts);
+        return d.toLocaleTimeString();
+      } catch { return ts; }
+    }
+
+    let _prevRowStatus = {};
+
     function renderMonitorTable() {
       const rows = Object.values(monitorRows).sort((a, b) => a.service.localeCompare(b.service));
-      monitorTableBody.innerHTML = rows.map(row => `
-        <tr>
-          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.service}</td>
-          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.status}</td>
-          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.latency_ms ?? '-'}</td>
-          <td style="padding:6px; border-bottom:1px solid #1a2540;">${row.updated_at || '-'}</td>
-        </tr>
-      `).join('');
+      rows.forEach(row => {
+        const status = row.status || 'unknown';
+        const cls = STATUS_CLASS[status] || 's-unknown';
+        const icon = STATUS_ICON[status] || '?';
+        const changed = _prevRowStatus[row.service] !== status;
+        _prevRowStatus[row.service] = status;
+        const trId = `mtr-${row.service.replace(/[^a-z0-9]/gi, '_')}`;
+        let tr = document.getElementById(trId);
+        if (!tr) {
+          tr = document.createElement('tr');
+          tr.id = trId;
+          monitorTableBody.appendChild(tr);
+        }
+        tr.innerHTML = `
+          <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px;">${row.service}</td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540;"><span class="${cls}">${icon} ${status}</span></td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px; color:#93a3b8;">${fmtLatency(row.latency_ms)}</td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:11px; color:#6b7ea0;">${fmtTs(row.updated_at)}</td>
+        `;
+        if (changed) {
+          tr.classList.remove('row-flash');
+          void tr.offsetWidth;
+          tr.classList.add('row-flash');
+        }
+      });
+      const currentIds = new Set(rows.map(r => `mtr-${r.service.replace(/[^a-z0-9]/gi, '_')}`));
+      Array.from(monitorTableBody.querySelectorAll('tr')).forEach(tr => {
+        if (!currentIds.has(tr.id)) tr.remove();
+      });
     }
 
     function rebuildMonitorRowsFromPayload(payload) {
