@@ -118,43 +118,62 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             error="no healthcheck URL"
         )
 
-    start = asyncio.get_event_loop().time()
     host_port = _extract_host_port_from_url(url)
-
     client = await _get_client()
     if client is None:
-        latency = (asyncio.get_event_loop().time() - start) * 1000
         return ProbeResult(
             service=service.name,
             url=url,
             status=None,
             ok=False,
-            latency_ms=latency,
+            latency_ms=0,
             error="httpx not installed",
             host_port=host_port,
         )
-    try:
-        resp = await client.get(url)
-        latency = (asyncio.get_event_loop().time() - start) * 1000
-        return ProbeResult(
-            service=service.name,
-            url=url,
-            status=resp.status_code,
-            ok=resp.is_success,
-            latency_ms=latency,
-            host_port=host_port,
-        )
-    except Exception as e:
-        latency = (asyncio.get_event_loop().time() - start) * 1000
-        return ProbeResult(
-            service=service.name,
-            url=url,
-            status=None,
-            ok=False,
-            latency_ms=latency,
-            error=str(e),
-            host_port=host_port,
-        )
+
+    # Try to extract base URL and path for fallback attempts
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    base_url = f"{parsed.scheme}://{parsed.netloc}"
+    original_path = parsed.path or "/health"
+
+    # Determine paths to try (original first, then fallbacks)
+    paths_to_try = [original_path]
+    if original_path == "/health":
+        paths_to_try.extend(["/healthz", "/"])
+
+    last_result: Optional[ProbeResult] = None
+
+    for path in paths_to_try:
+        test_url = f"{base_url}{path}"
+        start = asyncio.get_event_loop().time()
+        try:
+            resp = await client.get(test_url)
+            latency = (asyncio.get_event_loop().time() - start) * 1000
+            result = ProbeResult(
+                service=service.name,
+                url=test_url,
+                status=resp.status_code,
+                ok=resp.is_success,
+                latency_ms=latency,
+                host_port=host_port,
+            )
+            if result.ok:
+                return result
+            last_result = result
+        except Exception as e:
+            latency = (asyncio.get_event_loop().time() - start) * 1000
+            last_result = ProbeResult(
+                service=service.name,
+                url=test_url,
+                status=None,
+                ok=False,
+                latency_ms=latency,
+                error=str(e),
+                host_port=host_port,
+            )
+
+    return last_result  # type: ignore[return-value]
 
 
 async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/health") -> ProbeResult:

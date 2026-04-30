@@ -74,6 +74,7 @@ class MonitorConfig:
     probe_timeout_seconds: int = 5
     probe_retries: int = 3
     probe_online: bool = True
+    max_concurrency: int = 20
 
 
 @dataclass
@@ -231,6 +232,7 @@ def _parse_config(data: dict) -> DetaConfig:
             probe_timeout_seconds=monitor_data.get("probe_timeout_seconds", 5),
             probe_retries=monitor_data.get("probe_retries", 3),
             probe_online=monitor_data.get("probe_online", True),
+            max_concurrency=monitor_data.get("max_concurrency", 20),
         )
     
     if "output" in data:

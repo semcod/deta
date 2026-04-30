@@ -795,7 +795,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         graph_changed = False
         probes = None
         if config.monitor.probe_online:
-            probes = await probe_all(list(topology.services.values()))
+            probes = await probe_all(list(topology.services.values()), max_concurrency=config.monitor.max_concurrency)
             if probes and state["topology_dirty"] is False:
                 mermaid_code = generate_mermaid(topology, probes)
                 graph_hash = hashlib.md5(mermaid_code.encode()).hexdigest()[:8]
