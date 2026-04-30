@@ -6,6 +6,7 @@ import asyncio
 import re
 from dataclasses import dataclass
 from typing import Callable, Coroutine, Optional
+from urllib.parse import urlparse
 
 from deta.scanner.compose import ServiceDef
 from deta.scanner.ports import PortBinding, parse_port, published_url
@@ -84,10 +85,64 @@ def _extract_health_url(service: ServiceDef) -> Optional[str]:
     return published_url(binding, "/health")
 
 
+def _has_explicit_healthcheck_url(service: ServiceDef) -> bool:
+    """Return True when service healthcheck explicitly contains an HTTP URL."""
+    if not service.healthcheck:
+        return False
+    test = service.healthcheck.get("test", [])
+    if not isinstance(test, list):
+        return False
+    for item in test:
+        if not isinstance(item, str):
+            continue
+        if item.startswith("http://") or item.startswith("https://"):
+            return True
+        if "curl" in item and "http" in item:
+            if re.search(r"https?://[^\s\"'`]+", item):
+                return True
+    return False
+
+
+def _is_http_reachable(status_code: int) -> bool:
+    """Treat any non-5xx response as reachable service."""
+    return status_code < 500
+
+
+def _service_probe_targets(service: ServiceDef, url: str) -> list[tuple[str, str]]:
+    """
+    Build probe targets for service health URL.
+
+    If healthcheck points at localhost/127.0.0.1/0.0.0.0 (often container-internal),
+    also map the same path onto published host port.
+    """
+    parsed = urlparse(url)
+    targets: list[tuple[str, str]] = []
+
+    # Always include original healthcheck target first
+    targets.append((url, _extract_host_port_from_url(url)))
+
+    binding = _first_resolved_binding(service)
+    if binding is not None:
+        hostname = (parsed.hostname or "").lower()
+        if hostname in {"", "localhost", "127.0.0.1", "0.0.0.0"}:
+            mapped_url = published_url(binding, parsed.path or "/health")
+            if mapped_url:
+                targets.append((mapped_url, binding.host_port))
+
+    unique_targets: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for target_url, host_port in targets:
+        if target_url in seen:
+            continue
+        seen.add(target_url)
+        unique_targets.append((target_url, host_port))
+
+    return unique_targets
+
+
 def _extract_host_port_from_url(url: str) -> str:
     """Extract port number from a URL, defaulting to 80/443 based on scheme."""
     try:
-        from urllib.parse import urlparse
         parsed = urlparse(url)
         if parsed.port:
             return str(parsed.port)
@@ -117,7 +172,6 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             error="no healthcheck URL"
         )
 
-    host_port = _extract_host_port_from_url(url)
     client = await _get_client()
     if client is None:
         return ProbeResult(
@@ -127,50 +181,48 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             ok=False,
             latency_ms=0,
             error="httpx not installed",
-            host_port=host_port,
+            host_port=_extract_host_port_from_url(url),
         )
-
-    # Try to extract base URL and path for fallback attempts
-    from urllib.parse import urlparse
-    parsed = urlparse(url)
-    base_url = f"{parsed.scheme}://{parsed.netloc}"
-    original_path = parsed.path or "/health"
-
-    # Determine paths to try (original first, then fallbacks)
-    paths_to_try = [original_path]
-    if original_path == "/health":
-        paths_to_try.extend(["/healthz", "/"])
 
     last_result: Optional[ProbeResult] = None
 
-    for path in paths_to_try:
-        test_url = f"{base_url}{path}"
-        start = asyncio.get_event_loop().time()
-        try:
-            resp = await client.get(test_url)
-            latency = (asyncio.get_event_loop().time() - start) * 1000
-            result = ProbeResult(
-                service=service.name,
-                url=test_url,
-                status=resp.status_code,
-                ok=resp.is_success,
-                latency_ms=latency,
-                host_port=host_port,
-            )
-            if result.ok:
-                return result
-            last_result = result
-        except Exception as e:
-            latency = (asyncio.get_event_loop().time() - start) * 1000
-            last_result = ProbeResult(
-                service=service.name,
-                url=test_url,
-                status=None,
-                ok=False,
-                latency_ms=latency,
-                error=str(e),
-                host_port=host_port,
-            )
+    for target_url, target_host_port in _service_probe_targets(service, url):
+        parsed = urlparse(target_url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+        original_path = parsed.path or "/health"
+
+        paths_to_try = [original_path]
+        if original_path == "/health":
+            paths_to_try.extend(["/healthz", "/"])
+
+        for path in paths_to_try:
+            test_url = f"{base_url}{path}"
+            start = asyncio.get_event_loop().time()
+            try:
+                resp = await client.get(test_url)
+                latency = (asyncio.get_event_loop().time() - start) * 1000
+                result = ProbeResult(
+                    service=service.name,
+                    url=test_url,
+                    status=resp.status_code,
+                    ok=_is_http_reachable(resp.status_code),
+                    latency_ms=latency,
+                    host_port=target_host_port,
+                )
+                if result.ok:
+                    return result
+                last_result = result
+            except Exception as e:
+                latency = (asyncio.get_event_loop().time() - start) * 1000
+                last_result = ProbeResult(
+                    service=service.name,
+                    url=test_url,
+                    status=None,
+                    ok=False,
+                    latency_ms=latency,
+                    error=str(e),
+                    host_port=target_host_port,
+                )
 
     return last_result  # type: ignore[return-value]
 
@@ -214,7 +266,7 @@ async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/he
                 service=service.name,
                 url=url,
                 status=resp.status_code,
-                ok=resp.is_success,
+                ok=_is_http_reachable(resp.status_code),
                 latency_ms=latency,
                 host_port=binding.host_port,
             )
@@ -272,9 +324,8 @@ async def probe_all(
             return await probe_factory()
 
     for service in services:
-        # Use healthcheck URL if defined, otherwise probe each resolved port
-        healthcheck_url = _extract_health_url(service)
-        if healthcheck_url:
+        # Use explicit healthcheck URL if defined, otherwise probe each resolved port
+        if _has_explicit_healthcheck_url(service):
             # Probe the explicit healthcheck
             probe_factories.append(lambda service=service: probe_service(service))
         else:
