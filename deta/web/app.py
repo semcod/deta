@@ -469,6 +469,15 @@ HTML = """
     downloadPngBtn.addEventListener('click', downloadPng);
     notifyPermissionBtn.addEventListener('click', () => Notification.requestPermission().catch(() => {}));
 
+    document.getElementById('copy-monitor-json').addEventListener('click', () => copyText('Monitor JSON', monitorRowsToJson()));
+    document.getElementById('copy-monitor-csv').addEventListener('click', () => copyText('Monitor CSV', monitorRowsToCsv()));
+    document.getElementById('download-monitor-csv').addEventListener('click', () => {
+      const csv = monitorRowsToCsv();
+      if (!csv) { addAlert('Monitor data is empty', 'warning', new Date().toISOString()); return; }
+      downloadBlob(new Blob([csv], { type: 'text/csv' }), 'monitor.csv');
+      addAlert('monitor.csv downloaded', 'info', new Date().toISOString());
+    });
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const group = btn.dataset.tabGroup || 'map';
