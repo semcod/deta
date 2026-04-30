@@ -3,17 +3,119 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.1.9-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$0.15-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-1.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.1-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$0.15-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-2.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
 - 🤖 **LLM usage:** $0.1500 (1 commits)
-- 👤 **Human dev:** ~$100 (1.0h @ $100/h, 30min dedup)
+- 👤 **Human dev:** ~$200 (2.0h @ $100/h, 30min dedup)
 
 Generated on 2026-04-30 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
 
+
+Infrastructure anomaly detection and monitoring tool for development environments.
+
+![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.1-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+
+## Features
+
+- **Manifest Scanning**: Scans docker-compose, OpenAPI, package.json, and pyproject.toml files up to 3 layers deep
+- **Topology Building**: Builds service dependency graphs and detects anomalies
+- **Real-time Monitoring**: Watches for config changes and probes HTTP health checks
+- **Anomaly Detection**: Detects missing healthchecks, port conflicts, dependency cycles, and hardcoded secrets
+- **Toon Format**: Generates Semcod-compatible toon output for ecosystem integration
+- **CLI Interface**: Simple command-line interface with scan, monitor, and diff commands
+
+## Installation
+
+```bash
+pip install deta
+```
+
+Or with optional dependencies:
+
+```bash
+pip install deta[docker,toml]
+```
+
+## Usage
+
+### Scan infrastructure
+
+```bash
+deta scan /path/to/project --depth 3 --output infra-map.json
+```
+
+### Monitor in real-time
+
+```bash
+deta monitor /path/to/project --interval 30 --depth 3
+```
+
+### Compare with baseline
+
+```bash
+deta diff --baseline infra-map.json /path/to/project
+```
+
+### Python API
+
+```python
+from pathlib import Path
+from deta import build_topology
+
+# Build topology from manifests
+topology = build_topology(Path("/path/to/project"), max_depth=3)
+
+# Detect anomalies
+anomalies = topology.detect_anomalies()
+for anomaly in anomalies:
+    print(f"{anomaly['severity']}: {anomaly['type']}")
+
+# Export to JSON
+import json
+output = json.loads(topology.to_json())
+```
+
+## Architecture
+
+```
+deta/
+├── scanner/          # Manifest parsing
+│   ├── compose.py    # docker-compose.yml
+│   ├── openapi.py    # OpenAPI specs
+│   ├── npm.py        # package.json
+│   └── python.py     # pyproject.toml
+├── builder/          # Topology construction
+│   └── topology.py   # Graph & anomaly detection
+├── monitor/          # Real-time monitoring
+│   ├── watcher.py    # File watching
+│   ├── prober.py     # HTTP health checks
+│   └── alerter.py    # Colored output
+├── formatter/        # Output formats
+│   └── toon.py       # Semcod toon format
+├── integration/      # Ecosystem hooks
+│   └── semcod.py     # sumd, pyqual, vallm
+└── cli.py            # Command-line interface
+```
+
+## Semcod Integration
+
+deta integrates with the Semcod ecosystem:
+
+```python
+from deta.integration import generate_for_sumd, pre_deploy_check
+
+# Generate toon for sumd
+generate_for_sumd(Path("."), output=Path("infra.toon.yaml"))
+
+# Pre-deployment validation
+passed, issues = pre_deploy_check(Path("."))
+if not passed:
+    print("Deployment blocked:", issues)
+```
 
 ## License
 

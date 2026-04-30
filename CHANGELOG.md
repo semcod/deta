@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-30
+
+### Docs
+- Update README.md
+
+### Other
+- Update .gitignore
+- Update VERSION
+- Update deta.yaml.example
+- Update deta/__init__.py
+- Update deta/builder/__init__.py
+- Update deta/builder/topology.py
+- Update deta/cli.py
+- Update deta/config.py
+- Update deta/formatter/__init__.py
+- Update deta/formatter/toon.py
+- ... and 12 more files
+
 ## [0.1.9] - 2026-04-30
 
 ### Docs

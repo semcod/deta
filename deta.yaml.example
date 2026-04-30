@@ -1,0 +1,97 @@
+# deta.yaml - Configuration file for infrastructure monitoring
+# Place this file in your project root as "deta.yaml"
+
+project:
+  name: my-project
+  description: Infrastructure monitoring configuration
+
+# Scan configuration
+scan:
+  enabled: true
+  max_depth: 3
+  include_patterns:
+    - "docker-compose*.yml"
+    - "docker-compose*.yaml"
+    - "openapi*.yml"
+    - "openapi*.yaml"
+    - "openapi*.json"
+    - "package.json"
+    - "pyproject.toml"
+    - "requirements*.txt"
+  exclude_patterns:
+    - "node_modules/**"
+    - ".git/**"
+    - "__pycache__/**"
+    - "*.pyc"
+    - ".pytest_cache/**"
+    - ".venv/**"
+    - "venv/**"
+    - "build/**"
+    - "dist/**"
+    - "tests/**"
+
+# Watch configuration for file monitoring
+watch:
+  paths:
+    - "."
+    - "services/**"
+    - "backend/**"
+    - "frontend/**"
+  exclude_patterns:
+    - "*.md"
+    - "*.txt"
+    - "tests/**"
+    - "node_modules/**"
+    - "__pycache__/**"
+    - ".git/**"
+  file_patterns:
+    - "docker-compose*.yml"
+    - "docker-compose*.yaml"
+    - "openapi*.yml"
+    - "openapi*.yaml"
+    - "openapi*.json"
+    - "package.json"
+    - "pyproject.toml"
+  max_depth: 3
+
+# Anomaly detection configuration
+anomaly:
+  check_missing_healthcheck: true
+  check_port_conflicts: true
+  check_dependency_cycles: true
+  check_hardcoded_secrets: true
+  secret_patterns:
+    - "secret"
+    - "password"
+    - "api_key"
+    - "token"
+    - "private_key"
+    - "api-secret"
+    - "auth-token"
+  severity_levels:
+    missing_healthcheck: warning
+    port_conflict: error
+    dependency_cycle: error
+    hardcoded_secret: critical
+
+# Real-time monitoring configuration
+monitor:
+  enabled: false
+  interval_seconds: 30
+  probe_timeout_seconds: 5
+  probe_retries: 3
+
+# Output configuration
+output:
+  formats:
+    - json
+    - toon
+  json_path: infra-map.json
+  toon_path: infra.toon.yaml
+  toon_enabled: true
+
+# Alert configuration
+alert:
+  console_enabled: true
+  colors_enabled: true
+  min_severity: info  # info, warning, error, critical
