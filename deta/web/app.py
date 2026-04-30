@@ -674,10 +674,8 @@ HTML = """
         const fitWidthScale = ww / sw;
         scale = Math.min(Math.max(fitWidthScale * DEFAULT_FIT_ZOOM_MULT, MIN_SCALE), MAX_SCALE);
 
-        const viewportCx = PAD + ww / 2;
-        const viewportCy = PAD + wh / 2;
-        tx = viewportCx - contentCx * scale;
-        ty = viewportCy - contentCy * scale;
+        tx = PAD - contentMinX * scale;
+        ty = PAD - contentMinY * scale;
         applyTransform();
         console.log('[PanZoom] fitToWrap done — fitWidthScale:', fitWidthScale.toFixed(3), 'defaultMult:', DEFAULT_FIT_ZOOM_MULT.toFixed(2), 'scale:', scale.toFixed(3), 'tx:', tx.toFixed(1), 'ty:', ty.toFixed(1), 'contentCx:', contentCx.toFixed(1), 'contentCy:', contentCy.toFixed(1), 'contentMin:', `${contentMinX.toFixed(1)},${contentMinY.toFixed(1)}`);
         updateDebugOverlay();
