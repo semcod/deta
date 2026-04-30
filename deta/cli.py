@@ -103,7 +103,7 @@ def _write_outputs(
     config: DetaConfig,
     output: Path,
     formats: list[str],
-    probe_results: dict | None,
+    probe_results: list | None,
 ) -> None:
     if "json" in formats:
         output.write_text(topology.to_json())
@@ -188,17 +188,22 @@ def _log_port_changes(
             print(f"[PORT REMOVED] {svc}: -{', '.join(sorted(removed))}")
 
 
-def _print_status_summary(topology: InfraTopology, probe_results: dict | None):
+def _print_status_summary(topology: InfraTopology, probe_results: list | None):
     """Print compact status summary of all services."""
     print(f"\n=== STATUS [{datetime.now().strftime('%H:%M:%S')}] ===")
     services = sorted(topology.services.values(), key=lambda s: s.name)
     for svc in services:
         ports = ",".join(p.host_port for p in svc.resolved_ports) or "-"
         health = "✓" if svc.healthcheck else "✗"
-        if probe_results and svc.name in probe_results:
-            r = probe_results[svc.name]
-            status = "UP" if r.ok else "DOWN"
-            print(f"  {svc.name:<20} {status:<5} ports={ports:<12} health={health}")
+        if probe_results:
+            service_probes = [p for p in probe_results if p.service == svc.name]
+            if service_probes:
+                # Overall status: UP if any port is UP
+                ok = any(p.ok for p in service_probes)
+                status = "UP" if ok else "DOWN"
+                print(f"  {svc.name:<20} {status:<5} ports={ports:<12} health={health}")
+            else:
+                print(f"  {svc.name:<20} -     ports={ports:<12} health={health}")
         else:
             print(f"  {svc.name:<20} -     ports={ports:<12} health={health}")
     print("")
@@ -245,9 +250,8 @@ async def _monitor_loop(
         probe_results = None
         if online_enabled:
             services = list(topology.services.values())
-            results = await probe_all(services)
-            probe_results = {r.service: r for r in results}
-            for r in results:
+            probe_results = await probe_all(services)
+            for r in probe_results:
                 if r.ok:
                     alert_probe_success(r)
                 else:
@@ -268,9 +272,8 @@ async def _monitor_loop(
     initial_probe_results = None
     if online_enabled:
         services = list(topology.services.values())
-        results = await probe_all(services)
-        initial_probe_results = {r.service: r for r in results}
-        for r in results:
+        initial_probe_results = await probe_all(services)
+        for r in initial_probe_results:
             if r.ok:
                 alert_probe_success(r)
             else:

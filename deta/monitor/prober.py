@@ -20,6 +20,7 @@ class ProbeResult:
     ok: bool
     latency_ms: float
     error: Optional[str] = None
+    host_port: str = ""
 
 
 def _first_resolved_binding(service: ServiceDef) -> Optional[PortBinding]:
@@ -61,10 +62,10 @@ def _extract_health_url(service: ServiceDef) -> Optional[str]:
 async def probe_service(service: ServiceDef) -> ProbeResult:
     """
     Probe a single service's health check endpoint.
-    
+
     Args:
         service: ServiceDef to probe
-        
+
     Returns:
         ProbeResult with status and timing information
     """
@@ -78,9 +79,9 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             latency_ms=0,
             error="no healthcheck URL"
         )
-    
+
     start = asyncio.get_event_loop().time()
-    
+
     try:
         import httpx
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -115,14 +116,103 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
         )
 
 
+async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/health") -> ProbeResult:
+    """Probe a specific port binding."""
+    url = published_url(binding, path)
+    if not url:
+        return ProbeResult(
+            service=service.name,
+            url="",
+            status=None,
+            ok=False,
+            latency_ms=0,
+            error=f"cannot build URL for port {binding.host_port}",
+            host_port=binding.host_port,
+        )
+
+    start = asyncio.get_event_loop().time()
+
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url)
+            latency = (asyncio.get_event_loop().time() - start) * 1000
+            return ProbeResult(
+                service=service.name,
+                url=url,
+                status=resp.status_code,
+                ok=resp.is_success,
+                latency_ms=latency,
+                host_port=binding.host_port,
+            )
+    except ImportError:
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        return ProbeResult(
+            service=service.name,
+            url=url,
+            status=None,
+            ok=False,
+            latency_ms=latency,
+            error="httpx not installed",
+            host_port=binding.host_port,
+        )
+    except Exception as e:
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        return ProbeResult(
+            service=service.name,
+            url=url,
+            status=None,
+            ok=False,
+            latency_ms=latency,
+            error=str(e),
+            host_port=binding.host_port,
+        )
+
+
 async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
     """
     Probe all services concurrently.
-    
+
     Args:
         services: List of ServiceDef objects to probe
-        
+
     Returns:
-        List of ProbeResult objects
+        List of ProbeResult objects (one per resolved port per service)
     """
-    return await asyncio.gather(*[probe_service(s) for s in services])
+    probes: list[asyncio.Future[ProbeResult]] = []
+
+    for service in services:
+        # Use healthcheck URL if defined, otherwise probe each resolved port
+        healthcheck_url = _extract_health_url(service)
+        if healthcheck_url:
+            # Probe the explicit healthcheck
+            probes.append(probe_service(service))
+        else:
+            # Probe each resolved port
+            bindings = service.resolved_ports or []
+            if not bindings and service.ports:
+                # Fallback to raw ports parsing
+                from deta.scanner.ports import parse_ports
+                bindings = [b for b in parse_ports(service.ports, service.env_resolved) if b.is_resolved]
+
+            if bindings:
+                for binding in bindings:
+                    probes.append(probe_port(service, binding))
+            else:
+                # No ports to probe - return completed future with result
+                probes.append(asyncio.ensure_future(_noop_probe(service)))
+
+    return await asyncio.gather(*probes)
+
+
+async def _noop_probe(service: ServiceDef) -> ProbeResult:
+    """Return a ProbeResult indicating no ports to probe."""
+    return ProbeResult(
+        service=service.name,
+        url="",
+        status=None,
+        ok=False,
+        latency_ms=0,
+        error="no ports to probe",
+        host_port="",
+    )

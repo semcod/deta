@@ -326,12 +326,12 @@ def _probe_status(probe: ProbeResult | None) -> str:
     return "offline"
 
 
-def _topology_summary(topology: InfraTopology, probes: dict[str, ProbeResult] | None) -> dict:
+def _topology_summary(topology: InfraTopology, probes: list[ProbeResult] | None) -> dict:
     anomalies = topology.detect_anomalies()
     offline = 0
     restarting = 0
     if probes:
-        for r in probes.values():
+        for r in probes:
             if r.ok:
                 continue
             if r.status is not None and r.status >= 500:
@@ -348,21 +348,40 @@ def _topology_summary(topology: InfraTopology, probes: dict[str, ProbeResult] | 
 
 def _topology_json_with_status(
     topology: InfraTopology,
-    probes: dict[str, ProbeResult] | None,
+    probes: list[ProbeResult] | None,
 ) -> str:
     services: dict[str, dict] = {}
     for service_name, service in topology.services.items():
         payload = asdict(service)
-        probe = probes.get(service_name) if probes else None
-        payload["status"] = _probe_status(probe)
-        if probe is not None:
-            payload["probe"] = {
-                "url": probe.url,
-                "ok": probe.ok,
-                "status": probe.status,
-                "latency_ms": probe.latency_ms,
-                "error": probe.error,
-            }
+        # Get all probes for this service (may be multiple, one per port)
+        service_probes = [p for p in (probes or []) if p.service == service_name]
+
+        # Overall status: online if any port is online
+        if not service_probes:
+            status = "unknown"
+        elif any(p.ok for p in service_probes):
+            status = "online"
+        elif any(p.status is not None and p.status >= 500 for p in service_probes):
+            status = "restarting"
+        else:
+            status = "offline"
+
+        payload["status"] = status
+
+        # Add probe info for each port
+        if service_probes:
+            payload["probes"] = [
+                {
+                    "url": p.url,
+                    "ok": p.ok,
+                    "status": p.status,
+                    "latency_ms": p.latency_ms,
+                    "error": p.error,
+                    "host_port": p.host_port,
+                }
+                for p in service_probes
+            ]
+
         services[service_name] = payload
 
     map_payload = {
@@ -377,9 +396,9 @@ def _topology_json_with_status(
 
 def _compute_events(
     prev_services: set[str],
-    prev_probes: dict[str, ProbeResult] | None,
+    prev_probes: list[ProbeResult] | None,
     topology: InfraTopology,
-    probes: dict[str, ProbeResult] | None,
+    probes: list[ProbeResult] | None,
     enabled: set[str],
 ) -> list[dict]:
     events = []
@@ -396,16 +415,30 @@ def _compute_events(
             events.append({"severity": "warning", "message": f"service removed: {svc}", "timestamp": ts})
 
     if probes and prev_probes is not None:
-        for svc, current in probes.items():
-            previous = prev_probes.get(svc)
-            if previous is None:
-                continue
-            if previous.ok and not current.ok:
-                if current.status is not None and current.status >= 500 and "service_restarting" in enabled:
+        # Group probes by service
+        prev_by_service = {}
+        for p in prev_probes:
+            prev_by_service.setdefault(p.service, []).append(p)
+
+        current_by_service = {}
+        for p in probes:
+            current_by_service.setdefault(p.service, []).append(p)
+
+        # Check each service's overall status change
+        for svc in set(prev_by_service) | set(current_by_service):
+            prev_list = prev_by_service.get(svc, [])
+            curr_list = current_by_service.get(svc, [])
+
+            # Determine overall status: online if any port is online
+            prev_ok = any(p.ok for p in prev_list)
+            curr_ok = any(p.ok for p in curr_list)
+
+            if prev_ok and not curr_ok:
+                if any(p.status is not None and p.status >= 500 for p in curr_list) and "service_restarting" in enabled:
                     events.append({"severity": "warning", "message": f"service restarting: {svc}", "timestamp": ts})
                 elif "service_down" in enabled:
                     events.append({"severity": "error", "message": f"service down: {svc}", "timestamp": ts})
-            elif not previous.ok and current.ok and "service_up" in enabled:
+            elif not prev_ok and curr_ok and "service_up" in enabled:
                 events.append({"severity": "info", "message": f"service up: {svc}", "timestamp": ts})
 
     return events

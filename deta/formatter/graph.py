@@ -31,31 +31,47 @@ def generate_graph_yaml(
     lines: list[str] = ["graph:", "  nodes:"]
 
     for service_name, svc in topology.services.items():
-        result = probe_results.get(service_name) if probe_results else None
-        if result is None:
-            status = "unknown"
-        elif result.ok:
-            status = "online"
-        elif result.status is not None and result.status >= 500:
-            status = "restarting"
-        else:
-            status = "offline"
-
         lines.append(f"    - id: {service_name}")
         lines.append(f"      image: {svc.image or ''}")
         lines.append("      hosts:")
         bindings = _service_bindings(svc)
+
+        # Get probe results for this service (may have multiple, one per port)
+        service_probes = [r for r in (probe_results or []) if r.service == service_name]
+
         if bindings:
             for binding in bindings:
                 lines.append(f"        - host: {_binding_host(binding)}")
                 lines.append(f"          port: '{binding.host_port}'")
                 lines.append(f"          container_port: '{binding.container_port}'")
+                # Find probe result for this specific port
+                port_probe = None
+                if binding.host_port:
+                    port_probe = next((p for p in service_probes if p.host_port == binding.host_port), None)
+
+                if port_probe:
+                    if port_probe.ok:
+                        port_status = "online"
+                    elif port_probe.status is not None and port_probe.status >= 500:
+                        port_status = "restarting"
+                    else:
+                        port_status = "offline"
+                    lines.append(f"          status: {port_status}")
         else:
             lines.append("        - host: localhost")
             lines.append("          port: ''")
             lines.append("          container_port: ''")
 
-        lines.append(f"      status: {status}")
+        # Overall service status (any online = online, else if any restarting = restarting)
+        if not service_probes:
+            overall_status = "unknown"
+        elif any(p.ok for p in service_probes):
+            overall_status = "online"
+        elif any(p.status is not None and p.status >= 500 for p in service_probes):
+            overall_status = "restarting"
+        else:
+            overall_status = "offline"
+        lines.append(f"      status: {overall_status}")
 
     lines.append("  edges:")
     for service_name, svc in topology.services.items():
@@ -74,14 +90,14 @@ def _save_output(output_path: Path, content: str) -> None:
 def save_graph_yaml(
     topology: InfraTopology,
     output_path: Path,
-    probe_results: dict[str, ProbeResult] | None = None,
+    probe_results: list[ProbeResult] | None = None,
 ) -> None:
     _save_output(output_path, generate_graph_yaml(topology, probe_results))
 
 
 def generate_mermaid(
     topology: InfraTopology,
-    probe_results: dict[str, ProbeResult] | None = None,
+    probe_results: list[ProbeResult] | None = None,
 ) -> str:
     lines = ["graph LR"]
 
@@ -108,14 +124,26 @@ def generate_mermaid(
         lines.append("    classDef online fill:#d1fae5,stroke:#059669,stroke-width:2px")
         lines.append("    classDef offline fill:#fee2e2,stroke:#dc2626,stroke-width:2px")
         lines.append("    classDef restarting fill:#fef3c7,stroke:#d97706,stroke-width:2px")
-        for service_name, result in probe_results.items():
-            if result.ok:
+
+        # Group probes by service
+        probes_by_service = {}
+        for r in probe_results:
+            probes_by_service.setdefault(r.service, []).append(r)
+
+        for service_name in topology.services.keys():
+            service_probes = probes_by_service.get(service_name, [])
+            # Overall status: online if any port is online
+            if not service_probes:
+                class_name = ""
+            elif any(p.ok for p in service_probes):
                 class_name = "online"
-            elif result.status is not None and result.status >= 500:
+            elif any(p.status is not None and p.status >= 500 for p in service_probes):
                 class_name = "restarting"
             else:
                 class_name = "offline"
-            lines.append(f"    class {_safe_mermaid_id(service_name)} {class_name}")
+
+            if class_name:
+                lines.append(f"    class {_safe_mermaid_id(service_name)} {class_name}")
 
     return "\n".join(lines) + "\n"
 
@@ -123,7 +151,7 @@ def generate_mermaid(
 def save_mermaid(
     topology: InfraTopology,
     output_path: Path,
-    probe_results: dict[str, ProbeResult] | None = None,
+    probe_results: list[ProbeResult] | None = None,
 ) -> None:
     _save_output(output_path, generate_mermaid(topology, probe_results))
 
@@ -131,7 +159,7 @@ def save_mermaid(
 def save_png(
     topology: InfraTopology,
     output_path: Path,
-    probe_results: dict[str, ProbeResult] | None = None,
+    probe_results: list[ProbeResult] | None = None,
 ) -> None:
     try:
         from graphviz import Digraph
@@ -152,9 +180,13 @@ def save_png(
             label += "\n" + "\n".join(hosts[:3])
 
         attrs = {}
-        if probe_results and service_name in probe_results:
-            attrs["style"] = "filled"
-            attrs["fillcolor"] = "#d1fae5" if probe_results[service_name].ok else "#fee2e2"
+        if probe_results:
+            service_probes = [p for p in probe_results if p.service == service_name]
+            if service_probes:
+                # Overall status: online if any port is online
+                ok = any(p.ok for p in service_probes)
+                attrs["style"] = "filled"
+                attrs["fillcolor"] = "#d1fae5" if ok else "#fee2e2"
 
         dot.node(service_name, label, **attrs)
 
