@@ -212,7 +212,7 @@ HTML = """
       }
     }
 
-    const STATUS_ICON = { online: '●', offline: '○', restarting: '↻', unknown: '?' };
+    const STATUS_ICON = { online: '\u25cf', offline: '\u25cb', restarting: '\u21bb', unknown: '?' };
     const STATUS_CLASS = { online: 's-online', offline: 's-offline', restarting: 's-restarting', unknown: 's-unknown' };
 
     function fmtLatency(ms) {
@@ -227,7 +227,7 @@ HTML = """
       try {
         const d = new Date(ts);
         return d.toLocaleTimeString();
-      } catch { return ts; }
+      } catch (e) { return ts; }
     }
 
     let _prevRowStatus = {};

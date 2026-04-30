@@ -39,31 +39,36 @@ def _port_in_use(host: str, port: int) -> bool:
 
 
 def _pid_on_port(host: str, port: int) -> int | None:
-    commands = [
-        ["ss", "-ltnp", f"( sport = :{port} )"],
-        ["lsof", "-t", f"-iTCP@{host}:{port}", "-sTCP:LISTEN"],
-    ]
+    import re as _re
 
-    for cmd in commands:
-        try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        except FileNotFoundError:
-            continue
+    # ss: output contains users:(("name",pid=NNN,fd=N))
+    try:
+        proc = subprocess.run(
+            ["ss", "-ltnp", f"( sport = :{port} )"],
+            capture_output=True, text=True, check=False,
+        )
+        for m in _re.finditer(r"pid=(\d+)", proc.stdout or ""):
+            pid = int(m.group(1))
+            if pid > 1:
+                return pid
+    except FileNotFoundError:
+        pass
 
-        output = (proc.stdout or "") + "\n" + (proc.stderr or "")
-        for token in output.replace(",", " ").replace("\n", " ").split():
-            if "pid=" in token:
-                try:
-                    return int(token.split("pid=", 1)[1].split(" ", 1)[0].rstrip(")"))
-                except ValueError:
-                    continue
-            if token.isdigit():
-                try:
-                    pid = int(token)
-                    if pid > 1:
-                        return pid
-                except ValueError:
-                    continue
+    # lsof -t prints one PID per line
+    try:
+        proc = subprocess.run(
+            ["lsof", "-t", f"-iTCP@{host}:{port}", "-sTCP:LISTEN"],
+            capture_output=True, text=True, check=False,
+        )
+        for line in (proc.stdout or "").splitlines():
+            line = line.strip()
+            if line.isdigit():
+                pid = int(line)
+                if pid > 1:
+                    return pid
+    except FileNotFoundError:
+        pass
+
     return None
 
 
