@@ -71,9 +71,15 @@ def generate_graph_yaml(
     lines: list[str] = ["graph:", "  nodes:"]
 
     for service_name, svc in topology.services.items():
-        online = None
-        if probe_results and service_name in probe_results:
-            online = probe_results[service_name].ok
+        result = probe_results.get(service_name) if probe_results else None
+        if result is None:
+            status = "unknown"
+        elif result.ok:
+            status = "online"
+        elif result.status is not None and result.status >= 500:
+            status = "restarting"
+        else:
+            status = "offline"
 
         lines.append(f"    - id: {service_name}")
         lines.append(f"      image: {svc.image or ''}")
@@ -89,10 +95,7 @@ def generate_graph_yaml(
             lines.append("          port: ''")
             lines.append("          container_port: ''")
 
-        if online is None:
-            lines.append("      online: unknown")
-        else:
-            lines.append(f"      online: {'true' if online else 'false'}")
+        lines.append(f"      status: {status}")
 
     lines.append("  edges:")
     for service_name, svc in topology.services.items():
@@ -139,8 +142,14 @@ def generate_mermaid(
     if probe_results:
         lines.append("    classDef online fill:#d1fae5,stroke:#059669,stroke-width:2px")
         lines.append("    classDef offline fill:#fee2e2,stroke:#dc2626,stroke-width:2px")
+        lines.append("    classDef restarting fill:#fef3c7,stroke:#d97706,stroke-width:2px")
         for service_name, result in probe_results.items():
-            class_name = "online" if result.ok else "offline"
+            if result.ok:
+                class_name = "online"
+            elif result.status is not None and result.status >= 500:
+                class_name = "restarting"
+            else:
+                class_name = "offline"
             lines.append(f"    class {_safe_mermaid_id(service_name)} {class_name}")
 
     return "\n".join(lines) + "\n"

@@ -33,6 +33,7 @@ HTML = """
     .ok { background:#163a2a; color:#a7f3d0; }
     .bad { background:#3a1b1b; color:#fecaca; }
     .warn { background:#3a3318; color:#fde68a; }
+    .restart { background:#3a2e18; color:#fcd34d; }
     .row { display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: wrap; }
     .actions { display:flex; gap: 8px; flex-wrap: wrap; }
     .btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
@@ -60,6 +61,7 @@ HTML = """
     <div class="status">
       <span class="pill ok" id="services-pill">services: 0</span>
       <span class="pill warn" id="anomalies-pill">anomalies: 0</span>
+      <span class="pill restart" id="restarting-pill">restarting: 0</span>
       <span class="pill bad" id="offline-pill">offline: 0</span>
     </div>
   </header>
@@ -147,6 +149,8 @@ HTML = """
       rootInfo.textContent = payload.root || '';
       servicesPill.textContent = `services: ${payload.summary.services}`;
       anomaliesPill.textContent = `anomalies: ${payload.summary.anomalies}`;
+      const restartPill = document.getElementById('restarting-pill');
+      if (restartPill) restartPill.textContent = `restarting: ${payload.summary.restarting || 0}`;
       offlinePill.textContent = `offline: ${payload.summary.offline}`;
 
       graph.removeAttribute('data-processed');
@@ -312,15 +316,33 @@ class ConnectionManager:
             self.disconnect(conn)
 
 
+def _probe_status(probe: ProbeResult | None) -> str:
+    if probe is None:
+        return "unknown"
+    if probe.ok:
+        return "online"
+    if probe.status is not None and probe.status >= 500:
+        return "restarting"
+    return "offline"
+
+
 def _topology_summary(topology: InfraTopology, probes: dict[str, ProbeResult] | None) -> dict:
     anomalies = topology.detect_anomalies()
     offline = 0
+    restarting = 0
     if probes:
-        offline = sum(1 for r in probes.values() if not r.ok)
+        for r in probes.values():
+            if r.ok:
+                continue
+            if r.status is not None and r.status >= 500:
+                restarting += 1
+            else:
+                offline += 1
     return {
         "services": len(topology.services),
         "anomalies": len(anomalies),
         "offline": offline,
+        "restarting": restarting,
     }
 
 
@@ -332,7 +354,7 @@ def _topology_json_with_status(
     for service_name, service in topology.services.items():
         payload = asdict(service)
         probe = probes.get(service_name) if probes else None
-        payload["status"] = "unknown" if probe is None else ("online" if probe.ok else "offline")
+        payload["status"] = _probe_status(probe)
         if probe is not None:
             payload["probe"] = {
                 "url": probe.url,
@@ -378,8 +400,11 @@ def _compute_events(
             previous = prev_probes.get(svc)
             if previous is None:
                 continue
-            if previous.ok and not current.ok and "service_down" in enabled:
-                events.append({"severity": "error", "message": f"service down: {svc}", "timestamp": ts})
+            if previous.ok and not current.ok:
+                if current.status is not None and current.status >= 500 and "service_restarting" in enabled:
+                    events.append({"severity": "warning", "message": f"service restarting: {svc}", "timestamp": ts})
+                elif "service_down" in enabled:
+                    events.append({"severity": "error", "message": f"service down: {svc}", "timestamp": ts})
             elif not previous.ok and current.ok and "service_up" in enabled:
                 events.append({"severity": "info", "message": f"service up: {svc}", "timestamp": ts})
 
@@ -445,6 +470,12 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         payload = await collect_payload()
         await manager.broadcast(payload)
 
+        async def periodic_refresh():
+            while True:
+                await asyncio.sleep(config.web.refresh_seconds)
+                payload = await collect_payload()
+                await manager.broadcast(payload)
+
         async def on_change(change: dict):
             payload = await collect_payload(events=[{
                 "severity": "warning",
@@ -453,7 +484,10 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             }])
             await manager.broadcast(payload)
 
-        await watch_configs(root, on_change)
+        await asyncio.gather(
+            periodic_refresh(),
+            watch_configs(root, on_change),
+        )
 
     @app.on_event("startup")
     async def startup_event():
