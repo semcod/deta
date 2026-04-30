@@ -9,6 +9,7 @@ import sys
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 from deta.builder.cache import TopologyCache
 from deta.builder.topology import InfraTopology, build_topology
@@ -27,46 +28,77 @@ HTML = """
   <link rel="icon" href="data:,">
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0b1020; color: #e5e7eb; }
-    header { width: min(100%, 800px); box-sizing: border-box; margin: 0 auto; padding: 12px 16px; border-bottom: 1px solid #223; display:flex; align-items:center; justify-content:space-between; gap: 12px; flex-wrap: wrap; }
-    main { width: min(100%, 800px); box-sizing: border-box; margin: 0 auto; display:flex; flex-direction:column; gap: 12px; padding: 12px; }
-    .card { background: #11172a; border: 1px solid #223; border-radius: 10px; padding: 12px; }
-    .status { display:flex; gap:10px; flex-wrap: wrap; }
-    .pill { padding:4px 8px; border-radius: 999px; font-size: 12px; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0b1020; color: #e5e7eb; display: flex; flex-direction: column; }
+    /* ── header ── */
+    header { flex: 0 0 auto; padding: 8px 16px; border-bottom: 1px solid #223; display:flex; align-items:center; justify-content:space-between; gap: 12px; flex-wrap: wrap; }
+    .status { display:flex; gap:8px; flex-wrap: wrap; }
+    .pill { padding:3px 8px; border-radius: 999px; font-size: 12px; }
     .ok { background:#163a2a; color:#a7f3d0; }
     .bad { background:#3a1b1b; color:#fecaca; }
     .warn { background:#3a3318; color:#fde68a; }
     .restart { background:#3a2e18; color:#fcd34d; }
-    .row { display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: wrap; }
-    .actions { display:flex; gap: 8px; flex-wrap: wrap; }
-    .btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
-    .btn:hover { background: #253456; }
-    #graph-wrap { width: 100%; overflow-x: auto; }
-    #graph { min-width: 100%; }
-    #graph svg { width: 100% !important; max-width: 100% !important; height: auto !important; }
-    #alerts { max-height: 40vh; overflow:auto; }
-    .alert { border-bottom:1px solid #223; padding: 8px 0; font-size: 13px; }
     .ts { color:#93a3b8; font-size:11px; }
-    .dump { margin-top: 8px; max-height: 220px; overflow: auto; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #0b1328; border: 1px solid #223; border-radius: 8px; padding: 10px; display: none; }
-    .dump.active { display: block; }
-    .tabs { display:flex; gap:6px; margin-top: 8px; }
-    .tab-btn { background: #1f2a44; color: #93a3b8; border: 1px solid #2f446e; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    /* ── main tab bar ── */
+    #main-tabs { flex: 0 0 auto; display:flex; gap:0; border-bottom: 1px solid #223; background: #0d1324; padding: 0 12px; }
+    .main-tab-btn { background: none; border: none; border-bottom: 2px solid transparent; color: #6b7ea0; padding: 8px 16px; font-size: 13px; cursor: pointer; transition: color .15s, border-color .15s; }
+    .main-tab-btn:hover { color: #dbeafe; }
+    .main-tab-btn.active { color: #dbeafe; border-bottom-color: #4f83cc; }
+    /* ── panels ── */
+    #panels { flex: 1 1 0; min-height: 0; position: relative; }
+    .panel { display: none; position: absolute; inset: 0; overflow: hidden; flex-direction: column; padding: 12px; gap: 8px; }
+    .panel.active { display: flex; }
+    /* ── shared ── */
+    .row { display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: wrap; }
+    .actions { display:flex; gap: 6px; flex-wrap: wrap; }
+    .btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+    .btn:hover { background: #253456; }
+    h3 { margin: 0; font-size: 14px; color: #93c5fd; }
+    /* ── sub-tabs (map data / monitor) ── */
+    .sub-tabs { display:flex; gap:6px; }
+    .sub-tab-btn { background: #1f2a44; color: #93a3b8; border: 1px solid #2f446e; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .sub-tab-btn.active { background: #2f446e; color: #dbeafe; }
+    /* ── graph panel ── */
+    #graph-wrap { flex: 1 1 0; overflow: hidden; background: #0f1526; border: 1px solid #223; border-radius: 8px; cursor: grab; position: relative; }
+    #graph-wrap.dragging { cursor: grabbing; }
+    #graph { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+    #graph svg { display: block; width: auto !important; max-width: none !important; height: auto !important; }
+    #zoom-controls { position: absolute; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
+    .zoom-btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 6px; width: 28px; height: 28px; font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .zoom-btn:hover { background: #253456; }
+    /* ── map data panel ── */
+    #sub-json-dump, #sub-yaml-dump { flex: 1 1 0; overflow: auto; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #0b1328; border: 1px solid #223; border-radius: 8px; padding: 10px; display:none; }
+    #sub-json-dump.active, #sub-yaml-dump.active { display: block; }
+    #sub-png-dump { flex: 1 1 0; overflow: auto; display: none; }
+    #sub-png-dump.active { display: flex; align-items: flex-start; justify-content: center; }
+    #sub-png-dump img { max-width: 100%; height: auto; }
+    /* ── alerts panel ── */
+    #alerts { flex: 1 1 0; overflow: auto; }
+    .alert { border-bottom:1px solid #223; padding: 8px 0; font-size: 13px; }
+    /* ── monitor panel ── */
+    #monitor-table-wrap { flex: 1 1 0; overflow: auto; background: #0b1328; border: 1px solid #223; border-radius: 8px; }
+    #monitor-table-wrap table { width:100%; border-collapse:collapse; font-size:12px; }
+    #monitor-table-wrap thead th { position: sticky; top: 0; background: #111827; text-align:left; border-bottom:1px solid #223; padding:7px 8px; font-size:11px; color:#6b7ea0; text-transform: uppercase; letter-spacing:.05em; }
+    #notify-panel { display:none; flex-direction:column; gap:10px; padding: 8px; }
+    #notify-panel.active { display: flex; }
+    /* ── status colors ── */
     .s-online { color:#a7f3d0; font-weight:600; }
     .s-offline { color:#fca5a5; font-weight:600; }
     .s-unknown { color:#93a3b8; }
     .s-restarting { color:#fcd34d; font-weight:600; }
-    @keyframes row-flash { 0%{background:#1e2d4a} 100%{background:transparent} }
-    .row-flash { animation: row-flash 0.8s ease-out; }
-    .tab-btn.active { background: #2f446e; color: #dbeafe; }
-    #png-dump { width: 100%; height: auto; object-fit: contain; padding: 0; }
+    .row-changed-online  { background: #0d2a1a !important; transition: background 1s ease-out; }
+    .row-changed-offline  { background: #2a0d0d !important; transition: background 1s ease-out; }
+    .row-changed-restarting { background: #2a220d !important; transition: background 1s ease-out; }
+    .row-changed { background: #1e2d4a !important; transition: background 1s ease-out; }
   </style>
 </head>
 <body>
   <header>
-    <div>
+    <div style="display:flex;align-items:center;gap:12px;">
       <strong>deta dashboard</strong>
       <span id="root" class="ts"></span>
-      <span id="refresh-countdown" class="ts" style="margin-left:8px;">refresh in: 10s</span>
+      <span id="refresh-countdown" class="ts">refresh in: 10s</span>
     </div>
     <div class="status">
       <span class="pill ok" id="services-pill">services: 0</span>
@@ -75,8 +107,18 @@ HTML = """
       <span class="pill bad" id="offline-pill">offline: 0</span>
     </div>
   </header>
-  <main>
-    <section class="card">
+
+  <nav id="main-tabs">
+    <button class="main-tab-btn active" data-panel="panel-map">Service Map</button>
+    <button class="main-tab-btn" data-panel="panel-data">Map Data</button>
+    <button class="main-tab-btn" data-panel="panel-alerts">Alerts</button>
+    <button class="main-tab-btn" data-panel="panel-monitor">Monitor</button>
+  </nav>
+
+  <div id="panels">
+
+    <!-- SERVICE MAP -->
+    <section id="panel-map" class="panel active">
       <div class="row">
         <h3>Service Map</h3>
         <div class="actions">
@@ -86,76 +128,81 @@ HTML = """
       </div>
       <div id="graph-wrap">
         <div id="graph" class="mermaid">graph LR; Boot[Loading] --> Wait[Waiting for data]</div>
+        <div id="zoom-controls">
+          <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+          <button class="zoom-btn" id="zoom-reset" title="Reset" style="font-size:11px;">⌂</button>
+          <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+        </div>
       </div>
     </section>
-    <section class="card">
+
+    <!-- MAP DATA -->
+    <section id="panel-data" class="panel">
       <div class="row">
-        <h3>Current Map Data</h3>
+        <div class="sub-tabs">
+          <button class="sub-tab-btn active" data-sub="sub-json-dump">JSON</button>
+          <button class="sub-tab-btn" data-sub="sub-yaml-dump">YAML</button>
+          <button class="sub-tab-btn" data-sub="sub-png-dump">PNG</button>
+        </div>
         <div class="actions">
           <button class="btn" id="copy-json">Copy JSON</button>
           <button class="btn" id="copy-yaml">Copy YAML</button>
           <button class="btn" id="download-png">Download PNG</button>
         </div>
       </div>
-      <div class="tabs">
-        <button class="tab-btn active" data-tab-group="map" data-tab="json">JSON</button>
-        <button class="tab-btn" data-tab-group="map" data-tab="yaml">YAML</button>
-        <button class="tab-btn" data-tab-group="map" data-tab="png">PNG</button>
-      </div>
-      <div class="tab-panes" data-tab-group-pane="map">
-        <pre id="json-dump" class="dump active"></pre>
-        <pre id="yaml-dump" class="dump"></pre>
-        <img id="png-dump" class="dump" alt="infra map png">
-      </div>
+      <pre id="sub-json-dump" class="active"></pre>
+      <pre id="sub-yaml-dump"></pre>
+      <div id="sub-png-dump"><img id="png-dump" alt="infra map png" style="max-width:100%;height:auto;"></div>
     </section>
-    <section class="card">
-      <h3>Alerts</h3>
+
+    <!-- ALERTS -->
+    <section id="panel-alerts" class="panel">
+      <div class="row"><h3>Alerts</h3></div>
       <div id="alerts"></div>
     </section>
-    <section class="card">
+
+    <!-- MONITOR -->
+    <section id="panel-monitor" class="panel">
       <div class="row">
-        <h3>Monitor</h3>
+        <div class="sub-tabs">
+          <button class="sub-tab-btn active" data-sub="monitor-table-wrap">Table</button>
+          <button class="sub-tab-btn" data-sub="notify-panel">Notifications</button>
+        </div>
         <div class="actions">
           <button class="btn" id="copy-monitor-json">Copy JSON</button>
           <button class="btn" id="copy-monitor-csv">Copy CSV</button>
           <button class="btn" id="download-monitor-csv">Download CSV</button>
         </div>
       </div>
-      <div class="tabs">
-        <button class="tab-btn active" data-tab-group="monitor" data-tab="monitor">Table</button>
-        <button class="tab-btn" data-tab-group="monitor" data-tab="notify">Notifications</button>
+      <div id="monitor-table-wrap" class="active">
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Status</th>
+              <th>Host</th>
+              <th>Port</th>
+              <th>Latency</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="monitor-table-body"></tbody>
+        </table>
       </div>
-      <div class="tab-panes" data-tab-group-pane="monitor">
-        <div id="monitor-dump" class="dump active" style="display:block; max-height:none;">
-          <table style="width:100%; border-collapse:collapse; font-size:12px;">
-            <thead>
-              <tr>
-                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Service</th>
-                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Status</th>
-                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Latency (ms)</th>
-                <th style="text-align:left; border-bottom:1px solid #223; padding:6px;">Updated</th>
-              </tr>
-            </thead>
-            <tbody id="monitor-table-body"></tbody>
-          </table>
-        </div>
-        <div id="notify-dump" class="dump" style="display:none;">
-          <label style="display:block; margin-bottom:8px;">
-            <input type="checkbox" id="notify-enabled" checked /> Enable browser notifications
-          </label>
-          <label style="display:block; margin-bottom:8px;">
-            Minimum severity:
-            <select id="notify-severity" class="btn" style="margin-left:6px;">
-              <option value="info">info</option>
-              <option value="warning">warning</option>
-              <option value="error">error</option>
-            </select>
-          </label>
-          <button class="btn" id="notify-permission">Request permission</button>
-        </div>
+      <div id="notify-panel">
+        <label><input type="checkbox" id="notify-enabled" checked /> Enable browser notifications</label>
+        <label>Minimum severity:
+          <select id="notify-severity" class="btn" style="margin-left:6px;">
+            <option value="info">info</option>
+            <option value="warning">warning</option>
+            <option value="error">error</option>
+          </select>
+        </label>
+        <button class="btn" id="notify-permission">Request permission</button>
       </div>
     </section>
-  </main>
+
+  </div>
 
   <script>
     mermaid.initialize({
@@ -176,8 +223,8 @@ HTML = """
     const offlinePill = document.getElementById('offline-pill');
     const rootInfo = document.getElementById('root');
     const refreshCountdown = document.getElementById('refresh-countdown');
-    const jsonDump = document.getElementById('json-dump');
-    const yamlDump = document.getElementById('yaml-dump');
+    const jsonDump = document.getElementById('sub-json-dump');
+    const yamlDump = document.getElementById('sub-yaml-dump');
     const pngDump = document.getElementById('png-dump');
     const monitorTableBody = document.getElementById('monitor-table-body');
     const notifyEnabled = document.getElementById('notify-enabled');
@@ -232,6 +279,21 @@ HTML = """
     }
 
     let _prevRowStatus = {};
+    const _rowChangeTimers = {};
+    const STATUS_HIGHLIGHT = { online: 'row-changed-online', offline: 'row-changed-offline', restarting: 'row-changed-restarting' };
+
+    function _flashRow(tr, status) {
+      const cls = STATUS_HIGHLIGHT[status] || 'row-changed';
+      tr.classList.remove('row-changed-online', 'row-changed-offline', 'row-changed-restarting', 'row-changed');
+      void tr.offsetWidth;
+      tr.classList.add(cls);
+      const svcId = tr.id;
+      if (_rowChangeTimers[svcId]) clearTimeout(_rowChangeTimers[svcId]);
+      _rowChangeTimers[svcId] = setTimeout(() => {
+        tr.classList.remove(cls);
+        delete _rowChangeTimers[svcId];
+      }, refreshSeconds * 1000);
+    }
 
     function monitorRowsToSortedArray() {
       return Object.values(monitorRows).sort((a, b) => a.service.localeCompare(b.service));
@@ -243,13 +305,17 @@ HTML = """
 
     function monitorRowsToCsv() {
       const rows = monitorRowsToSortedArray();
-      const header = 'service,status,latency_ms,updated_at';
-      const lines = rows.map(r => `${r.service},${r.status || ''},${r.latency_ms ?? ''},${r.updated_at || ''}`);
+      const header = 'service,status,host,port,latency_ms,updated_at';
+      const lines = rows.map(r => {
+        const lat = r.latency_ms != null ? Math.round(parseFloat(r.latency_ms)) : '';
+        return `${r.service},${r.status || ''},${r.host || ''},${r.port || ''},${lat},${r.updated_at || ''}`;
+      });
       return [header, ...lines].join(String.fromCharCode(10));
     }
 
     function renderMonitorTable() {
       const rows = monitorRowsToSortedArray();
+      const changedRows = [];
       const fragment = document.createDocumentFragment();
       rows.forEach(row => {
         const status = row.status || 'unknown';
@@ -259,26 +325,24 @@ HTML = """
         _prevRowStatus[row.service] = status;
         const trId = `mtr-${row.service.replace(/[^a-z0-9]/gi, '_')}`;
         let tr = document.getElementById(trId);
-        const isNew = !tr;
-        if (isNew) {
+        if (!tr) {
           tr = document.createElement('tr');
           tr.id = trId;
         }
         tr.innerHTML = `
           <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px;">${row.service}</td>
           <td style="padding:6px; border-bottom:1px solid #1a2540;"><span class="${cls}">${icon} ${status}</span></td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px; color:#93a3b8;">${row.host || '-'}</td>
+          <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px; color:#93a3b8;">${row.port || '-'}</td>
           <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px; color:#93a3b8;">${fmtLatency(row.latency_ms)}</td>
           <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:11px; color:#6b7ea0;">${fmtTs(row.updated_at)}</td>
         `;
-        if (changed && !isNew) {
-          tr.classList.remove('row-flash');
-          void tr.offsetWidth;
-          tr.classList.add('row-flash');
-        }
+        if (changed) changedRows.push({ tr, status });
         fragment.appendChild(tr);
       });
       monitorTableBody.innerHTML = '';
       monitorTableBody.appendChild(fragment);
+      changedRows.forEach(({ tr, status }) => _flashRow(tr, status));
     }
 
     function rebuildMonitorRowsFromPayload(payload) {
@@ -302,20 +366,19 @@ HTML = """
       const isDelta = payload.type === 'delta';
       const summary = payload.summary || {};
 
-      if (isDelta && payload.status_delta) {
-        serviceStatusCache = { ...serviceStatusCache, ...payload.status_delta };
-        Object.entries(payload.status_delta).forEach(([service, status]) => {
-          if (status === 'removed') {
-            delete monitorRows[service];
-            return;
-          }
-          monitorRows[service] = {
-            ...(monitorRows[service] || { service, latency_ms: '-' }),
-            service,
-            status,
-            updated_at: new Date().toISOString(),
-          };
-        });
+      if (isDelta) {
+        if (payload.status_delta) {
+          serviceStatusCache = { ...serviceStatusCache, ...payload.status_delta };
+          Object.entries(payload.status_delta).forEach(([service, status]) => {
+            if (status === 'removed') { delete monitorRows[service]; }
+          });
+        }
+        if (payload.service_rows && payload.service_rows.length > 0) {
+          payload.service_rows.forEach((row) => {
+            if (payload.status_delta && payload.status_delta[row.service] === 'removed') return;
+            monitorRows[row.service] = row;
+          });
+        }
       }
 
       latestPayload = payload;
@@ -336,6 +399,7 @@ HTML = """
         graph.removeAttribute('data-processed');
         graph.textContent = payload.mermaid;
         await mermaid.init(undefined, graph);
+        setTimeout(() => window._graphFit && window._graphFit(), 50);
 
         try {
           const pngBlob = await renderPngBlob();
@@ -463,6 +527,77 @@ HTML = """
       addAlert('PNG downloaded', 'info', new Date().toISOString());
     }
 
+    // ── pan/zoom ──
+    (function initPanZoom() {
+      const wrap = document.getElementById('graph-wrap');
+      const g = document.getElementById('graph');
+      let scale = 1, tx = 0, ty = 0;
+      let dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
+
+      function applyTransform() {
+        g.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+      }
+
+      function fitToWrap() {
+        const svg = g.querySelector('svg');
+        if (!svg) return;
+        const ww = wrap.clientWidth, wh = wrap.clientHeight;
+        const sw = svg.getBoundingClientRect().width / scale;
+        const sh = svg.getBoundingClientRect().height / scale;
+        if (!sw || !sh) return;
+        scale = Math.min(ww / sw, wh / sh, 1);
+        tx = (ww - sw * scale) / 2;
+        ty = 8;
+        applyTransform();
+      }
+
+      window._graphFit = fitToWrap;
+
+      wrap.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const rect = wrap.getBoundingClientRect();
+        const mx = e.clientX - rect.left - tx;
+        const my = e.clientY - rect.top - ty;
+        const delta = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+        scale = Math.min(Math.max(scale * delta, 0.1), 10);
+        tx -= mx * (delta - 1);
+        ty -= my * (delta - 1);
+        applyTransform();
+      }, { passive: false });
+
+      wrap.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        dragging = true; startX = e.clientX; startY = e.clientY; startTx = tx; startTy = ty;
+        wrap.setPointerCapture(e.pointerId);
+        wrap.classList.add('dragging');
+      });
+      wrap.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        tx = startTx + (e.clientX - startX);
+        ty = startTy + (e.clientY - startY);
+        applyTransform();
+      });
+      wrap.addEventListener('pointerup', () => { dragging = false; wrap.classList.remove('dragging'); });
+
+      document.getElementById('zoom-in').addEventListener('click', () => {
+        const cx = wrap.clientWidth / 2, cy = wrap.clientHeight / 2;
+        const mx = cx - tx, my = cy - ty;
+        const d = 1.25;
+        scale = Math.min(scale * d, 10);
+        tx -= mx * (d - 1); ty -= my * (d - 1);
+        applyTransform();
+      });
+      document.getElementById('zoom-out').addEventListener('click', () => {
+        const cx = wrap.clientWidth / 2, cy = wrap.clientHeight / 2;
+        const mx = cx - tx, my = cy - ty;
+        const d = 1 / 1.25;
+        scale = Math.max(scale * d, 0.1);
+        tx -= mx * (d - 1); ty -= my * (d - 1);
+        applyTransform();
+      });
+      document.getElementById('zoom-reset').addEventListener('click', fitToWrap);
+    })();
+
     copyMermaidBtn.addEventListener('click', () => copyText('Mermaid', latestFullPayload?.mermaid || ''));
     copyJsonBtn.addEventListener('click', () => copyText('JSON', latestFullPayload?.topology_json || ''));
     copyYamlBtn.addEventListener('click', () => copyText('YAML', latestFullPayload?.graph_yaml || ''));
@@ -479,18 +614,26 @@ HTML = """
       addAlert('monitor.csv downloaded', 'info', new Date().toISOString());
     });
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.main-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const group = btn.dataset.tabGroup || 'map';
-        document.querySelectorAll(`.tab-btn[data-tab-group="${group}"]`).forEach(b => b.classList.remove('active'));
-        document.querySelectorAll(`[data-tab-group-pane="${group}"] .dump`).forEach(d => {
-          d.classList.remove('active');
-          d.style.display = 'none';
+        document.querySelectorAll('.main-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.panel).classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const panel = btn.closest('.panel');
+        panel.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+        panel.querySelectorAll('[id]').forEach(el => {
+          if (el.dataset && el.id && panel.querySelector(`.sub-tab-btn[data-sub="${el.id}"]`)) {
+            el.classList.remove('active');
+          }
         });
         btn.classList.add('active');
-        const activePane = document.getElementById(`${btn.dataset.tab}-dump`);
-        activePane.classList.add('active');
-        activePane.style.display = 'block';
+        document.getElementById(btn.dataset.sub).classList.add('active');
       });
     });
 
@@ -868,7 +1011,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             if force_rescan or state["topology_dirty"]:
                 state["probes_cache"] = None
             # Use cached probes if still valid (half of refresh_interval)
-            cache_ttl = max(config.web.refresh_seconds / 2, 5.0)
+            cache_ttl = config.web.refresh_seconds / 2
             now = datetime.utcnow().timestamp()
             if state["probes_cache"] and (now - state["probes_cache_ts"]) < cache_ttl:
                 probes = state["probes_cache"]
@@ -918,9 +1061,47 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         state["prev_service_status"] = current_status
         state["payload_version"] += 1
 
+        now_ts = datetime.utcnow().isoformat()
+        service_rows = []
+        for service_name, service_status in current_status.items():
+            service_probes = [p for p in (probes or []) if p.service == service_name]
+            first_probe = service_probes[0] if service_probes else None
+            svc_def = topology.services.get(service_name)
+
+            # Collect all published host ports from resolved_ports
+            resolved = svc_def.resolved_ports if svc_def else []
+            pub_ports = [b.host_port for b in resolved if b.is_resolved]
+            pub_hosts = [b.host or "localhost" for b in resolved if b.is_resolved]
+
+            # Best host: from probe URL, fallback to resolved binding host
+            probe_url = first_probe.url if first_probe else ""
+            try:
+                probe_host = urlparse(probe_url).hostname or ""
+            except Exception:
+                probe_host = ""
+            host = probe_host or (pub_hosts[0] if pub_hosts else "localhost")
+
+            # Best port: probe host_port if it matches a published port, else use all published ports
+            probe_hp = first_probe.host_port if first_probe else ""
+            if probe_hp and probe_hp in pub_ports:
+                port = probe_hp
+            elif pub_ports:
+                port = ",".join(pub_ports)
+            else:
+                port = probe_hp
+
+            service_rows.append(
+                {
+                    "service": service_name,
+                    "status": service_status,
+                    "latency_ms": first_probe.latency_ms if first_probe else None,
+                    "updated_at": now_ts,
+                    "host": host,
+                    "port": port,
+                }
+            )
+
         if prefer_delta and not force_rescan and not graph_changed:
-            if not status_delta and not merged_events:
-                return None
             return {
                 "type": "delta",
                 "v": state["payload_version"],
@@ -929,21 +1110,9 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 "summary": summary,
                 "graph_hash": state["graph_hash"],
                 "status_delta": status_delta,
+                "service_rows": service_rows,
                 "events": merged_events,
             }
-
-        service_rows = []
-        for service_name, service_status in current_status.items():
-            service_probes = [p for p in (probes or []) if p.service == service_name]
-            first_probe = service_probes[0] if service_probes else None
-            service_rows.append(
-                {
-                    "service": service_name,
-                    "status": service_status,
-                    "latency_ms": first_probe.latency_ms if first_probe else None,
-                    "updated_at": datetime.utcnow().isoformat(),
-                }
-            )
 
         return {
             "type": "full",
@@ -975,9 +1144,8 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 if not manager.has_connections():
                     continue
                 payload = await collect_payload(prefer_delta=True)
-                if payload is not None:
-                    delivered, message_size = await manager.broadcast(payload)
-                    _record_telemetry(payload, delivered, message_size)
+                delivered, message_size = await manager.broadcast(payload)
+                _record_telemetry(payload, delivered, message_size)
 
         async def flush_changes_after_debounce(debounce_seconds: float = None):
             if debounce_seconds is None:
