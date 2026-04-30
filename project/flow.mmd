@@ -25,20 +25,20 @@ flowchart TD
     subgraph Core
         deta__core__Wup____repr__["__repr__"]
         deta__core__Wup__get_info["get_info"]
+        deta__web__app__ConnectionManager__connect["connect"]
+        deta__web__app__ConnectionManager__has_connections["has_connections"]
+        deta__web__app__ConnectionManager__disconnect["disconnect"]
+        deta__web__app__ConnectionManager__broadcast["broadcast"]
+        deta__web__app___probe_status["_probe_status"]
+        deta__web__app___topology_json_with_status{{_topology_json_with_status CC=17}}
+        deta__web__app___compute_events{{_compute_events CC=22}}
+        deta__scanner__ports__parse_port("parse_port CC=10")
+        deta__scanner__ports__parse_ports["parse_ports"]
         deta__scanner__npm__scan_npm["scan_npm"]
         deta__scanner__openapi__scan_openapi["scan_openapi"]
         deta__scanner__compose__scan_compose["scan_compose"]
-        deta__integration__semcod__generate_for_sumd["generate_for_sumd"]
-        deta__integration__semcod__generate_for_pyqual["generate_for_pyqual"]
-        deta__integration__semcod__generate_for_vallm["generate_for_vallm"]
-        deta__integration__semcod__pre_deploy_check["pre_deploy_check"]
-        deta__dsl__commands__ChangeDSL____str__["__str__"]
-        deta__dsl__commands__format_probe_change{{format_probe_change CC=15}}
-        deta__dsl__commands__format_port_changes{{format_port_changes CC=16}}
-        deta__formatter__toon___format_alert_line["_format_alert_line"]
-        deta__formatter__toon___format_alerts["_format_alerts"]
-        deta__formatter__toon__generate_toon["generate_toon"]
-        ...["+152 more"]
+        deta__scanner__env__interpolate["interpolate"]
+        ...["+161 more"]
     end
 
-    class deta__core__Wup____repr__,deta__core__Wup__get_info,deta__scanner__npm__scan_npm,deta__scanner__openapi__scan_openapi,deta__scanner__compose__scan_compose,deta__integration__semcod__generate_for_sumd,deta__integration__semcod__generate_for_pyqual,deta__integration__semcod__generate_for_vallm,deta__integration__semcod__pre_deploy_check,deta__dsl__commands__ChangeDSL____str__ entry
+    class deta__cli___port_in_use,deta__cli___pid_on_port,deta__cli___terminate_pid,deta__cli___get_topology,deta__cli___filter_anomalies,deta__cli___print_summary,deta__cli___resolve_formats,deta__cli___probe_once,deta__cli___write_outputs,deta__cli__scan entry

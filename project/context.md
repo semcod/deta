@@ -6,15 +6,15 @@
 - **Primary Language**: python
 - **Languages**: python: 24, yaml: 11, yml: 3, shell: 2, json: 1
 - **Analysis Mode**: static
-- **Total Functions**: 264
+- **Total Functions**: 269
 - **Total Classes**: 15
 - **Modules**: 43
-- **Entry Points**: 158
+- **Entry Points**: 165
 
 ## Architecture by Module
 
 ### project.map.toon
-- **Functions**: 143
+- **Functions**: 148
 - **File**: `map.toon.yaml`
 
 ### deta.cli
@@ -30,15 +30,15 @@
 - **Functions**: 13
 - **File**: `toon.py`
 
-### deta.dsl.commands
-- **Functions**: 12
-- **Classes**: 1
-- **File**: `commands.py`
-
 ### deta.web.app
 - **Functions**: 12
 - **Classes**: 1
 - **File**: `app.py`
+
+### deta.dsl.commands
+- **Functions**: 12
+- **Classes**: 1
+- **File**: `commands.py`
 
 ### deta.formatter.graph
 - **Functions**: 9
@@ -70,6 +70,11 @@
 - **Functions**: 4
 - **File**: `semcod.py`
 
+### deta.config
+- **Functions**: 3
+- **Classes**: 8
+- **File**: `config.py`
+
 ### deta.core
 - **Functions**: 3
 - **Classes**: 1
@@ -78,11 +83,6 @@
 ### deta.scanner.python
 - **Functions**: 3
 - **File**: `python.py`
-
-### deta.config
-- **Functions**: 3
-- **Classes**: 8
-- **File**: `config.py`
 
 ### deta.scanner.openapi
 - **Functions**: 2
@@ -109,9 +109,6 @@ Args:
   
 - **Calls**: root.rglob, len, json.loads, result.append, pkg.relative_to, pkg.read_text, data.get, data.get
 
-### deta.formatter.graph.save_png
-- **Calls**: Digraph, dot.attr, topology.services.items, topology.services.items, dot.render, deta.formatter.graph._service_bindings, dot.node, Path
-
 ### deta.scanner.openapi.scan_openapi
 > Scan for OpenAPI files and extract endpoint definitions.
 
@@ -132,15 +129,15 @@ Returns:
     List of ProbeResult objects (one per resolved 
 - **Calls**: asyncio.Semaphore, max, deta.monitor.prober._extract_health_url, asyncio.create_task, asyncio.gather, probe_factories.append, _run_limited, probe_factory
 
+### deta.web.app.ConnectionManager.broadcast
+- **Calls**: json.dumps, len, list, zip, message.encode, asyncio.gather, isinstance, self.disconnect
+
 ### deta.integration.semcod.pre_deploy_check
 > Run pre-deployment infrastructure validation.
 
 This function checks for critical anomalies before deployment and returns
 a pass/fail status along with
 - **Calls**: Path, project.map.toon.build_topology, topology.detect_anomalies, issues.append, issues.append, len, a.get, a.get
-
-### deta.web.app.ConnectionManager.broadcast
-- **Calls**: json.dumps, len, list, zip, message.encode, asyncio.gather, isinstance, self.disconnect
 
 ### deta.scanner.compose.scan_compose
 > Scan for docker-compose files and extract service definitions.
@@ -150,16 +147,6 @@ Args:
     max_depth: Maximum directory depth to scan
 
 - **Calls**: deta.scanner.compose._get_yaml_loader, deta.scanner.compose._collect_compose_files, project_files.items, deta.scanner.compose._merge_services, merged_services.items, deta.scanner.compose._build_service_def, all_services.append
-
-### deta.config.load_config
-> Load deta.yaml configuration file.
-
-Args:
-    config_path: Path to deta.yaml file. If None, searches in current directory.
-    
-Returns:
-    DetaConfi
-- **Calls**: Path, config_path.exists, DetaConfig, deta.config._load_yaml, deta.config._parse_config, print, DetaConfig
 
 ### deta.integration.semcod.generate_for_pyqual
 > Generate dependency data for pyqual (Python quality checker).
@@ -171,9 +158,6 @@ Args:
 Returns:
     
 - **Calls**: Path, deta.scanner.python.scan_python, list, set, None.append, None.update
-
-### deta.web.app.run_dashboard
-- **Calls**: Path, project.map.toon.load_config, deta.web.app.create_app, uvicorn.run, RuntimeError, print
 
 ### deta.integration.semcod.generate_for_sumd
 > Generate infrastructure report for sumd pipeline.
@@ -196,12 +180,6 @@ Returns:
 ### deta.dsl.commands.ChangeDSL.__str__
 - **Calls**: None.join, sorted, self.params.items
 
-### deta.formatter.graph.save_graph_yaml
-- **Calls**: deta.formatter.graph._save_output, deta.formatter.graph.generate_graph_yaml
-
-### deta.formatter.graph.save_mermaid
-- **Calls**: deta.formatter.graph._save_output, deta.formatter.graph.generate_mermaid
-
 ### deta.web.app.ConnectionManager.connect
 - **Calls**: self._connections.add, websocket.accept
 
@@ -214,6 +192,10 @@ Returns:
 ### deta.web.app.ConnectionManager.disconnect
 - **Calls**: self._connections.discard
 
+### deta.monitor.prober.close_client
+> Close the shared HTTP client.
+- **Calls**: _shared_client.aclose
+
 ### deta.core.Wup.__init__
 > Initialize a Wup instance.
 
@@ -225,6 +207,14 @@ Args:
 
 ### deta.core.Wup.get_info
 > Return wup information.
+
+### deta.web.app._probe_status
+
+### project.map.toon._port_in_use
+
+### project.map.toon._pid_on_port
+
+### project.map.toon._terminate_pid
 
 ### project.map.toon._get_topology
 
@@ -254,18 +244,13 @@ main [deta.cli]
 scan_npm [deta.scanner.npm]
 ```
 
-### Flow 3: save_png
-```
-save_png [deta.formatter.graph]
-```
-
-### Flow 4: scan_openapi
+### Flow 3: scan_openapi
 ```
 scan_openapi [deta.scanner.openapi]
   └─> _load
 ```
 
-### Flow 5: probe_all
+### Flow 4: probe_all
 ```
 probe_all [deta.monitor.prober]
   └─> _extract_health_url
@@ -274,36 +259,43 @@ probe_all [deta.monitor.prober]
       └─ →> published_url
 ```
 
+### Flow 5: broadcast
+```
+broadcast [deta.web.app.ConnectionManager]
+```
+
 ### Flow 6: pre_deploy_check
 ```
 pre_deploy_check [deta.integration.semcod]
   └─ →> build_topology
 ```
 
-### Flow 7: broadcast
-```
-broadcast [deta.web.app.ConnectionManager]
-```
-
-### Flow 8: scan_compose
+### Flow 7: scan_compose
 ```
 scan_compose [deta.scanner.compose]
   └─> _get_yaml_loader
   └─> _collect_compose_files
 ```
 
-### Flow 9: load_config
-```
-load_config [deta.config]
-  └─> _load_yaml
-  └─> _parse_config
-```
-
-### Flow 10: generate_for_pyqual
+### Flow 8: generate_for_pyqual
 ```
 generate_for_pyqual [deta.integration.semcod]
   └─ →> scan_python
       └─> _load_toml
+```
+
+### Flow 9: generate_for_sumd
+```
+generate_for_sumd [deta.integration.semcod]
+  └─ →> build_topology
+  └─ →> save_toon
+      └─> generate_toon
+```
+
+### Flow 10: generate_for_vallm
+```
+generate_for_vallm [deta.integration.semcod]
+  └─ →> build_topology
 ```
 
 ## Key Classes
@@ -326,14 +318,6 @@ generate_for_pyqual [deta.integration.semcod]
 > Represents a DSL command.
 - **Methods**: 1
 - **Key Methods**: deta.dsl.commands.ChangeDSL.__str__
-
-### deta.scanner.openapi.EndpointDef
-> Definition of an OpenAPI endpoint.
-- **Methods**: 0
-
-### deta.scanner.compose.ServiceDef
-> Definition of a Docker Compose service.
-- **Methods**: 0
 
 ### deta.config.WatchConfig
 > Watch configuration for file monitoring.
@@ -367,6 +351,14 @@ generate_for_pyqual [deta.integration.semcod]
 > Main deta configuration.
 - **Methods**: 0
 
+### deta.scanner.openapi.EndpointDef
+> Definition of an OpenAPI endpoint.
+- **Methods**: 0
+
+### deta.scanner.compose.ServiceDef
+> Definition of a Docker Compose service.
+- **Methods**: 0
+
 ### deta.monitor.prober.ProbeResult
 > Result of a health check probe.
 - **Methods**: 0
@@ -374,6 +366,13 @@ generate_for_pyqual [deta.integration.semcod]
 ## Data Transformation Functions
 
 Key functions that process and transform data:
+
+### deta.config._parse_config
+> Parse configuration dictionary into DetaConfig object.
+- **Output to**: DetaConfig, WatchConfig, ScanConfig, AnomalyConfig, MonitorConfig
+
+### deta.cli._resolve_formats
+- **Output to**: list, None.lower, normalized.append, item.strip
 
 ### deta.scanner.python._parse_requirements
 > Parse requirements.txt file and extract package names.
@@ -466,10 +465,6 @@ Returns list of SERVICE_ADDED/SERVIC
 
 ### project.map.toon.format_probe_change
 
-### project.map.toon.format_port_changes
-
-### project.map.toon.format_service_changes
-
 ## Behavioral Patterns
 
 ### recursion__deep_merge
@@ -509,25 +504,25 @@ Functions exposed as public API (no underscore prefix):
 - `deta.monitor.prober.probe_all` - 14 calls
 - `deta.scanner.ports.parse_port` - 12 calls
 - `deta.dsl.commands.format_port_changes` - 12 calls
+- `deta.cli.scan` - 10 calls
+- `deta.web.app.ConnectionManager.broadcast` - 10 calls
 - `deta.monitor.alerter.alert_anomaly` - 10 calls
 - `deta.monitor.watcher.watch_configs` - 10 calls
 - `deta.integration.semcod.pre_deploy_check` - 10 calls
-- `deta.cli.scan` - 10 calls
-- `deta.web.app.ConnectionManager.broadcast` - 10 calls
 - `deta.scanner.env.discover_env` - 9 calls
 - `deta.dsl.commands.format_service_changes` - 8 calls
+- `deta.config.load_config` - 7 calls
 - `deta.scanner.compose.scan_compose` - 7 calls
 - `deta.scanner.env.interpolate_recursive` - 7 calls
 - `deta.dsl.commands.status_summary` - 7 calls
-- `deta.config.load_config` - 7 calls
+- `deta.web.app.run_dashboard` - 6 calls
 - `deta.scanner.env.interpolate` - 6 calls
 - `deta.integration.semcod.generate_for_pyqual` - 6 calls
-- `deta.web.app.run_dashboard` - 6 calls
 - `deta.dsl.commands.service_down` - 5 calls
+- `deta.cli.monitor` - 4 calls
 - `deta.scanner.env.merge_env_files` - 4 calls
 - `deta.integration.semcod.generate_for_sumd` - 4 calls
 - `deta.integration.semcod.generate_for_vallm` - 4 calls
-- `deta.cli.monitor` - 4 calls
 - `deta.monitor.alerter.alert_probe_failure` - 3 calls
 - `deta.monitor.alerter.alert_probe_success` - 3 calls
 - `deta.dsl.commands.service_up` - 3 calls
@@ -545,10 +540,6 @@ graph TD
     scan_npm --> loads
     scan_npm --> append
     scan_npm --> relative_to
-    save_png --> Digraph
-    save_png --> attr
-    save_png --> items
-    save_png --> render
     scan_openapi --> rglob
     scan_openapi --> len
     scan_openapi --> _load
@@ -558,16 +549,20 @@ graph TD
     probe_all --> _extract_health_url
     probe_all --> create_task
     probe_all --> gather
-    pre_deploy_check --> Path
-    pre_deploy_check --> build_topology
-    pre_deploy_check --> detect_anomalies
-    pre_deploy_check --> append
     broadcast --> dumps
     broadcast --> len
     broadcast --> list
     broadcast --> zip
     broadcast --> encode
+    pre_deploy_check --> Path
+    pre_deploy_check --> build_topology
+    pre_deploy_check --> detect_anomalies
+    pre_deploy_check --> append
     scan_compose --> _get_yaml_loader
+    scan_compose --> _collect_compose_fil
+    scan_compose --> items
+    scan_compose --> _merge_services
+    generate_for_pyqual --> Path
 ```
 
 ## Reverse Engineering Guidelines

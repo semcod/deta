@@ -21,7 +21,7 @@ Infrastructure anomaly detection and monitoring tool
 ## Metadata
 
 - **name**: `deta`
-- **version**: `0.2.23`
+- **version**: `0.2.24`
 - **python_requires**: `>=3.8`
 - **license**: {'text': 'Apache-2.0'}
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
@@ -41,7 +41,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 app {
   name: deta;
-  version: 0.2.23;
+  version: 0.2.24;
 }
 
 dependencies {
@@ -115,7 +115,7 @@ ASSERT_EXIT_CODE 0
 ```yaml
 project:
   name: deta
-  version: 0.2.23
+  version: 0.2.24
   env: local
 ```
 
@@ -172,7 +172,7 @@ pip install -e .[dev]
 ### `project/map.toon.yaml`
 
 ```toon markpact:analysis path=project/map.toon.yaml
-# deta | 35f 4761L | python:32,shell:2,less:1 | 2026-04-30
+# deta | 35f 4760L | python:32,shell:2,less:1 | 2026-04-30
 # stats: 148 func | 18 cls | 35 mod | CC̄=4.9 | critical:17 | cycles:0
 # alerts[5]: CC generate_graph_yaml=23; CC _compute_events=22; CC generate_mermaid=17; CC _topology_json_with_status=17; CC format_port_changes=16
 # hotspots[5]: create_app fan=62; _monitor_loop fan=27; main fan=20; save_png fan=15; generate_toon fan=15
@@ -196,7 +196,7 @@ M[35]:
   deta/integration/semcod.py,130
   deta/monitor/__init__.py,19
   deta/monitor/alerter.py,100
-  deta/monitor/prober.py,300
+  deta/monitor/prober.py,299
   deta/monitor/watcher.py,117
   deta/scanner/__init__.py,18
   deta/scanner/compose.py,279
@@ -492,7 +492,7 @@ class Wup:  # Base class for wup operations.
 
 ## Call Graph
 
-*93 nodes · 96 edges · 16 modules · CC̄=2.4*
+*89 nodes · 96 edges · 16 modules · CC̄=2.3*
 
 ### Hubs (by degree)
 
@@ -502,15 +502,15 @@ class Wup:  # Base class for wup operations.
 | `_monitor_loop` *(in deta.cli)* | 7 | 1 | 48 | **49** |
 | `_parse_config` *(in deta.config)* | 9 | 1 | 44 | **45** |
 | `diff` *(in deta.cli)* | 9 | 1 | 27 | **28** |
-| `generate_mermaid` *(in deta.formatter.graph)* | 17 ⚠ | 1 | 23 | **24** |
+| `generate_mermaid` *(in deta.formatter.graph)* | 17 ⚠ | 3 | 23 | **26** |
+| `generate_graph_yaml` *(in deta.formatter.graph)* | 23 ⚠ | 3 | 22 | **25** |
 | `_build_service_def` *(in deta.scanner.compose)* | 5 | 1 | 23 | **24** |
-| `generate_graph_yaml` *(in deta.formatter.graph)* | 23 ⚠ | 1 | 22 | **23** |
 | `generate_toon` *(in deta.formatter.toon)* | 2 | 1 | 21 | **22** |
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/semcod/deta
-# nodes: 93 | edges: 96 | modules: 16
-# CC̄=2.4
+# nodes: 89 | edges: 96 | modules: 16
+# CC̄=2.3
 
 HUBS[20]:
   deta.web.app.create_app
@@ -522,35 +522,35 @@ HUBS[20]:
   deta.cli.diff
     CC=9  in:1  out:27  total:28
   deta.formatter.graph.generate_mermaid
-    CC=17  in:1  out:23  total:24
+    CC=17  in:3  out:23  total:26
+  deta.formatter.graph.generate_graph_yaml
+    CC=23  in:3  out:22  total:25
   deta.scanner.compose._build_service_def
     CC=5  in:1  out:23  total:24
-  deta.formatter.graph.generate_graph_yaml
-    CC=23  in:1  out:22  total:23
   deta.formatter.toon.generate_toon
     CC=2  in:1  out:21  total:22
   deta.scanner.python.scan_python
     CC=11  in:1  out:20  total:21
   deta.monitor.alerter.print_topology_table
     CC=8  in:1  out:19  total:20
+  deta.formatter.graph.save_png
+    CC=15  in:1  out:17  total:18
   deta.monitor.prober.probe_service
     CC=8  in:1  out:17  total:18
   deta.monitor.prober.probe_port
     CC=7  in:1  out:16  total:17
-  deta.formatter.graph.save_png
-    CC=15  in:0  out:17  total:17
   deta.scanner.env.load_env_file
     CC=12  in:2  out:14  total:16
   deta.cli._write_outputs
     CC=8  in:3  out:12  total:15
-  deta.scanner.ports.parse_port
-    CC=10  in:2  out:12  total:14
+  deta.config.load_config
+    CC=4  in:8  out:7  total:15
   deta.scanner.openapi.scan_openapi
     CC=12  in:0  out:14  total:14
+  deta.scanner.ports.parse_port
+    CC=10  in:2  out:12  total:14
   deta.monitor.prober.probe_all
     CC=11  in:0  out:14  total:14
-  deta.dsl.commands.format_port_changes
-    CC=16  in:1  out:12  total:13
   deta.cli._print_summary
     CC=4  in:2  out:11  total:13
 
@@ -656,15 +656,40 @@ MODULES:
   deta.web.app  [2 funcs]
     create_app  CC=5  out:113
     run_dashboard  CC=5  out:6
-  project.map.toon  [6 funcs]
+  project.map.toon  [2 funcs]
     build_topology  CC=0  out:0
-    load_config  CC=0  out:0
     probe_all  CC=0  out:0
-    save_graph_yaml  CC=0  out:0
-    save_mermaid  CC=0  out:0
-    save_png  CC=0  out:0
 
 EDGES:
+  deta.config.load_config → deta.config._load_yaml
+  deta.config.load_config → deta.config._parse_config
+  deta.cli._get_topology → project.map.toon.build_topology
+  deta.cli._print_summary → deta.monitor.alerter.print_topology_table
+  deta.cli._print_summary → deta.monitor.alerter.alert_anomaly
+  deta.cli._probe_once → project.map.toon.probe_all
+  deta.cli._probe_once → deta.monitor.alerter.alert_probe_success
+  deta.cli._probe_once → deta.monitor.alerter.alert_probe_failure
+  deta.cli._write_outputs → deta.formatter.toon.save_toon
+  deta.cli._write_outputs → deta.formatter.graph.save_graph_yaml
+  deta.cli._write_outputs → deta.formatter.graph.save_mermaid
+  deta.cli._write_outputs → deta.formatter.graph.save_png
+  deta.cli.scan → deta.cli._resolve_formats
+  deta.cli.scan → deta.cli._get_topology
+  deta.cli.scan → deta.cli._write_outputs
+  deta.cli.scan → deta.cli._print_summary
+  deta.cli.scan → deta.config.load_config
+  deta.cli.scan → deta.cli._filter_anomalies
+  deta.cli.scan → deta.cli._probe_once
+  deta.cli.monitor → deta.cli._monitor_loop
+  deta.cli._monitor_loop → deta.cli._resolve_formats
+  deta.cli._monitor_loop → deta.cli._get_topology
+  deta.cli._monitor_loop → deta.cli._filter_anomalies
+  deta.cli._monitor_loop → deta.cli._write_outputs
+  deta.cli._monitor_loop → deta.cli._print_summary
+  deta.cli.diff → deta.config.load_config
+  deta.cli.diff → deta.cli._get_topology
+  deta.web.app.run_dashboard → deta.config.load_config
+  deta.web.app.run_dashboard → deta.web.app.create_app
   deta.monitor.alerter.alert_anomaly → deta.monitor.alerter._get_console
   deta.monitor.alerter.alert_probe_failure → deta.monitor.alerter._get_console
   deta.monitor.alerter.alert_probe_success → deta.monitor.alerter._get_console
@@ -686,35 +711,6 @@ EDGES:
   deta.scanner.compose._build_service_def → deta.scanner.env.discover_env
   deta.scanner.compose._build_service_def → deta.scanner.compose._resolve_env_files
   deta.scanner.compose._build_service_def → deta.scanner.env.merge_env_files
-  deta.scanner.compose._build_service_def → deta.scanner.compose._parse_env
-  deta.scanner.compose._build_service_def → deta.scanner.compose._parse_ports
-  deta.scanner.compose._build_service_def → deta.scanner.ports.parse_ports
-  deta.scanner.compose._build_service_def → deta.scanner.env.interpolate_recursive
-  deta.scanner.compose._build_service_def → deta.scanner.compose._find_primary_source
-  deta.scanner.compose.scan_compose → deta.scanner.compose._get_yaml_loader
-  deta.scanner.compose.scan_compose → deta.scanner.compose._collect_compose_files
-  deta.scanner.compose.scan_compose → deta.scanner.compose._merge_services
-  deta.scanner.compose.scan_compose → deta.scanner.compose._build_service_def
-  deta.scanner.env.discover_env → deta.scanner.env.load_env_file
-  deta.scanner.env.merge_env_files → deta.scanner.env.load_env_file
-  deta.scanner.env.interpolate_recursive → deta.scanner.env.interpolate
-  deta.integration.semcod.generate_for_sumd → project.map.toon.build_topology
-  deta.integration.semcod.generate_for_sumd → deta.formatter.toon.save_toon
-  deta.integration.semcod.generate_for_pyqual → deta.scanner.python.scan_python
-  deta.integration.semcod.generate_for_vallm → project.map.toon.build_topology
-  deta.integration.semcod.pre_deploy_check → project.map.toon.build_topology
-  deta.dsl.commands.service_down → deta.dsl.commands._escape_value
-  deta.dsl.commands.format_port_changes → deta.dsl.commands.port_added
-  deta.dsl.commands.format_port_changes → deta.dsl.commands.port_removed
-  deta.dsl.commands.format_service_changes → deta.dsl.commands.service_added
-  deta.dsl.commands.format_service_changes → deta.dsl.commands.service_removed
-  deta.formatter.toon._format_alerts → deta.formatter.toon._format_alert_line
-  deta.formatter.toon._format_services → deta.formatter.toon._format_service_line
-  deta.formatter.toon._format_endpoints → deta.formatter.toon._group_endpoints_by_service
-  deta.formatter.toon._format_endpoints → deta.formatter.toon._format_endpoint_line
-  deta.formatter.toon.save_toon → deta.formatter.toon.generate_toon
-  deta.formatter.graph._service_bindings → deta.scanner.ports.parse_ports
-  deta.formatter.graph.generate_graph_yaml → deta.formatter.graph._service_bindings
 ```
 
 ## Test Contracts

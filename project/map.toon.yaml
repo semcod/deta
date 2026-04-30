@@ -1,4 +1,4 @@
-# deta | 35f 4761L | python:32,shell:2,less:1 | 2026-04-30
+# deta | 35f 4760L | python:32,shell:2,less:1 | 2026-04-30
 # stats: 148 func | 18 cls | 35 mod | CC̄=4.9 | critical:17 | cycles:0
 # alerts[5]: CC generate_graph_yaml=23; CC _compute_events=22; CC generate_mermaid=17; CC _topology_json_with_status=17; CC format_port_changes=16
 # hotspots[5]: create_app fan=62; _monitor_loop fan=27; main fan=20; save_png fan=15; generate_toon fan=15
@@ -22,7 +22,7 @@ M[35]:
   deta/integration/semcod.py,130
   deta/monitor/__init__.py,19
   deta/monitor/alerter.py,100
-  deta/monitor/prober.py,300
+  deta/monitor/prober.py,299
   deta/monitor/watcher.py,117
   deta/scanner/__init__.py,18
   deta/scanner/compose.py,279
