@@ -1,0 +1,757 @@
+{
+  "services": {
+    "traefik": {
+      "name": "traefik",
+      "image": null,
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {},
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.prod.vps.yml"
+    },
+    "postgres": {
+      "name": "postgres",
+      "image": "postgres:16-alpine",
+      "ports": [],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U c2004"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 5
+      },
+      "depends_on": [],
+      "environment": {
+        "POSTGRES_DB": "c2004",
+        "POSTGRES_USER": "c2004",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:-dev_password}"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.prod.yml"
+    },
+    "frontend": {
+      "name": "frontend",
+      "image": null,
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {},
+      "labels": {
+        "traefik.enable": "true",
+        "traefik.http.routers.frontend.rule": "PathPrefix(`/`)",
+        "traefik.http.routers.frontend.entrypoints": "websecure",
+        "traefik.http.routers.frontend.tls": "true",
+        "traefik.http.routers.frontend.priority": "1",
+        "traefik.http.services.frontend.loadbalancer.server.port": "80",
+        "traefik.http.routers.frontend-le.rule": "Host(`${TRAEFIK_TLS_HOST:?TRAEFIK_TLS_HOST is required}`) && PathPrefix(`/`)",
+        "traefik.http.routers.frontend-le.entrypoints": "websecure",
+        "traefik.http.routers.frontend-le.tls": "true",
+        "traefik.http.routers.frontend-le.tls.certresolver": "le",
+        "traefik.http.routers.frontend-le.priority": "1000"
+      },
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.prod.vps.yml"
+    },
+    "backend": {
+      "name": "backend",
+      "image": null,
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [
+        "c2004-pg"
+      ],
+      "environment": {
+        "DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD}@c2004-pg:5432/c2004",
+        "CONFIG_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD}@c2004-pg:5432/c2004",
+        "MENU_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD}@c2004-pg:5432/c2004",
+        "DEVTOOLS_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD}@c2004-pg:5432/c2004",
+        "SCENARIO_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD}@c2004-pg:5432/c2004",
+        "LOG_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD}@c2004-pg:5432/c2004",
+        "BACKUP_DIR": "/backups"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.vps.pg.yml"
+    },
+    "firmware": {
+      "name": "firmware",
+      "image": null,
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {},
+      "labels": {
+        "traefik.enable": "true",
+        "traefik.http.routers.firmware.rule": "PathPrefix(`/firmware`)",
+        "traefik.http.routers.firmware.entrypoints": "websecure",
+        "traefik.http.routers.firmware.tls": "true",
+        "traefik.http.routers.firmware.priority": "10",
+        "traefik.http.middlewares.firmware-strip.stripprefix.prefixes": "/firmware",
+        "traefik.http.routers.firmware.middlewares": "firmware-strip",
+        "traefik.http.services.firmware.loadbalancer.server.port": "8202",
+        "traefik.http.routers.firmware-le.rule": "Host(`${TRAEFIK_TLS_HOST:?TRAEFIK_TLS_HOST is required}`) && PathPrefix(`/firmware`)",
+        "traefik.http.routers.firmware-le.entrypoints": "websecure",
+        "traefik.http.routers.firmware-le.tls": "true",
+        "traefik.http.routers.firmware-le.tls.certresolver": "le",
+        "traefik.http.routers.firmware-le.priority": "1000",
+        "traefik.http.routers.firmware-le.middlewares": "firmware-strip"
+      },
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.prod.vps.yml"
+    },
+    "c2004-pg": {
+      "name": "c2004-pg",
+      "image": "postgres:16-alpine",
+      "ports": [],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U c2004"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 5
+      },
+      "depends_on": [],
+      "environment": {
+        "POSTGRES_DB": "c2004",
+        "POSTGRES_USER": "c2004",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.vps.pg.yml"
+    },
+    "service-id-pilot": {
+      "name": "service-id-pilot",
+      "image": null,
+      "ports": [
+        "${SERVICE_ID_PILOT_PORT:-8111}:8000"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8000/api/v3/health"
+        ],
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3,
+        "start_period": "40s"
+      },
+      "depends_on": [
+        "postgres"
+      ],
+      "environment": {
+        "SERVICE_NAME": "service-id-pilot",
+        "SERVICE_VERSION": "${SERVICE_VERSION:-1.0.17}",
+        "API_HOST": "0.0.0.0",
+        "API_PORT": "8000",
+        "API_WORKERS": "${API_WORKERS:-1}",
+        "API_RELOAD": "false",
+        "SECRET_KEY": "${SECRET_KEY:-dev-secret-key-change-me-32-chars-min}",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-[\"http://localhost:8100\",\"http://identification.localhost\"]}",
+        "DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/c2004?options=-csearch_path%3Dcore%2Cpublic",
+        "AUTH_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/c2004?options=-csearch_path%3Dauth%2Cpublic",
+        "PYTHONPATH": "/workspace"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.yml"
+    },
+    "service-manager-pilot": {
+      "name": "service-manager-pilot",
+      "image": null,
+      "ports": [
+        "${SERVICE_MANAGER_PILOT_PORT:-8112}:8000"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8000/api/v3/health"
+        ],
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3,
+        "start_period": "40s"
+      },
+      "depends_on": [
+        "postgres"
+      ],
+      "environment": {
+        "SERVICE_NAME": "service-manager-pilot",
+        "SERVICE_VERSION": "${SERVICE_VERSION:-1.0.17}",
+        "API_HOST": "0.0.0.0",
+        "API_PORT": "8000",
+        "API_WORKERS": "${API_WORKERS:-1}",
+        "API_RELOAD": "false",
+        "SECRET_KEY": "${SECRET_KEY:-dev-secret-key-change-me-32-chars-min}",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-[\"http://localhost:8100\",\"http://identification.localhost\"]}",
+        "DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/c2004?options=-csearch_path%3Dcore%2Cpublic",
+        "AUTH_DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/c2004?options=-csearch_path%3Dauth%2Cpublic",
+        "PYTHONPATH": "/workspace"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.yml"
+    },
+    "connect-id-backend": {
+      "name": "connect-id-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_ID_BACKEND_HTTP_PORT:-8117}:8117"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "CONNECT_ID_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_ID_BACKEND_PORT": 8117
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-id/docker-compose.yml"
+    },
+    "connect-data-backend": {
+      "name": "connect-data-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_DATA_BACKEND_PORT:-8121}:8121"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8121/health', timeout=2).status == 200 else 1)"
+        ],
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3,
+        "start_period": "15s"
+      },
+      "depends_on": [],
+      "environment": {
+        "CONNECT_DATA_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_DATA_BACKEND_PORT": "8121",
+        "MASKSERVICE_API_URL": "http://backend:8000",
+        "MASKSERVICE_TIMEOUT_SECONDS": "7"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.yml"
+    },
+    "connect-manager-backend": {
+      "name": "connect-manager-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_MANAGER_BACKEND_HTTP_PORT:-8107}:8107"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "CONNECT_MANAGER_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_MANAGER_BACKEND_PORT": 8107
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-manager/docker-compose.yml"
+    },
+    "connect-template-backend": {
+      "name": "connect-template-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_TEMPLATE_BACKEND_HTTP_PORT:-8106}:8106"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "CONNECT_TEMPLATE_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_TEMPLATE_BACKEND_PORT": 8106,
+        "MASKSERVICE_API_URL": "${MASKSERVICE_API_URL:-http://host.docker.internal:8101}",
+        "MASKSERVICE_TIMEOUT_SECONDS": "${MASKSERVICE_TIMEOUT_SECONDS:-8}"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-template/docker-compose.yml"
+    },
+    "connect-test-backend": {
+      "name": "connect-test-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_TEST_BACKEND_HTTP_PORT:-8119}:8119"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "CONNECT_TEST_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_TEST_BACKEND_PORT": 8119
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-test/docker-compose.yml"
+    },
+    "connect-protocol-backend": {
+      "name": "connect-protocol-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_PROTOCOL_BACKEND_PORT:-8120}:8120"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8120/health', timeout=2).status == 200 else 1)"
+        ],
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3,
+        "start_period": "15s"
+      },
+      "depends_on": [
+        "postgres"
+      ],
+      "environment": {
+        "CONNECT_PROTOCOL_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_PROTOCOL_BACKEND_PORT": "8120",
+        "DATABASE_URL": "postgresql://c2004:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/c2004?options=-csearch_path%3Dcore%2Cpublic",
+        "FIRMWARE_BASE_URL": "http://firmware:8080",
+        "MASKSERVICE_API_URL": "http://backend:8000"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.yml"
+    },
+    "cql-backend": {
+      "name": "cql-backend",
+      "image": null,
+      "ports": [
+        "${CQL_BACKEND_PORT:-8101}:8101"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:8101/health').status==200 else sys.exit(1)"
+        ],
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3
+      },
+      "depends_on": [
+        "backend"
+      ],
+      "environment": {
+        "CQL_BACKEND_HOST": "0.0.0.0",
+        "CQL_BACKEND_PORT": 8101,
+        "CQL_BACKEND_LOG_LEVEL": "${CQL_BACKEND_LOG_LEVEL:-info}",
+        "MASKSERVICE_API_URL": "${MASKSERVICE_API_URL:-http://backend:8000}",
+        "SCENARIOS_DIR": "/app/scenarios"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.yml"
+    },
+    "connect-scenario-backend": {
+      "name": "connect-scenario-backend",
+      "image": null,
+      "ports": [
+        "${CONNECT_SCENARIO_BACKEND_HTTP_PORT:-8105}:8108"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "cql-scenario-backend"
+      ],
+      "environment": {
+        "CONNECT_SCENARIO_BACKEND_HOST": "0.0.0.0",
+        "CONNECT_SCENARIO_BACKEND_PORT": 8108,
+        "CQL_BACKEND_URL": "${CQL_BACKEND_URL:-http://cql-scenario-backend:8101}",
+        "OQLOS_API_URL": "${OQLOS_API_URL:-http://host.docker.internal:8202}"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-scenario/docker-compose.yml"
+    },
+    "connect-scenario": {
+      "name": "connect-scenario",
+      "image": null,
+      "ports": [
+        "${CONNECT_SCENARIO_DIRECT_PORT:-8096}:80"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "connect-scenario-backend",
+        "cql-scenario-backend"
+      ],
+      "environment": {
+        "CONNECT_SCENARIO_BACKEND_URL": "${CONNECT_SCENARIO_BACKEND_URL:-http://connect-scenario-backend:8108}",
+        "CQL_BACKEND_URL": "${CQL_BACKEND_URL:-http://cql-scenario-backend:8101}",
+        "BACKEND_API_URL": "${BACKEND_API_URL:-http://172.17.0.1:8101}",
+        "BACKEND_WS_URL": "${BACKEND_WS_URL:-http://172.17.0.1:8101}",
+        "CONNECT_SCENARIO_LISTEN_PORT": 80,
+        "FRAME_ANCESTORS": "${FRAME_ANCESTORS:-'self' http://localhost:8100 http://*.localhost https://*.localhost}"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-scenario/docker-compose.yml"
+    },
+    "c2004-backup": {
+      "name": "c2004-backup",
+      "image": "postgres:16-alpine",
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [
+        "c2004-pg"
+      ],
+      "environment": {
+        "PGHOST": "c2004-pg",
+        "PGUSER": "c2004",
+        "PGPASSWORD": "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}",
+        "PGDATABASE": "c2004"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/docker-compose.vps.pg.yml"
+    },
+    "connect-id": {
+      "name": "connect-id",
+      "image": null,
+      "ports": [
+        "${CONNECT_ID_DIRECT_PORT:-8093}:80"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "connect-id-backend"
+      ],
+      "environment": {
+        "CONNECT_ID_BACKEND_URL": "${CONNECT_ID_BACKEND_URL:-http://connect-id-backend:8117}",
+        "CONNECT_ID_LISTEN_PORT": 80
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-id/docker-compose.yml"
+    },
+    "connect-config-network": {
+      "name": "connect-config-network",
+      "image": "connect-config-network:local",
+      "ports": [
+        "8300:8300"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "MODULE_NAME": "connect-config-network",
+        "MODULE_ROUTE": "/connect-config-network",
+        "MODULE_PORT": "8300"
+      },
+      "labels": {
+        "swop.module": "connect-config-network",
+        "swop.route": "/connect-config-network",
+        "swop.pages": "connect-config-robots.page.ts,connect-config-rfid-config.page.ts,connect-config-security-settings.page.ts,connect-config-sensors.page.ts,connect-config-barcode-config.page.ts,connect-config-network.page.ts,connect-config-io-ports.page.ts,connect-config-sitemap.page.ts,connect-config-calibration.page.ts,connect-config-qr-config.page.ts"
+      },
+      "source_file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    "connect-id-user-list": {
+      "name": "connect-id-user-list",
+      "image": "connect-id-user-list:local",
+      "ports": [
+        "8301:8301"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "MODULE_NAME": "connect-id-user-list",
+        "MODULE_ROUTE": "/connect-id-user-list",
+        "MODULE_PORT": "8301"
+      },
+      "labels": {
+        "swop.module": "connect-id-user-list",
+        "swop.route": "/connect-id-user-list",
+        "swop.pages": "connect-workshop-dispositions-search.page.ts,connect-test-protocol-protocol-steps.page.ts,connect-workshop-requests-new-request.page.ts,connect-role-permissions.page.ts,connect-workshop-transport-search.page.ts,connect-id-user-rfid.page.ts,connect-id-user-qr.page.ts,connect-workshop-services-search.page.ts,connect-test-operator-workshop.page.ts,connect-workshop-generic.search.page.ts,connect-id-user-manual.page.ts,connect-workshop-requests-search.page.ts,connect-id-user-list.page.ts"
+      },
+      "source_file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    "connect-manager-library": {
+      "name": "connect-manager-library",
+      "image": "connect-manager-library:local",
+      "ports": [
+        "8302:8302"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "MODULE_NAME": "connect-manager-library",
+        "MODULE_ROUTE": "/connect-manager-library",
+        "MODULE_PORT": "8302"
+      },
+      "labels": {
+        "swop.module": "connect-manager-library",
+        "swop.route": "/connect-manager-library",
+        "swop.pages": "connect-config-users.page.ts,connect-config-icon-themes.page.ts,connect-manager-library.page.ts"
+      },
+      "source_file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    "connect-reports-month": {
+      "name": "connect-reports-month",
+      "image": "connect-reports-month:local",
+      "ports": [
+        "8303:8303"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "MODULE_NAME": "connect-reports-month",
+        "MODULE_ROUTE": "/connect-reports-month",
+        "MODULE_PORT": "8303"
+      },
+      "labels": {
+        "swop.module": "connect-reports-month",
+        "swop.route": "/connect-reports-month",
+        "swop.pages": "connect-reports-month.page.ts"
+      },
+      "source_file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    "cql-scenario-backend": {
+      "name": "cql-scenario-backend",
+      "image": null,
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "CQL_BACKEND_HOST": "0.0.0.0",
+        "CQL_BACKEND_PORT": 8101,
+        "MASKSERVICE_API_URL": "${MASKSERVICE_API_URL:-http://host.docker.internal:8100}",
+        "SCENARIOS_DIR": "/app/scenarios"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-scenario/docker-compose.yml"
+    },
+    "connect-deleted-backend": {
+      "name": "connect-deleted-backend",
+      "image": null,
+      "ports": [
+        "8120:8120"
+      ],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "PYTHONUNBUFFERED": "1"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-deleted/docker-compose.yml"
+    },
+    "connect-deleted": {
+      "name": "connect-deleted",
+      "image": null,
+      "ports": [
+        "8121:80"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "connect-deleted-backend"
+      ],
+      "environment": {},
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-deleted/docker-compose.yml"
+    },
+    "connect-test": {
+      "name": "connect-test",
+      "image": null,
+      "ports": [
+        "${CONNECT_TEST_DIRECT_PORT:-8097}:80"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "connect-test-backend"
+      ],
+      "environment": {
+        "CONNECT_TEST_BACKEND_URL": "${CONNECT_TEST_BACKEND_URL:-http://connect-test-backend:8119}",
+        "CONNECT_TEST_LISTEN_PORT": 80
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-test/docker-compose.yml"
+    },
+    "connect-manager": {
+      "name": "connect-manager",
+      "image": null,
+      "ports": [
+        "${CONNECT_MANAGER_DIRECT_PORT:-8095}:80"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "connect-manager-backend"
+      ],
+      "environment": {
+        "CONNECT_MANAGER_BACKEND_URL": "${CONNECT_MANAGER_BACKEND_URL:-http://connect-manager-backend:8107}",
+        "CONNECT_MANAGER_LISTEN_PORT": 80
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-manager/docker-compose.yml"
+    },
+    "connect-template": {
+      "name": "connect-template",
+      "image": null,
+      "ports": [
+        "${CONNECT_TEMPLATE_DIRECT_PORT:-8094}:80"
+      ],
+      "healthcheck": null,
+      "depends_on": [
+        "connect-template-backend"
+      ],
+      "environment": {
+        "CONNECT_TEMPLATE_BACKEND_URL": "${CONNECT_TEMPLATE_BACKEND_URL:-http://connect-template-backend:8106}",
+        "CONNECT_TEMPLATE_LISTEN_PORT": 80
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/connect-template/docker-compose.yml"
+    },
+    "aider": {
+      "name": "aider",
+      "image": null,
+      "ports": [],
+      "healthcheck": null,
+      "depends_on": [],
+      "environment": {
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
+        "AIDER_MODEL": "${AIDER_MODEL:-openrouter/deepseek/deepseek-chat-v3-0324:free}"
+      },
+      "labels": {},
+      "source_file": "/home/tom/github/maskservice/c2004/.aider/docker-compose.yml"
+    }
+  },
+  "endpoints": [],
+  "anomalies": [
+    {
+      "type": "missing_healthcheck",
+      "service": "traefik",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/docker-compose.prod.vps.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "frontend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/docker-compose.prod.vps.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/docker-compose.vps.pg.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "firmware",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/docker-compose.prod.vps.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-id-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-id/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-manager-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-manager/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-template-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-template/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-test-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-test/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-scenario-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-scenario/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-scenario",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-scenario/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "c2004-backup",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/docker-compose.vps.pg.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-id",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-id/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-config-network",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-id-user-list",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-manager-library",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-reports-month",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/modules/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "cql-scenario-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-scenario/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-deleted-backend",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-deleted/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-deleted",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-deleted/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-test",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-test/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-manager",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-manager/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "connect-template",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/connect-template/docker-compose.yml"
+    },
+    {
+      "type": "missing_healthcheck",
+      "service": "aider",
+      "severity": "warning",
+      "file": "/home/tom/github/maskservice/c2004/.aider/docker-compose.yml"
+    }
+  ],
+  "cycles": [],
+  "hubs": [
+    "postgres"
+  ]
+}

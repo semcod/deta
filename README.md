@@ -3,21 +3,19 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.1-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$0.15-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-2.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.2-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$0.30-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-2.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $0.1500 (1 commits)
+- 🤖 **LLM usage:** $0.3000 (2 commits)
 - 👤 **Human dev:** ~$200 (2.0h @ $100/h, 30min dedup)
 
 Generated on 2026-04-30 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-
-
 Infrastructure anomaly detection and monitoring tool for development environments.
 
-![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.1-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.2-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 ## Features
 
@@ -48,10 +46,34 @@ pip install deta[docker,toml]
 deta scan /path/to/project --depth 3 --output infra-map.json
 ```
 
+### Generate graph outputs (YAML / Mermaid / PNG)
+
+```bash
+# text graph + mermaid + json
+deta scan /path/to/project --formats json,yaml,mermaid
+
+# include online checks (localhost probes)
+deta scan /path/to/project --formats json,yaml,mermaid --online
+
+# try PNG (requires graphviz python package + graphviz binary)
+deta scan /path/to/project --formats png
+```
+
+Generated files (configurable in `deta.yaml`):
+- `infra-map.json`
+- `infra-graph.yaml`
+- `infra-graph.mmd`
+- `infra-graph.png`
+- `infra.toon.yaml`
+
 ### Monitor in real-time
 
 ```bash
 deta monitor /path/to/project --interval 30 --depth 3
+deta monitor . --interval 30 --depth 3
+
+# realtime watch from scan command (regenerates outputs on each change)
+deta scan /path/to/project --watch --formats json,yaml,mermaid --online
 ```
 
 ### Compare with baseline

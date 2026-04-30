@@ -3,6 +3,7 @@ HTTP health check prober for services.
 """
 
 import asyncio
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -18,6 +19,25 @@ class ProbeResult:
     ok: bool
     latency_ms: float
     error: Optional[str] = None
+
+
+def _split_port_mapping(port: str) -> tuple[str, str]:
+    brace_depth = 0
+    split_idx = -1
+    for idx, ch in enumerate(port):
+        if ch == "{":
+            brace_depth += 1
+        elif ch == "}":
+            brace_depth = max(0, brace_depth - 1)
+        elif ch == ":" and brace_depth == 0:
+            split_idx = idx
+            break
+
+    if split_idx == -1:
+        value = port.strip()
+        return value, value
+
+    return port[:split_idx].strip(), port[split_idx + 1 :].strip()
 
 
 def _extract_health_url(service: ServiceDef) -> Optional[str]:
@@ -42,7 +62,6 @@ def _extract_health_url(service: ServiceDef) -> Optional[str]:
                 # Look for curl commands
                 if "curl" in item and "http" in item:
                     # Extract URL from curl command
-                    import re
                     match = re.search(r'https?://[^\s"\'`]+', item)
                     if match:
                         return match.group(0)
@@ -51,10 +70,20 @@ def _extract_health_url(service: ServiceDef) -> Optional[str]:
     if service.ports:
         # Use first published port
         port_str = service.ports[0]
-        if ":" in port_str:
-            host_port = port_str.split(":")[0]
-        else:
-            host_port = port_str
+        host_port, _container_port = _split_port_mapping(port_str)
+
+        # Resolve ${VAR:-1234} / ${VAR-1234} / ${VAR} patterns
+        host_port = host_port.strip()
+        var_match = re.match(r"^\$\{[^}:]+(?::-?([^}]+))?\}$", host_port)
+        if var_match:
+            default_port = var_match.group(1)
+            if default_port and default_port.isdigit():
+                host_port = default_port
+            else:
+                return None
+
+        if not host_port.isdigit():
+            return None
         
         # Default to localhost
         return f"http://localhost:{host_port}/health"

@@ -1,0 +1,13 @@
+flowchart TD
+    deta__cli["deta.cli<br/>11 funcs"]
+    deta__formatter["deta.formatter<br/>11 funcs"]
+    deta__integration["deta.integration<br/>4 funcs"]
+    deta__monitor["deta.monitor<br/>12 funcs"]
+    deta__scanner["deta.scanner<br/>11 funcs"]
+    project__map["project.map<br/>42 funcs"]
+    deta__cli ==>|11| project__map
+    deta__cli ==>|9| deta__monitor
+    deta__cli ==>|4| deta__formatter
+    deta__integration -->|3| project__map
+    deta__integration -->|1| deta__formatter
+    deta__integration -->|1| deta__scanner

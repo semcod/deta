@@ -1,0 +1,39 @@
+flowchart TD
+
+    %% Entry points (blue)
+    classDef entry fill:#4dabf7,stroke:#1971c2,color:#fff
+
+    subgraph CLI
+        deta__cli___get_topology["_get_topology"]
+        deta__cli___filter_anomalies["_filter_anomalies"]
+        deta__cli___print_summary["_print_summary"]
+        deta__cli___resolve_formats["_resolve_formats"]
+        deta__cli___probe_once["_probe_once"]
+        deta__cli___write_outputs["_write_outputs"]
+        deta__cli__scan["scan"]
+        deta__cli__monitor["monitor"]
+        deta__cli___monitor_loop["_monitor_loop"]
+        deta__cli__diff["diff"]
+        deta__cli__main["main"]
+    end
+
+    subgraph Core
+        deta__core__Wup____repr__["__repr__"]
+        deta__core__Wup__get_info["get_info"]
+        deta__scanner__npm__scan_npm["scan_npm"]
+        deta__scanner__openapi__scan_openapi["scan_openapi"]
+        deta__scanner__compose__scan_compose["scan_compose"]
+        deta__integration__semcod__generate_for_sumd["generate_for_sumd"]
+        deta__integration__semcod__generate_for_pyqual["generate_for_pyqual"]
+        deta__integration__semcod__generate_for_vallm["generate_for_vallm"]
+        deta__integration__semcod__pre_deploy_check["pre_deploy_check"]
+        deta__formatter__toon__generate_toon{{generate_toon CC=30}}
+        project__map__toon___get_topology["_get_topology"]
+        project__map__toon___filter_anomalies["_filter_anomalies"]
+        project__map__toon___print_summary["_print_summary"]
+        project__map__toon__scan["scan"]
+        project__map__toon__monitor["monitor"]
+        ...["+42 more"]
+    end
+
+    class deta__core__Wup____repr__,deta__core__Wup__get_info,deta__scanner__npm__scan_npm,deta__scanner__openapi__scan_openapi,deta__scanner__compose__scan_compose,deta__integration__semcod__generate_for_sumd,deta__integration__semcod__generate_for_pyqual,deta__integration__semcod__generate_for_vallm,deta__integration__semcod__pre_deploy_check,project__map__toon___get_topology entry

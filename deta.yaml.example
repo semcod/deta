@@ -80,14 +80,21 @@ monitor:
   interval_seconds: 30
   probe_timeout_seconds: 5
   probe_retries: 3
+  probe_online: true
 
 # Output configuration
 output:
   formats:
     - json
     - toon
+    - yaml
+    - mermaid
+    # - png
   json_path: infra-map.json
   toon_path: infra.toon.yaml
+  graph_yaml_path: infra-graph.yaml
+  mermaid_path: infra-graph.mmd
+  png_path: infra-graph.png
   toon_enabled: true
 
 # Alert configuration

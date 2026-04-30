@@ -4,8 +4,7 @@ Configuration loader for deta.yaml manifest.
 
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Any, Optional
-import sys
+from typing import Optional
 
 
 @dataclass
@@ -74,14 +73,18 @@ class MonitorConfig:
     interval_seconds: int = 30
     probe_timeout_seconds: int = 5
     probe_retries: int = 3
+    probe_online: bool = True
 
 
 @dataclass
 class OutputConfig:
     """Output configuration."""
-    formats: list[str] = field(default_factory=lambda: ["json"])
+    formats: list[str] = field(default_factory=lambda: ["json", "toon"])
     json_path: str = "infra-map.json"
     toon_path: str = "infra.toon.yaml"
+    graph_yaml_path: str = "infra-graph.yaml"
+    mermaid_path: str = "infra-graph.mmd"
+    png_path: str = "infra-graph.png"
     toon_enabled: bool = True
 
 
@@ -94,6 +97,24 @@ class AlertConfig:
 
 
 @dataclass
+class WebConfig:
+    """Web dashboard configuration."""
+    enabled: bool = False
+    host: str = "127.0.0.1"
+    port: int = 8765
+    refresh_seconds: int = 5
+    title: str = "deta dashboard"
+    push_events: list[str] = field(
+        default_factory=lambda: [
+            "service_added",
+            "service_removed",
+            "service_up",
+            "service_down",
+        ]
+    )
+
+
+@dataclass
 class DetaConfig:
     """Main deta configuration."""
     project: dict = field(default_factory=dict)
@@ -103,6 +124,7 @@ class DetaConfig:
     monitor: MonitorConfig = field(default_factory=MonitorConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     alert: AlertConfig = field(default_factory=AlertConfig)
+    web: WebConfig = field(default_factory=WebConfig)
 
 
 def load_config(config_path: Optional[Path] = None) -> DetaConfig:
@@ -206,14 +228,18 @@ def _parse_config(data: dict) -> DetaConfig:
             interval_seconds=monitor_data.get("interval_seconds", 30),
             probe_timeout_seconds=monitor_data.get("probe_timeout_seconds", 5),
             probe_retries=monitor_data.get("probe_retries", 3),
+            probe_online=monitor_data.get("probe_online", True),
         )
     
     if "output" in data:
         output_data = data["output"]
         config.output = OutputConfig(
-            formats=output_data.get("formats", ["json"]),
+            formats=output_data.get("formats", ["json", "toon"]),
             json_path=output_data.get("json_path", "infra-map.json"),
             toon_path=output_data.get("toon_path", "infra.toon.yaml"),
+            graph_yaml_path=output_data.get("graph_yaml_path", "infra-graph.yaml"),
+            mermaid_path=output_data.get("mermaid_path", "infra-graph.mmd"),
+            png_path=output_data.get("png_path", "infra-graph.png"),
             toon_enabled=output_data.get("toon_enabled", True),
         )
     
@@ -223,6 +249,20 @@ def _parse_config(data: dict) -> DetaConfig:
             console_enabled=alert_data.get("console_enabled", True),
             colors_enabled=alert_data.get("colors_enabled", True),
             min_severity=alert_data.get("min_severity", "info"),
+        )
+
+    if "web" in data:
+        web_data = data["web"]
+        config.web = WebConfig(
+            enabled=web_data.get("enabled", False),
+            host=web_data.get("host", "127.0.0.1"),
+            port=web_data.get("port", 8765),
+            refresh_seconds=web_data.get("refresh_seconds", 5),
+            title=web_data.get("title", "deta dashboard"),
+            push_events=web_data.get(
+                "push_events",
+                ["service_added", "service_removed", "service_up", "service_down"],
+            ),
         )
     
     return config

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-04-30
+
+### Docs
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update testql-scenarios/generated-cli-tests.testql.toon.yaml
+
+### Other
+- Update app.doql.less
+- Update deta.yaml.example
+- Update deta/cli.py
+- Update deta/config.py
+- Update deta/formatter/__init__.py
+- Update deta/formatter/graph.py
+- Update deta/monitor/prober.py
+- Update deta/monitor/watcher.py
+- Update infra-graph.mmd
+- Update infra-graph.yaml
+- ... and 18 more files
+
 ## [0.2.1] - 2026-04-30
 
 ### Docs

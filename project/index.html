@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>code2llm Analysis Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #475569;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warning: #eab308;
+            --error: #ef4444;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f8fafc;
+                --surface: #ffffff;
+                --surface-hover: #f1f5f9;
+                --border: #e2e8f0;
+                --text: #1e293b;
+                --text-muted: #64748b;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .search {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            color: var(--text);
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        .search input:focus {
+            border-color: var(--accent);
+        }
+
+        .search input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .file-group {
+            margin-bottom: 1rem;
+        }
+
+        .file-group-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding: 0.5rem 0.75rem;
+            font-weight: 600;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 0.75rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 0.125rem;
+        }
+
+        .file-item:hover {
+            background: var(--surface-hover);
+        }
+
+        .file-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .file-item.active .file-meta {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .file-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        /* Content */
+        .content {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .content-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .content-title h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .content-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            background: var(--surface-hover);
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: var(--border);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .content-body {
+            flex: 1;
+            overflow: auto;
+            padding: 1.5rem;
+        }
+
+        /* Welcome */
+        .welcome {
+            max-width: 800px;
+        }
+
+        .welcome h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .welcome p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Content Display */
+        pre {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+        }
+
+        .markdown-content {
+            line-height: 1.7;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .markdown-content h1 {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content code {
+            background: var(--surface);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+        }
+
+        .markdown-content pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 1rem;
+            margin-left: 0;
+            color: var(--text-muted);
+        }
+
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .markdown-content th {
+            background: var(--surface);
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            border-radius: 0.5rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        /* Mermaid */
+        .mermaid-content {
+            background: var(--surface);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .mermaid-content pre {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Image Preview */
+        .image-preview {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background: var(--surface);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .sidebar.open {
+                display: flex;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 100;
+            }
+
+            .file-size {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="header">
+                <h1>🔍 code2llm</h1>
+                <p>Analysis Results Browser</p>
+            </div>
+            <div class="search">
+                <input type="text" id="search" placeholder="Search files..." oninput="filterFiles(this.value)">
+            </div>
+            <div class="file-list" id="fileList">
+                <!-- Files will be rendered here -->
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="content-header">
+                <div class="content-title">
+                    <span id="contentIcon">📁</span>
+                    <h2 id="contentTitle">Welcome</h2>
+                </div>
+                <div class="content-actions" id="contentActions">
+                    <!-- Actions will be rendered here -->
+                </div>
+            </div>
+            <div class="content-body" id="contentBody">
+                <div class="welcome">
+                    <h2>Analysis Results</h2>
+                    <p>Select a file from the sidebar to view its contents. This interface works on GitHub Pages without any server required.</p>
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Stats will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+        const files = [{"name": "calls.png", "rel_path": "calls.png", "path": "calls.png", "size": "310.6KB", "icon": "🖼️", "type": "image", "type_name": "Image", "content": "[Binary file]", "is_subdir": false}, {"name": "compact_flow.png", "rel_path": "compact_flow.png", "path": "compact_flow.png", "size": "24.7KB", "icon": "🖼️", "type": "image", "type_name": "Image", "content": "[Binary file]", "is_subdir": false}, {"name": "flow.png", "rel_path": "flow.png", "path": "flow.png", "size": "15.9KB", "icon": "🖼️", "type": "image", "type_name": "Image", "content": "[Binary file]", "is_subdir": false}, {"name": "README.md", "rel_path": "README.md", "path": "README.md", "size": "9.3KB", "icon": "📝", "type": "markdown", "type_name": "Markdown", "content": "# code2llm - Generated Analysis Files\n\nThis directory contains the complete analysis of your project generated by `code2llm`. Each file serves a specific purpose for understanding, refactoring, and documenting your codebase.\n\n## 📁 Generated Files Overview\n\nWhen you run `code2llm ./ -f all`, the following files are created:\n\n### 🎯 Core Analysis Files\n\n| File | Format | Purpose | Key Insights |\n|------|--------|---------|--------------|\n| `evolution.toon.yaml` | **YAML** | **📋 Refactoring queue** - Prioritized improvements | 0 refactoring actions needed |\n| `map.toon.yaml` | **YAML** | **🗺️ Structural map + project header** - Modules, imports, exports, signatures, stats, alerts, hotspots, trend | Project architecture overview |\n\n### 🤖 LLM-Ready Documentation\n\n| File | Format | Purpose | Use Case |\n|------|--------|---------|----------|\n| `prompt.txt` | **Text** | **📝 Ready-to-send prompt** - Lists all files with instructions | Attach to LLM conversation as context guide |\n| `context.md` | **Markdown** | **📖 LLM narrative** - Architecture summary | Paste into ChatGPT/Claude for code analysis |\n\n### 📊 Visualizations\n\n| File | Format | Purpose | Description |\n|------|--------|---------|-------------|\n| `flow.mmd` | **Mermaid** | **🔄 Control flow diagram** | Function call paths with complexity styling |\n| `calls.mmd` | **Mermaid** | **📞 Call graph** | Function dependencies (edges only) |\n| `compact_flow.mmd` | **Mermaid** | **📦 Module overview** | Aggregated module-level view |\n\n## 🚀 Quick Start Commands\n\n### Basic Analysis\n```bash\n# Quick health check (TOON format only)\ncode2llm ./ -f toon\n\n# Generate all formats (what created these files)\ncode2llm ./ -f all\n\n# LLM-ready context only\ncode2llm ./ -f context\n```\n\n### Performance Options\n```bash\n# Fast analysis for large projects\ncode2llm ./ -f toon --strategy quick\n\n# Memory-limited analysis\ncode2llm ./ -f all --max-memory 500\n\n# Skip PNG generation (faster)\ncode2llm ./ -f all --no-png\n```\n\n### Refactoring Focus\n```bash\n# Get refactoring recommendations\ncode2llm ./ -f evolution\n\n# Focus on specific code smells\ncode2llm ./ -f toon --refactor --smell god_function\n\n# Data flow analysis\ncode2llm ./ -f flow --data-flow\n```\n\n## 📖 Understanding Each File\n\n### `analysis.toon` - Health Diagnostics\n**Purpose**: Quick overview of code health issues\n**Key sections**:\n- **HEALTH**: Critical issues (🔴) and warnings (🟡)\n- **REFACTOR**: Prioritized refactoring actions\n- **COUPLING**: Module dependencies and potential cycles\n- **LAYERS**: Package complexity metrics\n- **FUNCTIONS**: High-complexity functions (CC ≥ 10)\n- **CLASSES**: Complex classes needing attention\n\n**Example usage**:\n```bash\n# View health issues\ncat analysis.toon | head -30\n\n# Check refactoring priorities\ngrep \"REFACTOR\" analysis.toon\n```\n\n### `evolution.toon.yaml` - Refactoring Queue\n**Purpose**: Step-by-step refactoring plan\n**Key sections**:\n- **NEXT**: Immediate actions to take\n- **RISKS**: Potential breaking changes\n- **METRICS-TARGET**: Success criteria\n\n**Example usage**:\n```bash\n# Get refactoring plan\ncat evolution.toon.yaml\n\n# Track progress\ngrep \"NEXT\" evolution.toon.yaml\n```\n\n### `flow.toon` - Legacy Data Flow Analysis\n**Purpose**: Understand data movement through the system (legacy / explicit opt-in)\n**Key sections**:\n- **PIPELINES**: Data processing chains\n- **CONTRACTS**: Function input/output contracts\n- **SIDE_EFFECTS**: Functions with external impacts\n\n**Example usage**:\n```bash\n# Find data pipelines\ngrep \"PIPELINES\" flow.toon\n\n# Identify side effects\ngrep \"SIDE_EFFECTS\" flow.toon\n```\n\n### `map.toon.yaml` - Structural Map + Project Header\n**Purpose**: High-level architecture overview plus compact project header\n**Key sections**:\n- **MODULES**: All modules with basic stats\n- **IMPORTS**: Dependency relationships\n- **EXPORTS**: Public API surface and signatures\n- **HEADER**: Stats, alerts, hotspots, evolution trend\n\n**Example usage**:\n```bash\n# See project structure\ncat map.toon.yaml | head -50\n\n# Find public APIs\ngrep \"SIGNATURES\" map.toon.yaml\n```\n\n### `project.toon.yaml` - Compact Analysis View\n**Purpose**: Compact module view generated from project.yaml data\n**Status**: Legacy view generated on demand from unified project.yaml\n\n**Example usage**:\n```bash\n# View compact project structure\ncat project.toon.yaml | head -30\n\n# Find largest files\ngrep -E \"^  .*[0-9]{3,}$\" project.toon.yaml | sort -t',' -k2 -n -r | head -10\n```\n\n### `prompt.txt` - Ready-to-Send LLM Prompt\n**Purpose**: Pre-formatted prompt listing all generated files for LLM conversation\n**Generation**: Written when `code2llm` runs with a source path and requests `-f all` (including `--no-chunk`) or `code2logic`\n**Contents**:\n- **Files section**: Lists all existing generated files with descriptions, including `project.toon.yaml` when generated by `-f all`\n- **Source files section**: Highlights important source files such as `cli_exports/orchestrator.py`\n- **Missing section**: Shows which files weren't generated (if any)\n- **Task section**: Refactoring brief with concrete execution instructions, not just analysis\n- **Priority Order section**: State-dependent refactoring priorities, starting with blockers and then architecture cleanup\n- **Requirements section**: Guidelines for suggested changes\n\n**Example usage**:\n```bash\n# View the prompt\ncat prompt.txt\n\n# Copy to clipboard and paste into ChatGPT/Claude\ncat prompt.txt | pbcopy  # macOS\ncat prompt.txt | xclip -sel clip  # Linux\n```\n\n### `context.md` - LLM Narrative\n**Purpose**: Ready-to-paste context for AI assistants\n**Key sections**:\n- **Overview**: Project statistics\n- **Architecture**: Module breakdown\n- **Entry Points**: Public interfaces\n- **Patterns**: Design patterns detected\n\n**Example usage**:\n```bash\n# Copy to clipboard for LLM\ncat context.md | pbcopy  # macOS\ncat context.md | xclip -sel clip  # Linux\n\n# Use with Claude/ChatGPT for code analysis\n```\n\n### Visualization Files (`*.mmd`, `*.png`)\n**Purpose**: Visual understanding of code structure\n**Files**:\n- `flow.mmd` - Detailed control flow with complexity colors\n- `calls.mmd` - Simple call graph\n- `compact_flow.mmd` - High-level module view\n- `*.png` - Pre-rendered images\n\n**Example usage**:\n```bash\n# View diagrams\nopen flow.png  # macOS\nxdg-open flow.png  # Linux\n\n# Edit in Mermaid Live Editor\n# Copy content of .mmd files to https://mermaid.live\n```\n\n## 🔍 Common Analysis Patterns\n\n### 1. Code Health Assessment\n```bash\n# Quick health check\ncode2llm ./ -f toon\ncat analysis.toon | grep -E \"(HEALTH|REFACTOR)\"\n```\n\n### 2. Refactoring Planning\n```bash\n# Get refactoring queue\ncode2llm ./ -f evolution\ncat evolution.toon.yaml\n\n# Focus on specific issues\ncode2llm ./ -f toon --refactor --smell god_function\n```\n\n### 3. LLM Assistance\n```bash\n# Generate context for AI\ncode2llm ./ -f context\ncat context.md\n\n# Use with Claude: \"Based on this context, help me refactor the god modules\"\n```\n\n### 4. Team Documentation\n```bash\n# Generate all docs for team\ncode2llm ./ -f all -o ./docs/\n\n# Create visual diagrams\nopen docs/flow.png\n```\n\n## 📊 Interpreting Metrics\n\n### Complexity Metrics (CC)\n- **🔴 Critical (≥5.0)**: Immediate refactoring needed\n- **🟠 High (3.0-4.9)**: Consider refactoring\n- **🟡 Medium (1.5-2.9)**: Monitor complexity\n- **🟢 Low (0.1-1.4)**: Acceptable\n- **⚪ Basic (0.0)**: Simple functions\n\n### Module Health\n- **GOD Module**: Too large (>500 lines, >20 methods)\n- **HUB**: High fan-out (calls many modules)\n- **FAN-IN**: High incoming dependencies\n- **CYCLES**: Circular dependencies\n\n### Data Flow Indicators\n- **PIPELINE**: Sequential data processing\n- **CONTRACT**: Clear input/output specification\n- **SIDE_EFFECT**: External state modification\n\n## 🛠️ Integration Examples\n\n### CI/CD Pipeline\n```bash\n#!/bin/bash\n# Analyze code quality in CI\ncode2llm ./ -f toon -o ./analysis\nif grep -q \"🔴 GOD\" ./analysis/analysis.toon; then\n    echo \"❌ God modules detected\"\n    exit 1\nfi\n```\n\n### Pre-commit Hook\n```bash\n#!/bin/sh\n# .git/hooks/pre-commit\ncode2llm ./ -f toon -o ./temp_analysis\nif grep -q \"🔴\" ./temp_analysis/analysis.toon; then\n    echo \"⚠️  Critical issues found. Review before committing.\"\nfi\nrm -rf ./temp_analysis\n```\n\n### Documentation Generation\n```bash\n# Generate docs for README\ncode2llm ./ -f context -o ./docs/\necho \"## Architecture\" >> README.md\ncat docs/context.md >> README.md\n```\n\n## 📚 Next Steps\n\n1. **Review `analysis.toon`** - Identify critical issues\n2. **Check `evolution.toon.yaml`** - Plan refactoring priorities\n3. **Use `context.md`** - Get LLM assistance for complex changes\n4. **Reference visualizations** - Understand system architecture\n5. **Track progress** - Re-run analysis after changes\n\n## 🔧 Advanced Usage\n\n### Custom Analysis\n```bash\n# Deep analysis with all insights\ncode2llm ./ -m hybrid -f all --max-depth 15 -v\n\n# Performance-optimized\ncode2llm ./ -m static -f toon --strategy quick\n\n# Refactoring-focused\ncode2llm ./ -f toon,evolution --refactor\n```\n\n### Output Customization\n```bash\n# Separate output directories\ncode2llm ./ -f all -o ./analysis-$(date +%Y%m%d)\n\n# Split YAML into multiple files\ncode2llm ./ -f yaml --split-output\n\n# Separate orphaned functions\ncode2llm ./ -f yaml --separate-orphans\n```\n\n---\n\n**Generated by**: `code2llm ./ -f all --readme`  \n**Analysis Date**: 2026-04-30  \n**Total Functions**: 97  \n**Total Classes**: 11  \n**Modules**: 34  \n\nFor more information about code2llm, visit: https://github.com/tom-sapletta/code2llm\n", "is_subdir": false}, {"name": "context.md", "rel_path": "context.md", "path": "context.md", "size": "11.9KB", "icon": "📝", "type": "markdown", "type_name": "Markdown", "content": "# System Architecture Analysis\n\n## Overview\n\n- **Project**: /home/tom/github/semcod/deta\n- **Primary Language**: python\n- **Languages**: python: 18, yaml: 11, shell: 2, json: 1, toml: 1\n- **Analysis Mode**: static\n- **Total Functions**: 97\n- **Total Classes**: 11\n- **Modules**: 34\n- **Entry Points**: 52\n\n## Architecture by Module\n\n### project.map.toon\n- **Functions**: 42\n- **File**: `map.toon.yaml`\n\n### deta.cli\n- **Functions**: 11\n- **File**: `cli.py`\n\n### deta.formatter.graph\n- **Functions**: 9\n- **File**: `graph.py`\n\n### deta.monitor.alerter\n- **Functions**: 5\n- **File**: `alerter.py`\n\n### deta.scanner.compose\n- **Functions**: 5\n- **Classes**: 1\n- **File**: `compose.py`\n\n### deta.integration.semcod\n- **Functions**: 4\n- **File**: `semcod.py`\n\n### deta.monitor.prober\n- **Functions**: 4\n- **Classes**: 1\n- **File**: `prober.py`\n\n### deta.core\n- **Functions**: 3\n- **Classes**: 1\n- **File**: `core.py`\n\n### deta.scanner.python\n- **Functions**: 3\n- **File**: `python.py`\n\n### deta.monitor.watcher\n- **Functions**: 3\n- **File**: `watcher.py`\n\n### deta.config\n- **Functions**: 3\n- **Classes**: 7\n- **File**: `config.py`\n\n### deta.scanner.openapi\n- **Functions**: 2\n- **Classes**: 1\n- **File**: `openapi.py`\n\n### deta.formatter.toon\n- **Functions**: 2\n- **File**: `toon.py`\n\n### deta.scanner.npm\n- **Functions**: 1\n- **File**: `npm.py`\n\n## Key Entry Points\n\nMain execution flows into the system:\n\n### deta.cli.main\n- **Calls**: typer.Typer, app.command, app.command, app.command, app, typer.Argument, typer.Option, typer.Option\n\n### deta.scanner.compose.scan_compose\n> Scan for docker-compose files and extract service definitions.\n\nArgs:\n    root: Root directory to scan\n    max_depth: Maximum directory depth to scan\n\n- **Calls**: root.rglob, len, None.items, compose_file.relative_to, open, services.append, YAML, ServiceDef\n\n### deta.scanner.npm.scan_npm\n> Scan for package.json files and extract package information.\n\nArgs:\n    root: Root directory to scan\n    max_depth: Maximum directory depth to scan\n  \n- **Calls**: root.rglob, len, json.loads, result.append, pkg.relative_to, pkg.read_text, data.get, data.get\n\n### deta.scanner.openapi.scan_openapi\n> Scan for OpenAPI files and extract endpoint definitions.\n\nArgs:\n    root: Root directory to scan\n    max_depth: Maximum directory depth to scan\n    \nR\n- **Calls**: root.rglob, len, deta.scanner.openapi._load, None.get, data.get, None.items, api_file.relative_to, data.get\n\n### deta.integration.semcod.pre_deploy_check\n> Run pre-deployment infrastructure validation.\n\nThis function checks for critical anomalies before deployment and returns\na pass/fail status along with\n- **Calls**: Path, project.map.toon.build_topology, topology.detect_anomalies, issues.append, issues.append, len, a.get, a.get\n\n### deta.monitor.watcher.watch_configs\n> Watch for configuration file changes and emit events.\n\nArgs:\n    root: Root directory to watch\n    on_change: Async callback function that receives ch\n- **Calls**: awatch, print, deta.monitor.watcher._is_config_file, deta.monitor.watcher._poll_configs, on_change, str, None.isoformat, hasattr\n\n### deta.config.load_config\n> Load deta.yaml configuration file.\n\nArgs:\n    config_path: Path to deta.yaml file. If None, searches in current directory.\n    \nReturns:\n    DetaConfi\n- **Calls**: Path, config_path.exists, DetaConfig, deta.config._load_yaml, deta.config._parse_config, print, DetaConfig\n\n### deta.integration.semcod.generate_for_pyqual\n> Generate dependency data for pyqual (Python quality checker).\n\nArgs:\n    root: Root directory to scan\n    depth: Maximum scan depth\n    \nReturns:\n    \n- **Calls**: Path, deta.scanner.python.scan_python, list, set, None.append, None.update\n\n### deta.integration.semcod.generate_for_sumd\n> Generate infrastructure report for sumd pipeline.\n\nThis function creates a toon-formatted infrastructure report that can be\nconsumed by sumd (Semcod u\n- **Calls**: Path, Path, project.map.toon.build_topology, deta.formatter.toon.save_toon\n\n### deta.integration.semcod.generate_for_vallm\n> Generate service metadata for vallm (validation LLM).\n\nArgs:\n    root: Root directory to scan\n    depth: Maximum scan depth\n    \nReturns:\n    Dictiona\n- **Calls**: Path, project.map.toon.build_topology, topology.detect_anomalies, topology.services.items\n\n### deta.monitor.prober.probe_all\n> Probe all services concurrently.\n\nArgs:\n    services: List of ServiceDef objects to probe\n    \nReturns:\n    List of ProbeResult objects\n- **Calls**: asyncio.gather, deta.monitor.prober.probe_service\n\n### deta.core.Wup.__init__\n> Initialize a Wup instance.\n\nArgs:\n    name: The name of the wup\n    dosage: The dosage information (optional)\n\n### deta.core.Wup.__repr__\n\n### deta.core.Wup.get_info\n> Return wup information.\n\n### project.map.toon._get_topology\n\n### project.map.toon._filter_anomalies\n\n### project.map.toon._print_summary\n\n### project.map.toon.scan\n\n### project.map.toon.monitor\n\n### project.map.toon._monitor_loop\n\n### project.map.toon.diff\n\n### project.map.toon.main\n\n### project.map.toon._load_yaml\n\n### project.map.toon._parse_config\n\n### project.map.toon.generate_toon\n\n### project.map.toon.save_toon\n\n### project.map.toon.generate_for_sumd\n\n### project.map.toon.generate_for_pyqual\n\n### project.map.toon.generate_for_vallm\n\n### project.map.toon.pre_deploy_check\n\n## Process Flows\n\nKey execution flows identified:\n\n### Flow 1: main\n```\nmain [deta.cli]\n```\n\n### Flow 2: scan_compose\n```\nscan_compose [deta.scanner.compose]\n```\n\n### Flow 3: scan_npm\n```\nscan_npm [deta.scanner.npm]\n```\n\n### Flow 4: scan_openapi\n```\nscan_openapi [deta.scanner.openapi]\n  └─> _load\n```\n\n### Flow 5: pre_deploy_check\n```\npre_deploy_check [deta.integration.semcod]\n  └─ →> build_topology\n```\n\n### Flow 6: watch_configs\n```\nwatch_configs [deta.monitor.watcher]\n  └─> _is_config_file\n  └─> _poll_configs\n```\n\n### Flow 7: load_config\n```\nload_config [deta.config]\n  └─> _load_yaml\n  └─> _parse_config\n```\n\n### Flow 8: generate_for_pyqual\n```\ngenerate_for_pyqual [deta.integration.semcod]\n  └─ →> scan_python\n      └─> _load_toml\n```\n\n### Flow 9: generate_for_sumd\n```\ngenerate_for_sumd [deta.integration.semcod]\n  └─ →> build_topology\n  └─ →> save_toon\n      └─> generate_toon\n```\n\n### Flow 10: generate_for_vallm\n```\ngenerate_for_vallm [deta.integration.semcod]\n  └─ →> build_topology\n```\n\n## Key Classes\n\n### deta.core.Wup\n> Base class for wup operations.\n- **Methods**: 3\n- **Key Methods**: deta.core.Wup.__init__, deta.core.Wup.__repr__, deta.core.Wup.get_info\n\n### deta.scanner.openapi.EndpointDef\n> Definition of an OpenAPI endpoint.\n- **Methods**: 0\n\n### deta.scanner.compose.ServiceDef\n> Definition of a Docker Compose service.\n- **Methods**: 0\n\n### deta.config.WatchConfig\n> Watch configuration for file monitoring.\n- **Methods**: 0\n\n### deta.config.ScanConfig\n> Scan configuration.\n- **Methods**: 0\n\n### deta.config.AnomalyConfig\n> Anomaly detection configuration.\n- **Methods**: 0\n\n### deta.config.MonitorConfig\n> Real-time monitoring configuration.\n- **Methods**: 0\n\n### deta.config.OutputConfig\n> Output configuration.\n- **Methods**: 0\n\n### deta.config.AlertConfig\n> Alert configuration.\n- **Methods**: 0\n\n### deta.config.DetaConfig\n> Main deta configuration.\n- **Methods**: 0\n\n### deta.monitor.prober.ProbeResult\n> Result of a health check probe.\n- **Methods**: 0\n\n## Data Transformation Functions\n\nKey functions that process and transform data:\n\n### deta.scanner.python._parse_requirements\n> Parse requirements.txt file and extract package names.\n- **Output to**: open, line.strip, None.strip, line.startswith, line.startswith\n\n### deta.scanner.compose._parse_ports\n> Parse ports from various formats.\n- **Output to**: isinstance, isinstance, result.append, isinstance, port.get\n\n### deta.scanner.compose._parse_depends_on\n> Parse depends_on from list or dict format.\n- **Output to**: isinstance, isinstance, list, str, dep.keys\n\n### deta.scanner.compose._parse_env\n> Parse environment from list or dict format.\n- **Output to**: isinstance, isinstance, isinstance, item.split\n\n### deta.scanner.compose._parse_labels\n> Parse labels from list or dict format.\n- **Output to**: isinstance, isinstance, isinstance, item.split\n\n### project.map.toon._parse_config\n\n### project.map.toon._parse_ports\n\n### project.map.toon._parse_depends_on\n\n### project.map.toon._parse_env\n\n### project.map.toon._parse_labels\n\n### project.map.toon._parse_requirements\n\n### deta.formatter.graph._parse_host_ports\n- **Output to**: deta.formatter.graph._split_port_mapping, parsed.append, str, deta.formatter.graph._resolve_host_port\n\n### deta.cli._resolve_formats\n- **Output to**: list, None.lower, normalized.append, item.strip\n\n### deta.config._parse_config\n> Parse configuration dictionary into DetaConfig object.\n- **Output to**: DetaConfig, WatchConfig, ScanConfig, AnomalyConfig, MonitorConfig\n\n## Public API Surface\n\nFunctions exposed as public API (no underscore prefix):\n\n- `deta.formatter.toon.generate_toon` - 58 calls\n- `deta.cli.main` - 46 calls\n- `deta.cli.diff` - 27 calls\n- `deta.scanner.compose.scan_compose` - 22 calls\n- `deta.scanner.python.scan_python` - 20 calls\n- `deta.monitor.alerter.print_topology_table` - 19 calls\n- `deta.scanner.npm.scan_npm` - 18 calls\n- `deta.formatter.graph.generate_graph_yaml` - 18 calls\n- `deta.formatter.graph.generate_mermaid` - 16 calls\n- `deta.monitor.prober.probe_service` - 16 calls\n- `deta.formatter.graph.save_png` - 15 calls\n- `deta.scanner.openapi.scan_openapi` - 14 calls\n- `deta.monitor.alerter.alert_anomaly` - 10 calls\n- `deta.integration.semcod.pre_deploy_check` - 10 calls\n- `deta.monitor.watcher.watch_configs` - 10 calls\n- `deta.cli.scan` - 10 calls\n- `deta.config.load_config` - 7 calls\n- `deta.integration.semcod.generate_for_pyqual` - 6 calls\n- `deta.integration.semcod.generate_for_sumd` - 4 calls\n- `deta.integration.semcod.generate_for_vallm` - 4 calls\n- `deta.cli.monitor` - 4 calls\n- `deta.monitor.alerter.alert_probe_failure` - 3 calls\n- `deta.monitor.alerter.alert_probe_success` - 3 calls\n- `deta.formatter.toon.save_toon` - 2 calls\n- `deta.formatter.graph.save_graph_yaml` - 2 calls\n- `deta.formatter.graph.save_mermaid` - 2 calls\n- `deta.monitor.prober.probe_all` - 2 calls\n- `deta.core.Wup.get_info` - 0 calls\n- `project.map.toon.build_topology` - 0 calls\n- `project.map.toon.scan` - 0 calls\n- `project.map.toon.monitor` - 0 calls\n- `project.map.toon.diff` - 0 calls\n- `project.map.toon.main` - 0 calls\n- `project.map.toon.load_config` - 0 calls\n- `project.map.toon.generate_toon` - 0 calls\n- `project.map.toon.save_toon` - 0 calls\n- `project.map.toon.generate_for_sumd` - 0 calls\n- `project.map.toon.generate_for_pyqual` - 0 calls\n- `project.map.toon.generate_for_vallm` - 0 calls\n- `project.map.toon.pre_deploy_check` - 0 calls\n\n## System Interactions\n\nHow components interact:\n\n```mermaid\ngraph TD\n    main --> Typer\n    main --> command\n    main --> app\n    scan_compose --> rglob\n    scan_compose --> len\n    scan_compose --> items\n    scan_compose --> relative_to\n    scan_compose --> open\n    scan_npm --> rglob\n    scan_npm --> len\n    scan_npm --> loads\n    scan_npm --> append\n    scan_npm --> relative_to\n    scan_openapi --> rglob\n    scan_openapi --> len\n    scan_openapi --> _load\n    scan_openapi --> get\n    pre_deploy_check --> Path\n    pre_deploy_check --> build_topology\n    pre_deploy_check --> detect_anomalies\n    pre_deploy_check --> append\n    watch_configs --> awatch\n    watch_configs --> print\n    watch_configs --> _is_config_file\n    watch_configs --> _poll_configs\n    watch_configs --> on_change\n    load_config --> Path\n    load_config --> exists\n    load_config --> DetaConfig\n    load_config --> _load_yaml\n```\n\n## Reverse Engineering Guidelines\n\n1. **Entry Points**: Start analysis from the entry points listed above\n2. **Core Logic**: Focus on classes with many methods\n3. **Data Flow**: Follow data transformation functions\n4. **Process Flows**: Use the flow diagrams for execution paths\n5. **API Surface**: Public API functions reveal the interface\n\n## Context for LLM\n\nMaintain the identified architectural patterns and public API surface when suggesting changes.", "is_subdir": false}, {"name": "calls.mmd", "rel_path": "calls.mmd", "path": "calls.mmd", "size": "7.0KB", "icon": "📈", "type": "mermaid", "type_name": "Mermaid", "content": "flowchart LR\n    subgraph deta__cli\n        deta__cli__scan[&quot;scan&quot;]\n        deta__cli___monitor_loop[&quot;_monitor_loop&quot;]\n        deta__cli___get_topology[&quot;_get_topology&quot;]\n        deta__cli___filter_anomalies[&quot;_filter_anomalies&quot;]\n        deta__cli___write_outputs[&quot;_write_outputs&quot;]\n        deta__cli___resolve_formats[&quot;_resolve_formats&quot;]\n        deta__cli___print_summary[&quot;_print_summary&quot;]\n        deta__cli__monitor[&quot;monitor&quot;]\n        deta__cli___probe_once[&quot;_probe_once&quot;]\n        deta__cli__diff[&quot;diff&quot;]\n    end\n    subgraph deta__config\n        deta__config___load_yaml[&quot;_load_yaml&quot;]\n        deta__config___parse_config[&quot;_parse_config&quot;]\n        deta__config__load_config[&quot;load_config&quot;]\n    end\n    subgraph deta__formatter\n        deta__formatter__graph___parse_host_ports[&quot;_parse_host_ports&quot;]\n        deta__formatter__graph___resolve_host_port[&quot;_resolve_host_port&quot;]\n        deta__formatter__graph__save_mermaid[&quot;save_mermaid&quot;]\n        deta__formatter__graph___safe_mermaid_id[&quot;_safe_mermaid_id&quot;]\n        deta__formatter__graph__generate_mermaid[&quot;generate_mermaid&quot;]\n        deta__formatter__toon__save_toon[&quot;save_toon&quot;]\n        deta__formatter__graph__save_png[&quot;save_png&quot;]\n        deta__formatter__toon__generate_toon[&quot;generate_toon&quot;]\n        deta__formatter__graph__generate_graph_yaml[&quot;generate_graph_yaml&quot;]\n        deta__formatter__graph___split_port_mapping[&quot;_split_port_mapping&quot;]\n        deta__formatter__graph__save_graph_yaml[&quot;save_graph_yaml&quot;]\n    end\n    subgraph deta__integration\n        deta__integration__semcod__generate_for_pyqual[&quot;generate_for_pyqual&quot;]\n        deta__integration__semcod__pre_deploy_check[&quot;pre_deploy_check&quot;]\n        deta__integration__semcod__generate_for_vallm[&quot;generate_for_vallm&quot;]\n        deta__integration__semcod__generate_for_sumd[&quot;generate_for_sumd&quot;]\n    end\n    subgraph deta__monitor\n        deta__monitor__prober___extract_health_url[&quot;_extract_health_url&quot;]\n        deta__monitor__prober__probe_all[&quot;probe_all&quot;]\n        deta__monitor__watcher___poll_configs[&quot;_poll_configs&quot;]\n        deta__monitor__alerter___get_console[&quot;_get_console&quot;]\n        deta__monitor__alerter__print_topology_table[&quot;print_topology_table&quot;]\n        deta__monitor__prober___split_port_mapping[&quot;_split_port_mapping&quot;]\n        deta__monitor__alerter__alert_anomaly[&quot;alert_anomaly&quot;]\n        deta__monitor__alerter__alert_probe_failure[&quot;alert_probe_failure&quot;]\n        deta__monitor__alerter__alert_probe_success[&quot;alert_probe_success&quot;]\n        deta__monitor__watcher__watch_configs[&quot;watch_configs&quot;]\n        deta__monitor__watcher___is_config_file[&quot;_is_config_file&quot;]\n        deta__monitor__prober__probe_service[&quot;probe_service&quot;]\n    end\n    subgraph deta__scanner\n        deta__scanner__python___load_toml[&quot;_load_toml&quot;]\n        deta__scanner__openapi___load[&quot;_load&quot;]\n        deta__scanner__python__scan_python[&quot;scan_python&quot;]\n        deta__scanner__python___parse_requirements[&quot;_parse_requirements&quot;]\n        deta__scanner__openapi__scan_openapi[&quot;scan_openapi&quot;]\n    end\n    subgraph project__map\n        project__map__toon__probe_all[&quot;probe_all&quot;]\n        project__map__toon__build_topology[&quot;build_topology&quot;]\n        project__map__toon__load_config[&quot;load_config&quot;]\n    end\n    deta__monitor__alerter__alert_anomaly --&gt; deta__monitor__alerter___get_console\n    deta__monitor__alerter__alert_probe_failure --&gt; deta__monitor__alerter___get_console\n    deta__monitor__alerter__alert_probe_success --&gt; deta__monitor__alerter___get_console\n    deta__monitor__alerter__print_topology_table --&gt; deta__monitor__alerter___get_console\n    deta__scanner__python__scan_python --&gt; deta__scanner__python___load_toml\n    deta__scanner__python__scan_python --&gt; deta__scanner__python___parse_requirements\n    deta__scanner__openapi__scan_openapi --&gt; deta__scanner__openapi___load\n    deta__integration__semcod__generate_for_sumd --&gt; project__map__toon__build_topology\n    deta__integration__semcod__generate_for_sumd --&gt; deta__formatter__toon__save_toon\n    deta__integration__semcod__generate_for_pyqual --&gt; deta__scanner__python__scan_python\n    deta__integration__semcod__generate_for_vallm --&gt; project__map__toon__build_topology\n    deta__integration__semcod__pre_deploy_check --&gt; project__map__toon__build_topology\n    deta__formatter__toon__save_toon --&gt; deta__formatter__toon__generate_toon\n    deta__monitor__watcher__watch_configs --&gt; deta__monitor__watcher___is_config_file\n    deta__monitor__watcher__watch_configs --&gt; deta__monitor__watcher___poll_configs\n    deta__formatter__graph___parse_host_ports --&gt; deta__formatter__graph___split_port_mapping\n    deta__formatter__graph___parse_host_ports --&gt; deta__formatter__graph___resolve_host_port\n    deta__formatter__graph__generate_graph_yaml --&gt; deta__formatter__graph___parse_host_ports\n    deta__formatter__graph__save_graph_yaml --&gt; deta__formatter__graph__generate_graph_yaml\n    deta__formatter__graph__generate_mermaid --&gt; deta__formatter__graph___safe_mermaid_id\n    deta__formatter__graph__generate_mermaid --&gt; deta__formatter__graph___parse_host_ports\n    deta__formatter__graph__save_mermaid --&gt; deta__formatter__graph__generate_mermaid\n    deta__formatter__graph__save_png --&gt; deta__formatter__graph___parse_host_ports\n    deta__cli___get_topology --&gt; project__map__toon__build_topology\n    deta__cli___print_summary --&gt; deta__monitor__alerter__print_topology_table\n    deta__cli___print_summary --&gt; deta__monitor__alerter__alert_anomaly\n    deta__cli___probe_once --&gt; project__map__toon__probe_all\n    deta__cli___probe_once --&gt; deta__monitor__alerter__alert_probe_success\n    deta__cli___probe_once --&gt; deta__monitor__alerter__alert_probe_failure\n    deta__cli___write_outputs --&gt; deta__formatter__toon__save_toon\n    deta__cli___write_outputs --&gt; deta__formatter__graph__save_graph_yaml\n    deta__cli___write_outputs --&gt; deta__formatter__graph__save_mermaid\n    deta__cli___write_outputs --&gt; deta__formatter__graph__save_png\n    deta__cli__scan --&gt; deta__cli___resolve_formats\n    deta__cli__scan --&gt; deta__cli___get_topology\n    deta__cli__scan --&gt; deta__cli___write_outputs\n    deta__cli__scan --&gt; deta__cli___print_summary\n    deta__cli__scan --&gt; project__map__toon__load_config\n    deta__cli__scan --&gt; deta__cli___filter_anomalies\n    deta__cli__scan --&gt; deta__cli___probe_once\n    deta__cli__monitor --&gt; deta__cli___monitor_loop\n    deta__cli___monitor_loop --&gt; deta__cli___resolve_formats\n    deta__cli___monitor_loop --&gt; deta__cli___get_topology\n    deta__cli___monitor_loop --&gt; deta__cli___filter_anomalies\n    deta__cli___monitor_loop --&gt; deta__cli___write_outputs\n    deta__cli___monitor_loop --&gt; deta__cli___print_summary\n    deta__cli___monitor_loop --&gt; project__map__toon__load_config\n    deta__cli__diff --&gt; project__map__toon__load_config\n    deta__cli__diff --&gt; deta__cli___get_topology\n    deta__config__load_config --&gt; deta__config___load_yaml\n    deta__config__load_config --&gt; deta__config___parse_config\n    deta__monitor__prober___extract_health_url --&gt; deta__monitor__prober___split_port_mapping\n    deta__monitor__prober__probe_service --&gt; deta__monitor__prober___extract_health_url\n    deta__monitor__prober__probe_all --&gt; deta__monitor__prober__probe_service\n", "is_subdir": false}, {"name": "compact_flow.mmd", "rel_path": "compact_flow.mmd", "path": "compact_flow.mmd", "size": "533B", "icon": "📈", "type": "mermaid", "type_name": "Mermaid", "content": "flowchart TD\n    deta__cli[&quot;deta.cli&lt;br/&gt;11 funcs&quot;]\n    deta__formatter[&quot;deta.formatter&lt;br/&gt;11 funcs&quot;]\n    deta__integration[&quot;deta.integration&lt;br/&gt;4 funcs&quot;]\n    deta__monitor[&quot;deta.monitor&lt;br/&gt;12 funcs&quot;]\n    deta__scanner[&quot;deta.scanner&lt;br/&gt;11 funcs&quot;]\n    project__map[&quot;project.map&lt;br/&gt;42 funcs&quot;]\n    deta__cli ==&gt;|11| project__map\n    deta__cli ==&gt;|9| deta__monitor\n    deta__cli ==&gt;|4| deta__formatter\n    deta__integration --&gt;|3| project__map\n    deta__integration --&gt;|1| deta__formatter\n    deta__integration --&gt;|1| deta__scanner\n", "is_subdir": false}, {"name": "flow.mmd", "rel_path": "flow.mmd", "path": "flow.mmd", "size": "1.9KB", "icon": "📈", "type": "mermaid", "type_name": "Mermaid", "content": "flowchart TD\n\n    %% Entry points (blue)\n    classDef entry fill:#4dabf7,stroke:#1971c2,color:#fff\n\n    subgraph CLI\n        deta__cli___get_topology[&quot;_get_topology&quot;]\n        deta__cli___filter_anomalies[&quot;_filter_anomalies&quot;]\n        deta__cli___print_summary[&quot;_print_summary&quot;]\n        deta__cli___resolve_formats[&quot;_resolve_formats&quot;]\n        deta__cli___probe_once[&quot;_probe_once&quot;]\n        deta__cli___write_outputs[&quot;_write_outputs&quot;]\n        deta__cli__scan[&quot;scan&quot;]\n        deta__cli__monitor[&quot;monitor&quot;]\n        deta__cli___monitor_loop[&quot;_monitor_loop&quot;]\n        deta__cli__diff[&quot;diff&quot;]\n        deta__cli__main[&quot;main&quot;]\n    end\n\n    subgraph Core\n        deta__core__Wup____repr__[&quot;__repr__&quot;]\n        deta__core__Wup__get_info[&quot;get_info&quot;]\n        deta__scanner__npm__scan_npm[&quot;scan_npm&quot;]\n        deta__scanner__openapi__scan_openapi[&quot;scan_openapi&quot;]\n        deta__scanner__compose__scan_compose[&quot;scan_compose&quot;]\n        deta__integration__semcod__generate_for_sumd[&quot;generate_for_sumd&quot;]\n        deta__integration__semcod__generate_for_pyqual[&quot;generate_for_pyqual&quot;]\n        deta__integration__semcod__generate_for_vallm[&quot;generate_for_vallm&quot;]\n        deta__integration__semcod__pre_deploy_check[&quot;pre_deploy_check&quot;]\n        deta__formatter__toon__generate_toon{{generate_toon CC=30}}\n        project__map__toon___get_topology[&quot;_get_topology&quot;]\n        project__map__toon___filter_anomalies[&quot;_filter_anomalies&quot;]\n        project__map__toon___print_summary[&quot;_print_summary&quot;]\n        project__map__toon__scan[&quot;scan&quot;]\n        project__map__toon__monitor[&quot;monitor&quot;]\n        ...[&quot;+42 more&quot;]\n    end\n\n    class deta__core__Wup____repr__,deta__core__Wup__get_info,deta__scanner__npm__scan_npm,deta__scanner__openapi__scan_openapi,deta__scanner__compose__scan_compose,deta__integration__semcod__generate_for_sumd,deta__integration__semcod__generate_for_pyqual,deta__integration__semcod__generate_for_vallm,deta__integration__semcod__pre_deploy_check,project__map__toon___get_topology entry\n", "is_subdir": false}, {"name": "prompt.txt", "rel_path": "prompt.txt", "path": "prompt.txt", "size": "2.9KB", "icon": "📄", "type": "text", "type_name": "Text", "content": "You are an AI assistant helping me understand and improve a codebase.\nUse the attached/generated files as the authoritative context.\nYour goal is to refactor the project based on these files, not just summarize it.\n\nwe are in project path: deta\n\nFiles for analysis:\n\nNote: project/validation.toon.yaml and project/duplication.toon.yaml are generated by external tools (vallm and redup)\n- analysis.toon.yaml  (Health diagnostics - complexity metrics, god modules, coupling issues, refactoring priorities) [4KB]\n- map.toon.yaml  (Structural map - files, sizes, imports, exports, signatures, project header) [6KB]\n- evolution.toon.yaml  (Refactoring queue - ranked actions by impact/effort, risks, metrics targets, history) [1KB]\n- project.toon.yaml  (Compact project overview - generated from project.yaml data) [2KB]\n- context.md  (LLM narrative - architecture summary and project context) [11KB]\n- README.md  (Generated documentation - overview and usage guide) [9KB]\n\nTask:\n- Treat this prompt as a refactoring brief: identify the highest-priority changes and prepare concrete edits.\n- Use the file set to decide whether the first pass should focus on correctness, duplication, complexity reduction, or architecture cleanup.\n- If you can safely implement the refactor, do it; otherwise give an exact file-by-file change plan and test plan.\n- Use analysis.toon.yaml to locate high-CC functions and god modules that should be split first.\n- Keep module boundaries intact and update imports/exports according to map.toon.yaml.\n- Use evolution.toon.yaml as the execution backlog and work from the top-ranked items.\n- Keep project.toon.yaml aligned with the refactored architecture.\n\nPriority Order:\nP1 — Split or simplify the highest-CC / god modules identified in analysis.toon.yaml.\nP1 — Preserve module boundaries and update imports/exports according to map.toon.yaml.\nP2 — Keep the compact project overview in project.toon.yaml aligned with the refactor.\nP2 — Execute the highest-impact items from evolution.toon.yaml in order of benefit/risk.\n\nFocus Areas for Analysis:\n1. **Code Health Analysis** - Review complexity metrics, god modules, coupling issues from analysis.toon.yaml\n2. **Structural Map** - Use map.toon.yaml to inspect imports, exports, signatures, and the project header\n3. **Refactoring Priorities** - Examine ranked refactoring actions and risk assessment from evolution.toon.yaml\n4. **Project Overview** - Review the compact project overview from project.toon.yaml\n\nAnalysis Strategy:\n- Start with analysis.toon.yaml for health metrics, then map.toon.yaml for structure and signatures\n- Review evolution.toon.yaml for action priorities and next steps\n- Compare the compact project overview in project.toon.yaml with the main analysis files\n\nConstraints:\n- Prefer minimal, incremental changes.\n- Maintain full backward compatibility.\n- Base recommendations on concrete metrics from the provided files.\n- If uncertain, ask clarifying questions.\n", "is_subdir": false}, {"name": "mermaid.export", "rel_path": "mermaid.export", "path": "mermaid.export", "size": "10.8KB", "icon": "📄", "type": "unknown", "type_name": "EXPORT", "content": "[Binary file]", "is_subdir": false}, {"name": "analysis.toon.yaml", "rel_path": "analysis.toon.yaml", "path": "analysis.toon.yaml", "size": "4.4KB", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "# code2llm | 34f 4499L | python:18,yaml:11,shell:2,json:1,toml:1,txt:1 | 2026-04-30\n# CC̄=3.5 | critical:4/97 | dups:0 | cycles:0\n\nHEALTH[4]:\n  🟡 CC    generate_toon CC=30 (limit:15)\n  🟡 CC    _poll_configs CC=16 (limit:15)\n  🟡 CC    _filter_anomalies CC=15 (limit:15)\n  🟡 CC    _extract_health_url CC=16 (limit:15)\n\nREFACTOR[1]:\n  1. split 4 high-CC methods  (CC&gt;15)\n\nPIPELINES[11]:\n  [1] Src [scan_npm]: scan_npm\n      PURITY: 100% pure\n  [2] Src [scan_openapi]: scan_openapi → _load\n      PURITY: 100% pure\n  [3] Src [scan_compose]: scan_compose → _parse_ports\n      PURITY: 100% pure\n  [4] Src [generate_for_sumd]: generate_for_sumd → build_topology\n      PURITY: 100% pure\n  [5] Src [generate_for_pyqual]: generate_for_pyqual → scan_python → _load_toml\n      PURITY: 100% pure\n\nLAYERS:\n  deta/                           CC̄=6.1    ←in:0  →out:24  !! split\n  │ !! cli                        344L  0C   11m  CC=15     ←0\n  │ config                     235L  7C    3m  CC=8      ←0\n  │ graph                      193L  0C    9m  CC=12     ←1\n  │ !! prober                     161L  1C    4m  CC=16     ←0\n  │ !! toon                       131L  0C    2m  CC=30     ←2\n  │ compose                    130L  1C    5m  CC=11     ←0\n  │ semcod                     129L  0C    4m  CC=7      ←0\n  │ !! watcher                    110L  0C    3m  CC=16     ←0\n  │ python                     102L  0C    3m  CC=11     ←1\n  │ alerter                     99L  0C    5m  CC=8      ←1\n  │ openapi                     89L  1C    2m  CC=12     ←0\n  │ npm                         45L  0C    1m  CC=5      ←0\n  │ core                        26L  1C    3m  CC=2      ←0\n  │ __init__                    23L  0C    0m  CC=0.0    ←0\n  │ __init__                    22L  0C    0m  CC=0.0    ←0\n  │ __init__                    18L  0C    0m  CC=0.0    ←0\n  │ __init__                    17L  0C    0m  CC=0.0    ←0\n  │ __init__                    17L  0C    0m  CC=0.0    ←0\n  │\n  project/                        CC̄=0.0    ←in:0  →out:0\n  │ calls.yaml                 371L  0C    0m  CC=0.0    ←0\n  │ calls.toon.yaml            120L  0C    0m  CC=0.0    ←0\n  │ map.toon.yaml              119L  0C   42m  CC=0.0    ←2\n  │ analysis.toon.yaml          66L  0C    0m  CC=0.0    ←0\n  │ project.toon.yaml           57L  0C    0m  CC=0.0    ←0\n  │ evolution.toon.yaml         51L  0C    0m  CC=0.0    ←0\n  │ prompt.txt                  49L  0C    0m  CC=0.0    ←0\n  │ duplication.toon.yaml        9L  0C    0m  CC=0.0    ←0\n  │\n  ./                              CC̄=0.0    ←in:0  →out:0\n  │ !! infra-map.json             757L  0C    0m  CC=0.0    ←0\n  │ !! goal.yaml                  512L  0C    0m  CC=0.0    ←0\n  │ infra-graph.yaml           241L  0C    0m  CC=0.0    ←0\n  │ pyproject.toml              81L  0C    0m  CC=0.0    ←0\n  │ infra.toon.yaml             68L  0C    0m  CC=0.0    ←0\n  │ project.sh                  50L  0C    0m  CC=0.0    ←0\n  │ scan-infra.sh               37L  0C    0m  CC=0.0    ←0\n  │\n  testql-scenarios/               CC̄=0.0    ←in:0  →out:0\n  │ generated-cli-tests.testql.toon.yaml    20L  0C    0m  CC=0.0    ←0\n  │\n\nCOUPLING:\n                                deta       project.map      deta.monitor    deta.formatter  deta.integration      deta.scanner\n              deta                ──                11                 9                 4                                      !! fan-out\n       project.map               ←11                ──                                                    ←3                    hub\n      deta.monitor                ←9                                  ──                                                        hub\n    deta.formatter                ←4                                                    ──                ←1                    hub\n  deta.integration                                   3                                   1                ──                 1\n      deta.scanner                                                                                        ←1                ──\n  CYCLES: none\n  HUB: deta.formatter/ (fan-in=5)\n  HUB: deta.monitor/ (fan-in=9)\n  HUB: project.map/ (fan-in=14)\n  SMELL: deta/ fan-out=24 → split needed\n\nEXTERNAL:\n  validation: run `vallm batch .` → validation.toon\n  duplication: run `redup scan .` → duplication.toon\n", "is_subdir": false}, {"name": "calls.toon.yaml", "rel_path": "calls.toon.yaml", "path": "calls.toon.yaml", "size": "6.5KB", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "# code2llm call graph | /home/tom/github/semcod/deta\n# nodes: 48 | edges: 54 | modules: 11\n# CC̄=3.5\n\nHUBS[20]:\n  deta.formatter.toon.generate_toon\n    CC=30  in:1  out:58  total:59\n  deta.config._parse_config\n    CC=8  in:1  out:36  total:37\n  deta.cli._monitor_loop\n    CC=8  in:1  out:28  total:29\n  deta.cli.diff\n    CC=9  in:1  out:27  total:28\n  deta.monitor.watcher._poll_configs\n    CC=16  in:1  out:22  total:23\n  deta.scanner.python.scan_python\n    CC=11  in:1  out:20  total:21\n  deta.monitor.alerter.print_topology_table\n    CC=8  in:1  out:19  total:20\n  deta.formatter.graph.generate_graph_yaml\n    CC=11  in:1  out:18  total:19\n  deta.formatter.graph.generate_mermaid\n    CC=10  in:1  out:16  total:17\n  deta.monitor.prober.probe_service\n    CC=4  in:1  out:16  total:17\n  deta.formatter.graph.save_png\n    CC=12  in:1  out:15  total:16\n  deta.monitor.prober._extract_health_url\n    CC=16  in:1  out:14  total:15\n  deta.cli._write_outputs\n    CC=8  in:3  out:12  total:15\n  deta.scanner.openapi.scan_openapi\n    CC=12  in:0  out:14  total:14\n  deta.cli._print_summary\n    CC=4  in:2  out:11  total:13\n  deta.monitor.alerter.alert_anomaly\n    CC=2  in:2  out:10  total:12\n  deta.config._load_yaml\n    CC=7  in:1  out:11  total:12\n  deta.scanner.python._parse_requirements\n    CC=6  in:1  out:11  total:12\n  deta.cli.scan\n    CC=5  in:1  out:10  total:11\n  deta.integration.semcod.pre_deploy_check\n    CC=7  in:0  out:10  total:10\n\nMODULES:\n  deta.cli  [10 funcs]\n    _filter_anomalies  CC=15  out:5\n    _get_topology  CC=1  out:1\n    _monitor_loop  CC=8  out:28\n    _print_summary  CC=4  out:11\n    _probe_once  CC=5  out:6\n    _resolve_formats  CC=4  out:4\n    _write_outputs  CC=8  out:12\n    diff  CC=9  out:27\n    monitor  CC=1  out:4\n    scan  CC=5  out:10\n  deta.config  [3 funcs]\n    _load_yaml  CC=7  out:11\n    _parse_config  CC=8  out:36\n    load_config  CC=4  out:7\n  deta.formatter.graph  [9 funcs]\n    _parse_host_ports  CC=3  out:4\n    _resolve_host_port  CC=8  out:7\n    _safe_mermaid_id  CC=3  out:2\n    _split_port_mapping  CC=7  out:5\n    generate_graph_yaml  CC=11  out:18\n    generate_mermaid  CC=10  out:16\n    save_graph_yaml  CC=1  out:2\n    save_mermaid  CC=1  out:2\n    save_png  CC=12  out:15\n  deta.formatter.toon  [2 funcs]\n    generate_toon  CC=30  out:58\n    save_toon  CC=1  out:2\n  deta.integration.semcod  [4 funcs]\n    generate_for_pyqual  CC=2  out:6\n    generate_for_sumd  CC=1  out:4\n    generate_for_vallm  CC=3  out:4\n    pre_deploy_check  CC=7  out:10\n  deta.monitor.alerter  [5 funcs]\n    _get_console  CC=3  out:1\n    alert_anomaly  CC=2  out:10\n    alert_probe_failure  CC=4  out:3\n    alert_probe_success  CC=2  out:3\n    print_topology_table  CC=8  out:19\n  deta.monitor.prober  [4 funcs]\n    _extract_health_url  CC=16  out:14\n    _split_port_mapping  CC=7  out:5\n    probe_all  CC=2  out:2\n    probe_service  CC=4  out:16\n  deta.monitor.watcher  [3 funcs]\n    _is_config_file  CC=2  out:4\n    _poll_configs  CC=16  out:22\n    watch_configs  CC=6  out:10\n  deta.scanner.openapi  [2 funcs]\n    _load  CC=6  out:8\n    scan_openapi  CC=12  out:14\n  deta.scanner.python  [3 funcs]\n    _load_toml  CC=4  out:6\n    _parse_requirements  CC=6  out:11\n    scan_python  CC=11  out:20\n  project.map.toon  [3 funcs]\n    build_topology  CC=0  out:0\n    load_config  CC=0  out:0\n    probe_all  CC=0  out:0\n\nEDGES:\n  deta.monitor.alerter.alert_anomaly → deta.monitor.alerter._get_console\n  deta.monitor.alerter.alert_probe_failure → deta.monitor.alerter._get_console\n  deta.monitor.alerter.alert_probe_success → deta.monitor.alerter._get_console\n  deta.monitor.alerter.print_topology_table → deta.monitor.alerter._get_console\n  deta.scanner.python.scan_python → deta.scanner.python._load_toml\n  deta.scanner.python.scan_python → deta.scanner.python._parse_requirements\n  deta.scanner.openapi.scan_openapi → deta.scanner.openapi._load\n  deta.integration.semcod.generate_for_sumd → project.map.toon.build_topology\n  deta.integration.semcod.generate_for_sumd → deta.formatter.toon.save_toon\n  deta.integration.semcod.generate_for_pyqual → deta.scanner.python.scan_python\n  deta.integration.semcod.generate_for_vallm → project.map.toon.build_topology\n  deta.integration.semcod.pre_deploy_check → project.map.toon.build_topology\n  deta.formatter.toon.save_toon → deta.formatter.toon.generate_toon\n  deta.monitor.watcher.watch_configs → deta.monitor.watcher._is_config_file\n  deta.monitor.watcher.watch_configs → deta.monitor.watcher._poll_configs\n  deta.formatter.graph._parse_host_ports → deta.formatter.graph._split_port_mapping\n  deta.formatter.graph._parse_host_ports → deta.formatter.graph._resolve_host_port\n  deta.formatter.graph.generate_graph_yaml → deta.formatter.graph._parse_host_ports\n  deta.formatter.graph.save_graph_yaml → deta.formatter.graph.generate_graph_yaml\n  deta.formatter.graph.generate_mermaid → deta.formatter.graph._safe_mermaid_id\n  deta.formatter.graph.generate_mermaid → deta.formatter.graph._parse_host_ports\n  deta.formatter.graph.save_mermaid → deta.formatter.graph.generate_mermaid\n  deta.formatter.graph.save_png → deta.formatter.graph._parse_host_ports\n  deta.cli._get_topology → project.map.toon.build_topology\n  deta.cli._print_summary → deta.monitor.alerter.print_topology_table\n  deta.cli._print_summary → deta.monitor.alerter.alert_anomaly\n  deta.cli._probe_once → project.map.toon.probe_all\n  deta.cli._probe_once → deta.monitor.alerter.alert_probe_success\n  deta.cli._probe_once → deta.monitor.alerter.alert_probe_failure\n  deta.cli._write_outputs → deta.formatter.toon.save_toon\n  deta.cli._write_outputs → deta.formatter.graph.save_graph_yaml\n  deta.cli._write_outputs → deta.formatter.graph.save_mermaid\n  deta.cli._write_outputs → deta.formatter.graph.save_png\n  deta.cli.scan → deta.cli._resolve_formats\n  deta.cli.scan → deta.cli._get_topology\n  deta.cli.scan → deta.cli._write_outputs\n  deta.cli.scan → deta.cli._print_summary\n  deta.cli.scan → project.map.toon.load_config\n  deta.cli.scan → deta.cli._filter_anomalies\n  deta.cli.scan → deta.cli._probe_once\n  deta.cli.monitor → deta.cli._monitor_loop\n  deta.cli._monitor_loop → deta.cli._resolve_formats\n  deta.cli._monitor_loop → deta.cli._get_topology\n  deta.cli._monitor_loop → deta.cli._filter_anomalies\n  deta.cli._monitor_loop → deta.cli._write_outputs\n  deta.cli._monitor_loop → deta.cli._print_summary\n  deta.cli._monitor_loop → project.map.toon.load_config\n  deta.cli.diff → project.map.toon.load_config\n  deta.cli.diff → deta.cli._get_topology\n  deta.config.load_config → deta.config._load_yaml\n", "is_subdir": false}, {"name": "calls.yaml", "rel_path": "calls.yaml", "path": "calls.yaml", "size": "17.0KB", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "project: /home/tom/github/semcod/deta\ngenerated_from: code2llm call graph analysis\nstats:\n  total_nodes: 48\n  total_edges: 54\n  modules_count: 11\nnodes:\n  deta.formatter.graph._parse_host_ports:\n    name: _parse_host_ports\n    module: deta.formatter.graph\n    line: 48\n    cyclomatic_complexity: 3\n    calls_out: 4\n    calls_in: 3\n  deta.monitor.prober._extract_health_url:\n    name: _extract_health_url\n    module: deta.monitor.prober\n    line: 43\n    cyclomatic_complexity: 16\n    calls_out: 14\n    calls_in: 1\n  deta.cli.scan:\n    name: scan\n    module: deta.cli\n    line: 126\n    cyclomatic_complexity: 5\n    calls_out: 10\n    calls_in: 1\n  deta.monitor.prober.probe_all:\n    name: probe_all\n    module: deta.monitor.prober\n    line: 151\n    cyclomatic_complexity: 2\n    calls_out: 2\n    calls_in: 0\n  deta.formatter.graph._resolve_host_port:\n    name: _resolve_host_port\n    module: deta.formatter.graph\n    line: 30\n    cyclomatic_complexity: 8\n    calls_out: 7\n    calls_in: 1\n  deta.cli._monitor_loop:\n    name: _monitor_loop\n    module: deta.cli\n    line: 165\n    cyclomatic_complexity: 8\n    calls_out: 28\n    calls_in: 1\n  deta.cli._get_topology:\n    name: _get_topology\n    module: deta.cli\n    line: 24\n    cyclomatic_complexity: 1\n    calls_out: 1\n    calls_in: 4\n  deta.integration.semcod.generate_for_pyqual:\n    name: generate_for_pyqual\n    module: deta.integration.semcod\n    line: 31\n    cyclomatic_complexity: 2\n    calls_out: 6\n    calls_in: 0\n  deta.scanner.python._load_toml:\n    name: _load_toml\n    module: deta.scanner.python\n    line: 68\n    cyclomatic_complexity: 4\n    calls_out: 6\n    calls_in: 1\n  deta.cli._filter_anomalies:\n    name: _filter_anomalies\n    module: deta.cli\n    line: 28\n    cyclomatic_complexity: 15\n    calls_out: 5\n    calls_in: 3\n  project.map.toon.probe_all:\n    name: probe_all\n    module: project.map.toon\n    line: 88\n    cyclomatic_complexity: 0\n    calls_out: 0\n    calls_in: 3\n  deta.monitor.watcher._poll_configs:\n    name: _poll_configs\n    module: deta.monitor.watcher\n    line: 49\n    cyclomatic_complexity: 16\n    calls_out: 22\n    calls_in: 1\n  deta.monitor.alerter._get_console:\n    name: _get_console\n    module: deta.monitor.alerter\n    line: 12\n    cyclomatic_complexity: 3\n    calls_out: 1\n    calls_in: 4\n  deta.monitor.alerter.print_topology_table:\n    name: print_topology_table\n    module: deta.monitor.alerter\n    line: 71\n    cyclomatic_complexity: 8\n    calls_out: 19\n    calls_in: 1\n  deta.monitor.prober._split_port_mapping:\n    name: _split_port_mapping\n    module: deta.monitor.prober\n    line: 24\n    cyclomatic_complexity: 7\n    calls_out: 5\n    calls_in: 1\n  deta.scanner.openapi._load:\n    name: _load\n    module: deta.scanner.openapi\n    line: 68\n    cyclomatic_complexity: 6\n    calls_out: 8\n    calls_in: 1\n  deta.integration.semcod.pre_deploy_check:\n    name: pre_deploy_check\n    module: deta.integration.semcod\n    line: 100\n    cyclomatic_complexity: 7\n    calls_out: 10\n    calls_in: 0\n  deta.monitor.alerter.alert_anomaly:\n    name: alert_anomaly\n    module: deta.monitor.alerter\n    line: 32\n    cyclomatic_complexity: 2\n    calls_out: 10\n    calls_in: 2\n  deta.formatter.graph.save_mermaid:\n    name: save_mermaid\n    module: deta.formatter.graph\n    line: 149\n    cyclomatic_complexity: 1\n    calls_out: 2\n    calls_in: 1\n  deta.monitor.alerter.alert_probe_failure:\n    name: alert_probe_failure\n    module: deta.monitor.alerter\n    line: 46\n    cyclomatic_complexity: 4\n    calls_out: 3\n    calls_in: 3\n  deta.scanner.python.scan_python:\n    name: scan_python\n    module: deta.scanner.python\n    line: 9\n    cyclomatic_complexity: 11\n    calls_out: 20\n    calls_in: 1\n  deta.monitor.alerter.alert_probe_success:\n    name: alert_probe_success\n    module: deta.monitor.alerter\n    line: 59\n    cyclomatic_complexity: 2\n    calls_out: 3\n    calls_in: 3\n  deta.formatter.graph._safe_mermaid_id:\n    name: _safe_mermaid_id\n    module: deta.formatter.graph\n    line: 63\n    cyclomatic_complexity: 3\n    calls_out: 2\n    calls_in: 4\n  deta.formatter.graph.generate_mermaid:\n    name: generate_mermaid\n    module: deta.formatter.graph\n    line: 114\n    cyclomatic_complexity: 10\n    calls_out: 16\n    calls_in: 1\n  deta.cli._write_outputs:\n    name: _write_outputs\n    module: deta.cli\n    line: 100\n    cyclomatic_complexity: 8\n    calls_out: 12\n    calls_in: 3\n  deta.integration.semcod.generate_for_vallm:\n    name: generate_for_vallm\n    module: deta.integration.semcod\n    line: 64\n    cyclomatic_complexity: 3\n    calls_out: 4\n    calls_in: 0\n  deta.cli._resolve_formats:\n    name: _resolve_formats\n    module: deta.cli\n    line: 75\n    cyclomatic_complexity: 4\n    calls_out: 4\n    calls_in: 2\n  deta.monitor.watcher.watch_configs:\n    name: watch_configs\n    module: deta.monitor.watcher\n    line: 22\n    cyclomatic_complexity: 6\n    calls_out: 10\n    calls_in: 0\n  deta.formatter.toon.save_toon:\n    name: save_toon\n    module: deta.formatter.toon\n    line: 121\n    cyclomatic_complexity: 1\n    calls_out: 2\n    calls_in: 2\n  deta.config._load_yaml:\n    name: _load_yaml\n    module: deta.config\n    line: 135\n    cyclomatic_complexity: 7\n    calls_out: 11\n    calls_in: 1\n  deta.monitor.watcher._is_config_file:\n    name: _is_config_file\n    module: deta.monitor.watcher\n    line: 104\n    cyclomatic_complexity: 2\n    calls_out: 4\n    calls_in: 1\n  deta.scanner.python._parse_requirements:\n    name: _parse_requirements\n    module: deta.scanner.python\n    line: 89\n    cyclomatic_complexity: 6\n    calls_out: 11\n    calls_in: 1\n  deta.cli._print_summary:\n    name: _print_summary\n    module: deta.cli\n    line: 56\n    cyclomatic_complexity: 4\n    calls_out: 11\n    calls_in: 2\n  deta.formatter.graph.save_png:\n    name: save_png\n    module: deta.formatter.graph\n    line: 157\n    cyclomatic_complexity: 12\n    calls_out: 15\n    calls_in: 1\n  project.map.toon.build_topology:\n    name: build_topology\n    module: project.map.toon\n    line: 37\n    cyclomatic_complexity: 0\n    calls_out: 0\n    calls_in: 4\n  deta.formatter.toon.generate_toon:\n    name: generate_toon\n    module: deta.formatter.toon\n    line: 12\n    cyclomatic_complexity: 30\n    calls_out: 58\n    calls_in: 1\n  deta.formatter.graph.generate_graph_yaml:\n    name: generate_graph_yaml\n    module: deta.formatter.graph\n    line: 67\n    cyclomatic_complexity: 11\n    calls_out: 18\n    calls_in: 1\n  deta.cli.monitor:\n    name: monitor\n    module: deta.cli\n    line: 153\n    cyclomatic_complexity: 1\n    calls_out: 4\n    calls_in: 2\n  deta.monitor.prober.probe_service:\n    name: probe_service\n    module: deta.monitor.prober\n    line: 94\n    cyclomatic_complexity: 4\n    calls_out: 16\n    calls_in: 1\n  deta.config._parse_config:\n    name: _parse_config\n    module: deta.config\n    line: 169\n    cyclomatic_complexity: 8\n    calls_out: 36\n    calls_in: 1\n  deta.config.load_config:\n    name: load_config\n    module: deta.config\n    line: 111\n    cyclomatic_complexity: 4\n    calls_out: 7\n    calls_in: 0\n  deta.formatter.graph._split_port_mapping:\n    name: _split_port_mapping\n    module: deta.formatter.graph\n    line: 11\n    cyclomatic_complexity: 7\n    calls_out: 5\n    calls_in: 1\n  project.map.toon.load_config:\n    name: load_config\n    module: project.map.toon\n    line: 57\n    cyclomatic_complexity: 0\n    calls_out: 0\n    calls_in: 6\n  deta.cli._probe_once:\n    name: _probe_once\n    module: deta.cli\n    line: 86\n    cyclomatic_complexity: 5\n    calls_out: 6\n    calls_in: 1\n  deta.cli.diff:\n    name: diff\n    module: deta.cli\n    line: 230\n    cyclomatic_complexity: 9\n    calls_out: 27\n    calls_in: 1\n  deta.integration.semcod.generate_for_sumd:\n    name: generate_for_sumd\n    module: deta.integration.semcod\n    line: 12\n    cyclomatic_complexity: 1\n    calls_out: 4\n    calls_in: 0\n  deta.formatter.graph.save_graph_yaml:\n    name: save_graph_yaml\n    module: deta.formatter.graph\n    line: 106\n    cyclomatic_complexity: 1\n    calls_out: 2\n    calls_in: 1\n  deta.scanner.openapi.scan_openapi:\n    name: scan_openapi\n    module: deta.scanner.openapi\n    line: 18\n    cyclomatic_complexity: 12\n    calls_out: 14\n    calls_in: 0\nedges:\n- caller: deta.monitor.alerter.alert_anomaly\n  callee: deta.monitor.alerter._get_console\n  call_type: resolved\n- caller: deta.monitor.alerter.alert_probe_failure\n  callee: deta.monitor.alerter._get_console\n  call_type: resolved\n- caller: deta.monitor.alerter.alert_probe_success\n  callee: deta.monitor.alerter._get_console\n  call_type: resolved\n- caller: deta.monitor.alerter.print_topology_table\n  callee: deta.monitor.alerter._get_console\n  call_type: resolved\n- caller: deta.scanner.python.scan_python\n  callee: deta.scanner.python._load_toml\n  call_type: resolved\n- caller: deta.scanner.python.scan_python\n  callee: deta.scanner.python._parse_requirements\n  call_type: resolved\n- caller: deta.scanner.openapi.scan_openapi\n  callee: deta.scanner.openapi._load\n  call_type: resolved\n- caller: deta.integration.semcod.generate_for_sumd\n  callee: project.map.toon.build_topology\n  call_type: resolved\n- caller: deta.integration.semcod.generate_for_sumd\n  callee: deta.formatter.toon.save_toon\n  call_type: resolved\n- caller: deta.integration.semcod.generate_for_pyqual\n  callee: deta.scanner.python.scan_python\n  call_type: resolved\n- caller: deta.integration.semcod.generate_for_vallm\n  callee: project.map.toon.build_topology\n  call_type: resolved\n- caller: deta.integration.semcod.pre_deploy_check\n  callee: project.map.toon.build_topology\n  call_type: resolved\n- caller: deta.formatter.toon.save_toon\n  callee: deta.formatter.toon.generate_toon\n  call_type: resolved\n- caller: deta.monitor.watcher.watch_configs\n  callee: deta.monitor.watcher._is_config_file\n  call_type: resolved\n- caller: deta.monitor.watcher.watch_configs\n  callee: deta.monitor.watcher._poll_configs\n  call_type: resolved\n- caller: deta.formatter.graph._parse_host_ports\n  callee: deta.formatter.graph._split_port_mapping\n  call_type: resolved\n- caller: deta.formatter.graph._parse_host_ports\n  callee: deta.formatter.graph._resolve_host_port\n  call_type: resolved\n- caller: deta.formatter.graph.generate_graph_yaml\n  callee: deta.formatter.graph._parse_host_ports\n  call_type: resolved\n- caller: deta.formatter.graph.save_graph_yaml\n  callee: deta.formatter.graph.generate_graph_yaml\n  call_type: resolved\n- caller: deta.formatter.graph.generate_mermaid\n  callee: deta.formatter.graph._safe_mermaid_id\n  call_type: resolved\n- caller: deta.formatter.graph.generate_mermaid\n  callee: deta.formatter.graph._parse_host_ports\n  call_type: resolved\n- caller: deta.formatter.graph.save_mermaid\n  callee: deta.formatter.graph.generate_mermaid\n  call_type: resolved\n- caller: deta.formatter.graph.save_png\n  callee: deta.formatter.graph._parse_host_ports\n  call_type: resolved\n- caller: deta.cli._get_topology\n  callee: project.map.toon.build_topology\n  call_type: resolved\n- caller: deta.cli._print_summary\n  callee: deta.monitor.alerter.print_topology_table\n  call_type: resolved\n- caller: deta.cli._print_summary\n  callee: deta.monitor.alerter.alert_anomaly\n  call_type: resolved\n- caller: deta.cli._probe_once\n  callee: project.map.toon.probe_all\n  call_type: resolved\n- caller: deta.cli._probe_once\n  callee: deta.monitor.alerter.alert_probe_success\n  call_type: resolved\n- caller: deta.cli._probe_once\n  callee: deta.monitor.alerter.alert_probe_failure\n  call_type: resolved\n- caller: deta.cli._write_outputs\n  callee: deta.formatter.toon.save_toon\n  call_type: resolved\n- caller: deta.cli._write_outputs\n  callee: deta.formatter.graph.save_graph_yaml\n  call_type: resolved\n- caller: deta.cli._write_outputs\n  callee: deta.formatter.graph.save_mermaid\n  call_type: resolved\n- caller: deta.cli._write_outputs\n  callee: deta.formatter.graph.save_png\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: deta.cli._resolve_formats\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: deta.cli._get_topology\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: deta.cli._write_outputs\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: deta.cli._print_summary\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: project.map.toon.load_config\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: deta.cli._filter_anomalies\n  call_type: resolved\n- caller: deta.cli.scan\n  callee: deta.cli._probe_once\n  call_type: resolved\n- caller: deta.cli.monitor\n  callee: deta.cli._monitor_loop\n  call_type: resolved\n- caller: deta.cli._monitor_loop\n  callee: deta.cli._resolve_formats\n  call_type: resolved\n- caller: deta.cli._monitor_loop\n  callee: deta.cli._get_topology\n  call_type: resolved\n- caller: deta.cli._monitor_loop\n  callee: deta.cli._filter_anomalies\n  call_type: resolved\n- caller: deta.cli._monitor_loop\n  callee: deta.cli._write_outputs\n  call_type: resolved\n- caller: deta.cli._monitor_loop\n  callee: deta.cli._print_summary\n  call_type: resolved\n- caller: deta.cli._monitor_loop\n  callee: project.map.toon.load_config\n  call_type: resolved\n- caller: deta.cli.diff\n  callee: project.map.toon.load_config\n  call_type: resolved\n- caller: deta.cli.diff\n  callee: deta.cli._get_topology\n  call_type: resolved\n- caller: deta.config.load_config\n  callee: deta.config._load_yaml\n  call_type: resolved\n- caller: deta.config.load_config\n  callee: deta.config._parse_config\n  call_type: resolved\n- caller: deta.monitor.prober._extract_health_url\n  callee: deta.monitor.prober._split_port_mapping\n  call_type: resolved\n- caller: deta.monitor.prober.probe_service\n  callee: deta.monitor.prober._extract_health_url\n  call_type: resolved\n- caller: deta.monitor.prober.probe_all\n  callee: deta.monitor.prober.probe_service\n  call_type: resolved\nmodules:\n  deta.cli:\n  - deta.cli._filter_anomalies\n  - deta.cli._get_topology\n  - deta.cli._monitor_loop\n  - deta.cli._print_summary\n  - deta.cli._probe_once\n  - deta.cli._resolve_formats\n  - deta.cli._write_outputs\n  - deta.cli.diff\n  - deta.cli.monitor\n  - deta.cli.scan\n  deta.config:\n  - deta.config._load_yaml\n  - deta.config._parse_config\n  - deta.config.load_config\n  deta.formatter.graph:\n  - deta.formatter.graph._parse_host_ports\n  - deta.formatter.graph._resolve_host_port\n  - deta.formatter.graph._safe_mermaid_id\n  - deta.formatter.graph._split_port_mapping\n  - deta.formatter.graph.generate_graph_yaml\n  - deta.formatter.graph.generate_mermaid\n  - deta.formatter.graph.save_graph_yaml\n  - deta.formatter.graph.save_mermaid\n  - deta.formatter.graph.save_png\n  deta.formatter.toon:\n  - deta.formatter.toon.generate_toon\n  - deta.formatter.toon.save_toon\n  deta.integration.semcod:\n  - deta.integration.semcod.generate_for_pyqual\n  - deta.integration.semcod.generate_for_sumd\n  - deta.integration.semcod.generate_for_vallm\n  - deta.integration.semcod.pre_deploy_check\n  deta.monitor.alerter:\n  - deta.monitor.alerter._get_console\n  - deta.monitor.alerter.alert_anomaly\n  - deta.monitor.alerter.alert_probe_failure\n  - deta.monitor.alerter.alert_probe_success\n  - deta.monitor.alerter.print_topology_table\n  deta.monitor.prober:\n  - deta.monitor.prober._extract_health_url\n  - deta.monitor.prober._split_port_mapping\n  - deta.monitor.prober.probe_all\n  - deta.monitor.prober.probe_service\n  deta.monitor.watcher:\n  - deta.monitor.watcher._is_config_file\n  - deta.monitor.watcher._poll_configs\n  - deta.monitor.watcher.watch_configs\n  deta.scanner.openapi:\n  - deta.scanner.openapi._load\n  - deta.scanner.openapi.scan_openapi\n  deta.scanner.python:\n  - deta.scanner.python._load_toml\n  - deta.scanner.python._parse_requirements\n  - deta.scanner.python.scan_python\n  project.map.toon:\n  - project.map.toon.build_topology\n  - project.map.toon.load_config\n  - project.map.toon.probe_all\nentry_points:\n- deta.cli.main\n- deta.config.load_config\n- deta.core.Wup.__init__\n- deta.core.Wup.__repr__\n- deta.core.Wup.get_info\n- deta.integration.semcod.generate_for_pyqual\n- deta.integration.semcod.generate_for_sumd\n- deta.integration.semcod.generate_for_vallm\n- deta.integration.semcod.pre_deploy_check\n- deta.monitor.prober.probe_all\n- deta.monitor.watcher.watch_configs\n- deta.scanner.compose.scan_compose\n- deta.scanner.npm.scan_npm\n- deta.scanner.openapi.scan_openapi\n- project.map.toon._extract_health_url\n- project.map.toon._filter_anomalies\n- project.map.toon._get_console\n- project.map.toon._get_topology\n- project.map.toon._is_config_file\n- project.map.toon._load\n- project.map.toon._load_toml\n- project.map.toon._load_yaml\n- project.map.toon._monitor_loop\n- project.map.toon._parse_config\n- project.map.toon._parse_depends_on\n- project.map.toon._parse_env\n- project.map.toon._parse_labels\n- project.map.toon._parse_ports\n- project.map.toon._parse_requirements\n- project.map.toon._poll_configs\n- project.map.toon._print_summary\n- project.map.toon.alert_anomaly\n- project.map.toon.alert_probe_failure\n- project.map.toon.alert_probe_success\n- project.map.toon.diff\n- project.map.toon.generate_for_pyqual\n- project.map.toon.generate_for_sumd\n- project.map.toon.generate_for_vallm\n- project.map.toon.generate_toon\n- project.map.toon.main\n- project.map.toon.monitor\n- project.map.toon.pre_deploy_check\n- project.map.toon.print_topology_table\n- project.map.toon.probe_service\n- project.map.toon.save_toon\n- project.map.toon.scan\n- project.map.toon.scan_compose\n- project.map.toon.scan_npm\n- project.map.toon.scan_openapi\n- project.map.toon.scan_python\n- project.map.toon.test_import\n- project.map.toon.test_placeholder\n", "is_subdir": false}, {"name": "duplication.toon.yaml", "rel_path": "duplication.toon.yaml", "path": "duplication.toon.yaml", "size": "187B", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "# redup/duplication | 0 groups | 18f 1567L | 2026-04-30\n\nSUMMARY:\n  files_scanned: 18\n  total_lines:   1567\n  dup_groups:    0\n  dup_fragments: 0\n  saved_lines:   0\n  scan_ms:       4285\n", "is_subdir": false}, {"name": "evolution.toon.yaml", "rel_path": "evolution.toon.yaml", "path": "evolution.toon.yaml", "size": "1.8KB", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "# code2llm/evolution | 97 func | 14f | 2026-04-30\n\nNEXT[4] (ranked by impact):\n  [1] !! SPLIT-FUNC      generate_toon  CC=30  fan=16\n      WHY: CC=30 exceeds 15\n      EFFORT: ~1h  IMPACT: 480\n\n  [2] !  SPLIT-FUNC      _poll_configs  CC=16  fan=12\n      WHY: CC=16 exceeds 15\n      EFFORT: ~1h  IMPACT: 192\n\n  [3] !  SPLIT-FUNC      _extract_health_url  CC=16  fan=12\n      WHY: CC=16 exceeds 15\n      EFFORT: ~1h  IMPACT: 192\n\n  [4] !  SPLIT-FUNC      _filter_anomalies  CC=15  fan=3\n      WHY: CC=15 exceeds 15\n      EFFORT: ~1h  IMPACT: 45\n\n\nRISKS[0]: none\n\nMETRICS-TARGET:\n  CC̄:          3.5 → ≤2.4\n  max-CC:      30 → ≤15\n  god-modules: 0 → 0\n  high-CC(≥15): 4 → ≤2\n  hub-types:   0 → ≤0\n\nPATTERNS (language parser shared logic):\n  _extract_declarations() in base.py — unified extraction for:\n    - TypeScript: interfaces, types, classes, functions, arrow funcs\n    - PHP: namespaces, traits, classes, functions, includes\n    - Ruby: modules, classes, methods, requires\n    - C++: classes, structs, functions, #includes\n    - C#: classes, interfaces, methods, usings\n    - Java: classes, interfaces, methods, imports\n    - Go: packages, functions, structs\n    - Rust: modules, functions, traits, use statements\n\n  Shared regex patterns per language:\n    - import: language-specific import/require/using patterns\n    - class: class/struct/trait declarations with inheritance\n    - function: function/method signatures with visibility\n    - brace_tracking: for C-family languages ({ })\n    - end_keyword_tracking: for Ruby (module/class/def...end)\n\n  Benefits:\n    - Consistent extraction logic across all languages\n    - Reduced code duplication (~70% reduction in parser LOC)\n    - Easier maintenance: fix once, apply everywhere\n    - Standardized FunctionInfo/ClassInfo models\n\nHISTORY:\n  prev CC̄=5.9 → now CC̄=3.5\n", "is_subdir": false}, {"name": "map.toon.yaml", "rel_path": "map.toon.yaml", "path": "map.toon.yaml", "size": "7.0KB", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "# deta | 34f 4518L | yaml:11,shell:2,json:1,toml:1,python:18,txt:1 | 2026-04-30\n# stats: 97 func | 0 cls | 34 mod | CC̄=3.5 | critical:4 | cycles:0\n# alerts[5]: CC generate_toon=30; fan-out scan_compose=17; CC _extract_health_url=16; CC _poll_configs=16; fan-out _monitor_loop=16\n# hotspots[5]: scan_compose fan=17; generate_toon fan=16; _monitor_loop fan=16; diff fan=14; main fan=14\n# evolution: CC̄ 5.9→3.5 (improved -2.4)\n# Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods\nM[34]:\n  deta/__init__.py,23\n  deta/cli.py,344\n  deta/config.py,235\n  deta/core.py,26\n  deta/formatter/__init__.py,22\n  deta/formatter/graph.py,193\n  deta/formatter/toon.py,131\n  deta/integration/__init__.py,17\n  deta/integration/semcod.py,129\n  deta/monitor/__init__.py,18\n  deta/monitor/alerter.py,99\n  deta/monitor/prober.py,161\n  deta/monitor/watcher.py,110\n  deta/scanner/__init__.py,17\n  deta/scanner/compose.py,130\n  deta/scanner/npm.py,45\n  deta/scanner/openapi.py,89\n  deta/scanner/python.py,102\n  goal.yaml,512\n  infra-graph.yaml,241\n  infra-map.json,757\n  infra.toon.yaml,68\n  project.sh,50\n  project/analysis.toon.yaml,85\n  project/calls.yaml,371\n  project/calls.toon.yaml,120\n  project/duplication.toon.yaml,9\n  project/evolution.toon.yaml,51\n  project/map.toon.yaml,119\n  project/project.toon.yaml,57\n  project/prompt.txt,49\n  pyproject.toml,81\n  scan-infra.sh,37\n  testql-scenarios/generated-cli-tests.testql.toon.yaml,20\nD:\n  deta/formatter/toon.py:\n    e: generate_toon,save_toon\n    generate_toon(topology;project_name)\n    save_toon(topology;output_path;project_name)\n  deta/monitor/watcher.py:\n    e: watch_configs,_poll_configs,_is_config_file\n    watch_configs(root;on_change)\n    _poll_configs(root;on_change;interval)\n    _is_config_file(path)\n  deta/monitor/prober.py:\n    e: ProbeResult,_split_port_mapping,_extract_health_url,probe_service,probe_all\n    ProbeResult:  # Result of a health check probe...\n    _split_port_mapping(port)\n    _extract_health_url(service)\n    probe_service(service)\n    probe_all(services)\n  deta/cli.py:\n    e: _get_topology,_filter_anomalies,_print_summary,_resolve_formats,_probe_once,_write_outputs,scan,monitor,_monitor_loop,diff,main\n    _get_topology(root;depth;config)\n    _filter_anomalies(anomalies;config)\n    _print_summary(topology;output;config)\n    _resolve_formats(formats;config)\n    _probe_once(topology)\n    _write_outputs(topology;config;output;formats;probe_results)\n    scan(root;depth;output;config;formats;online)\n    monitor(root;interval;depth;config;output;formats;online)\n    _monitor_loop(root;interval;depth;config;output;formats;online)\n    diff(baseline;root;config)\n    main()\n  deta/scanner/openapi.py:\n    e: EndpointDef,scan_openapi,_load\n    EndpointDef:  # Definition of an OpenAPI endpoint...\n    scan_openapi(root;max_depth)\n    _load(file_path)\n  deta/formatter/graph.py:\n    e: _split_port_mapping,_resolve_host_port,_parse_host_ports,_safe_mermaid_id,generate_graph_yaml,save_graph_yaml,generate_mermaid,save_mermaid,save_png\n    _split_port_mapping(port)\n    _resolve_host_port(host_port)\n    _parse_host_ports(ports)\n    _safe_mermaid_id(name)\n    generate_graph_yaml(topology;probe_results)\n    save_graph_yaml(topology;output_path;probe_results)\n    generate_mermaid(topology;probe_results)\n    save_mermaid(topology;output_path;probe_results)\n    save_png(topology;output_path;probe_results)\n  deta/scanner/python.py:\n    e: scan_python,_load_toml,_parse_requirements\n    scan_python(root;max_depth)\n    _load_toml(file_path)\n    _parse_requirements(file_path)\n  deta/scanner/compose.py:\n    e: ServiceDef,scan_compose,_parse_ports,_parse_depends_on,_parse_env,_parse_labels\n    ServiceDef:  # Definition of a Docker Compose service...\n    scan_compose(root;max_depth)\n    _parse_ports(ports)\n    _parse_depends_on(dep)\n    _parse_env(env)\n    _parse_labels(labels)\n  deta/monitor/alerter.py:\n    e: _get_console,alert_anomaly,alert_probe_failure,alert_probe_success,print_topology_table\n    _get_console()\n    alert_anomaly(anomaly)\n    alert_probe_failure(result)\n    alert_probe_success(result)\n    print_topology_table(topology)\n  deta/config.py:\n    e: WatchConfig,ScanConfig,AnomalyConfig,MonitorConfig,OutputConfig,AlertConfig,DetaConfig,load_config,_load_yaml,_parse_config\n    WatchConfig:  # Watch configuration for file monitoring...\n    ScanConfig:  # Scan configuration...\n    AnomalyConfig:  # Anomaly detection configuration...\n    MonitorConfig:  # Real-time monitoring configuration...\n    OutputConfig:  # Output configuration...\n    AlertConfig:  # Alert configuration...\n    DetaConfig:  # Main deta configuration...\n    load_config(config_path)\n    _load_yaml(file_path)\n    _parse_config(data)\n  deta/integration/semcod.py:\n    e: generate_for_sumd,generate_for_pyqual,generate_for_vallm,pre_deploy_check\n    generate_for_sumd(root;depth;output)\n    generate_for_pyqual(root;depth)\n    generate_for_vallm(root;depth)\n    pre_deploy_check(root;depth)\n  deta/scanner/npm.py:\n    e: scan_npm\n    scan_npm(root;max_depth)\n  deta/core.py:\n    e: Wup\n    Wup: __init__(2),__repr__(0),get_info(0)  # Base class for wup operations...\n  infra.toon.yaml:\n  scan-infra.sh:\n  goal.yaml:\n  infra-map.json:\n  pyproject.toml:\n  project.sh:\n  deta/__init__.py:\n  deta/monitor/__init__.py:\n  deta/scanner/__init__.py:\n  deta/integration/__init__.py:\n  infra-graph.yaml:\n  project/duplication.toon.yaml:\n  project/prompt.txt:\n  testql-scenarios/generated-cli-tests.testql.toon.yaml:\n  project/calls.toon.yaml:\n  project/evolution.toon.yaml:\n  project/project.toon.yaml:\n  project/map.toon.yaml:\n    e: build_topology,_get_topology,_filter_anomalies,_print_summary,scan,monitor,_monitor_loop,diff,main,load_config,_load_yaml,_parse_config,generate_toon,save_toon,generate_for_sumd,generate_for_pyqual,generate_for_vallm,pre_deploy_check,_get_console,alert_anomaly,alert_probe_failure,alert_probe_success,print_topology_table,_extract_health_url,probe_service,probe_all,watch_configs,_poll_configs,_is_config_file,scan_compose,_parse_ports,_parse_depends_on,_parse_env,_parse_labels,scan_npm,scan_openapi,_load,scan_python,_load_toml,_parse_requirements,test_placeholder,test_import\n    build_topology()\n    _get_topology()\n    _filter_anomalies()\n    _print_summary()\n    scan()\n    monitor()\n    _monitor_loop()\n    diff()\n    main()\n    load_config()\n    _load_yaml()\n    _parse_config()\n    generate_toon()\n    save_toon()\n    generate_for_sumd()\n    generate_for_pyqual()\n    generate_for_vallm()\n    pre_deploy_check()\n    _get_console()\n    alert_anomaly()\n    alert_probe_failure()\n    alert_probe_success()\n    print_topology_table()\n    _extract_health_url()\n    probe_service()\n    probe_all()\n    watch_configs()\n    _poll_configs()\n    _is_config_file()\n    scan_compose()\n    _parse_ports()\n    _parse_depends_on()\n    _parse_env()\n    _parse_labels()\n    scan_npm()\n    scan_openapi()\n    _load()\n    scan_python()\n    _load_toml()\n    _parse_requirements()\n    test_placeholder()\n    test_import()\n  project/calls.yaml:\n  project/analysis.toon.yaml:\n  deta/formatter/__init__.py:\n", "is_subdir": false}, {"name": "project.toon.yaml", "rel_path": "project.toon.yaml", "path": "project.toon.yaml", "size": "2.2KB", "icon": "⚙️", "type": "yaml", "type_name": "YAML", "content": "# deta | 97 func | 14f | 6831L | python | 2026-04-30\n\nHEALTH:\n  CC̄=3.5  critical=10 (limit:10)  dup=0  cycles=0\n\nALERTS[16]:\n  !!! cc_exceeded      generate_toon = 30 (limit:15)\n  !!  high_fan_out     scan_compose = 17 (limit:10)\n  !!  high_fan_out     generate_toon = 16 (limit:10)\n  !!  high_fan_out     _monitor_loop = 16 (limit:10)\n  !   cc_exceeded      _poll_configs = 16 (limit:15)\n  !   cc_exceeded      _extract_health_url = 16 (limit:15)\n  !   cc_exceeded      _filter_anomalies = 15 (limit:15)\n  !   high_fan_out     diff = 14 (limit:10)\n  !   high_fan_out     main = 14 (limit:10)\n  !   high_fan_out     save_png = 13 (limit:10)\n\nMODULES[34] (top by size):\n  M[infra-map.json] 757L C:0 F:0 CC↑0 D:0 (json)\n  M[goal.yaml] 512L C:0 F:0 CC↑0 D:0 (yaml)\n  M[project/calls.yaml] 371L C:0 F:0 CC↑0 D:0 (yaml)\n  M[deta/cli.py] 344L C:0 F:11 CC↑15 D:0 (python)\n  M[infra-graph.yaml] 241L C:0 F:0 CC↑0 D:0 (yaml)\n  M[deta/config.py] 235L C:7 F:3 CC↑8 D:0 (python)\n  M[deta/formatter/graph.py] 193L C:0 F:9 CC↑12 D:1 (python)\n  M[deta/monitor/prober.py] 161L C:1 F:4 CC↑16 D:0 (python)\n  M[deta/formatter/toon.py] 131L C:0 F:2 CC↑30 D:2 (python)\n  M[deta/scanner/compose.py] 130L C:1 F:5 CC↑11 D:0 (python)\n  M[deta/integration/semcod.py] 129L C:0 F:4 CC↑7 D:0 (python)\n  M[project/calls.toon.yaml] 120L C:0 F:0 CC↑0 D:0 (yaml)\n  M[project/map.toon.yaml] 119L C:0 F:42 CC↑0 D:2 (yaml)\n  M[deta/monitor/watcher.py] 110L C:0 F:3 CC↑16 D:0 (python)\n  M[deta/scanner/python.py] 102L C:0 F:3 CC↑11 D:1 (python)\n  LANGS: python:18/yaml:11/shell:2/json:1/txt:1/toml:1\n\nHOTSPOTS[10]:\n  ★ scan_compose fan=17  // Scan for docker-compose files and extract service definitions.\n\nArgs:\n    root: \n  ★ generate_toon fan=16  // Generate toon format output for infrastructure status.\n\nArgs:\n    topology: Infr\n  ★ _monitor_loop fan=16  // Orchestrates 16 calls\n  ★ diff fan=14  // Orchestrates 14 calls\n  ★ main fan=14  // Orchestrates 14 calls\n\nREFACTOR[9]:\n  [1] H/L Split generate_toon (CC=30)\n  [2] H/H Split god module goal.yaml (512L, 0 classes)\n  [3] H/H Split god module infra-map.json (757L, 0 classes)\n  [4] M/L Split _poll_configs (CC=16)\n  [5] M/L Split _filter_anomalies (CC=15)\n\nEVOLUTION:\n  2026-04-30 CC̄=3.5 crit=10 6831L // Automated analysis\n", "is_subdir": false}];
+        let currentFile = null;
+
+        function renderFileList(filter = '') {
+            const list = document.getElementById('fileList');
+            const filtered = files.filter(f =>
+                f.name.toLowerCase().includes(filter.toLowerCase()) ||
+                f.path.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-state">No files found</div>';
+                return;
+            }
+
+            // Group by type
+            const groups = {};
+            for (const file of filtered) {
+                const type = file.type_name;
+                if (!groups[type]) groups[type] = [];
+                groups[type].push(file);
+            }
+
+            let html = '';
+            for (const [typeName, groupFiles] of Object.entries(groups)) {
+                html += `
+                    <div class="file-group">
+                        <div class="file-group-title">${typeName} Files (${groupFiles.length})</div>
+                        ${groupFiles.map(f => `
+                            <div class="file-item ${currentFile?.name === f.name ? 'active' : ''}"
+                                 onclick="selectFile('${f.name}')">
+                                <span class="file-icon">${f.icon}</span>
+                                <div class="file-info">
+                                    <div class="file-name">${f.name}</div>
+                                    <div class="file-meta">${f.path}</div>
+                                </div>
+                                <span class="file-size">${f.size}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            list.innerHTML = html;
+        }
+
+        function selectFile(name) {
+            const file = files.find(f => f.name === name);
+            if (!file) return;
+
+            currentFile = file;
+
+            document.getElementById('contentIcon').textContent = file.icon;
+            document.getElementById('contentTitle').textContent = file.name;
+
+            // Actions
+            const actions = document.getElementById('contentActions');
+            actions.innerHTML = `
+                <a href="${file.rel_path}" download class="btn">⬇ Download</a>
+                <a href="${file.rel_path}" target="_blank" class="btn btn-primary">↗ Open Raw</a>
+            `;
+
+            // Content
+            const body = document.getElementById('contentBody');
+            if (file.type === 'markdown') {
+                // Render markdown as HTML using marked.js
+                body.innerHTML = `<div class="markdown-content">${marked.parse(file.content)}</div>`;
+            } else if (file.type === 'html') {
+                // For HTML files, show in iframe for safety
+                body.innerHTML = `<iframe src="${file.rel_path}" style="width:100%;height:100%;border:none;border-radius:0.5rem;"></iframe>`;
+            } else if (file.type === 'image') {
+                // For images, display the actual image
+                body.innerHTML = `<div class="image-preview"><img src="${file.rel_path}" alt="${file.name}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:0.5rem;"></div>`;
+            } else if (file.type === 'mermaid') {
+                // Render mermaid diagram
+                const diagramId = 'mermaid-diagram-' + Date.now();
+                body.innerHTML = `<div class="mermaid-content"><pre class="mermaid" id="${diagramId}">${file.content}</pre></div>`;
+                // Initialize mermaid on the new element
+                setTimeout(() => {
+                    mermaid.init(undefined, document.getElementById(diagramId));
+                }, 0);
+            } else if (file.type === 'json') {
+                try {
+                    const json = JSON.parse(file.content.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+                    const formatted = JSON.stringify(json, null, 2);
+                    body.innerHTML = `<pre><code class="language-json">${formatted.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                    hljs.highlightElement(body.querySelector('code'));
+                } catch {
+                    body.innerHTML = `<pre>${file.content}</pre>`;
+                }
+            } else if (file.type === 'yaml') {
+                // YAML with syntax highlighting
+                body.innerHTML = `<pre><code class="language-yaml">${file.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                hljs.highlightElement(body.querySelector('code'));
+            } else if (file.type === 'toon') {
+                // TOON with simple highlighting (use ini as closest match for key: value format)
+                body.innerHTML = `<pre><code class="language-ini">${file.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                hljs.highlightElement(body.querySelector('code'));
+            } else if (file.type === 'code') {
+                // Code files with auto-highlighting
+                body.innerHTML = `<pre><code>${file.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                hljs.highlightElement(body.querySelector('code'));
+            } else {
+                body.innerHTML = `<pre>${file.content}</pre>`;
+            }
+
+            renderFileList(document.getElementById('search').value);
+        }
+
+        function filterFiles(query) {
+            renderFileList(query);
+        }
+
+        function renderStats() {
+            const stats = {};
+            for (const f of files) {
+                stats[f.type_name] = (stats[f.type_name] || 0) + 1;
+            }
+
+            const grid = document.getElementById('statsGrid');
+            grid.innerHTML = Object.entries(stats)
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, count]) => `
+                    <div class="stat-card">
+                        <div class="stat-value">${count}</div>
+                        <div class="stat-label">${type}</div>
+                    </div>
+                `).join('');
+        }
+
+        // Initialize
+        renderStats();
+        renderFileList();
+
+        // Select first file if available
+        if (files.length > 0) {
+            selectFile(files[0].name);
+        }
+    </script>
+</body>
+</html>

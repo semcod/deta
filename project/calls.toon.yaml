@@ -1,0 +1,158 @@
+# code2llm call graph | /home/tom/github/semcod/deta
+# nodes: 48 | edges: 54 | modules: 11
+# CC̄=3.5
+
+HUBS[20]:
+  deta.formatter.toon.generate_toon
+    CC=30  in:1  out:58  total:59
+  deta.config._parse_config
+    CC=8  in:1  out:36  total:37
+  deta.cli._monitor_loop
+    CC=8  in:1  out:28  total:29
+  deta.cli.diff
+    CC=9  in:1  out:27  total:28
+  deta.monitor.watcher._poll_configs
+    CC=16  in:1  out:22  total:23
+  deta.scanner.python.scan_python
+    CC=11  in:1  out:20  total:21
+  deta.monitor.alerter.print_topology_table
+    CC=8  in:1  out:19  total:20
+  deta.formatter.graph.generate_graph_yaml
+    CC=11  in:1  out:18  total:19
+  deta.formatter.graph.generate_mermaid
+    CC=10  in:1  out:16  total:17
+  deta.monitor.prober.probe_service
+    CC=4  in:1  out:16  total:17
+  deta.formatter.graph.save_png
+    CC=12  in:1  out:15  total:16
+  deta.monitor.prober._extract_health_url
+    CC=16  in:1  out:14  total:15
+  deta.cli._write_outputs
+    CC=8  in:3  out:12  total:15
+  deta.scanner.openapi.scan_openapi
+    CC=12  in:0  out:14  total:14
+  deta.cli._print_summary
+    CC=4  in:2  out:11  total:13
+  deta.monitor.alerter.alert_anomaly
+    CC=2  in:2  out:10  total:12
+  deta.config._load_yaml
+    CC=7  in:1  out:11  total:12
+  deta.scanner.python._parse_requirements
+    CC=6  in:1  out:11  total:12
+  deta.cli.scan
+    CC=5  in:1  out:10  total:11
+  deta.integration.semcod.pre_deploy_check
+    CC=7  in:0  out:10  total:10
+
+MODULES:
+  deta.cli  [10 funcs]
+    _filter_anomalies  CC=15  out:5
+    _get_topology  CC=1  out:1
+    _monitor_loop  CC=8  out:28
+    _print_summary  CC=4  out:11
+    _probe_once  CC=5  out:6
+    _resolve_formats  CC=4  out:4
+    _write_outputs  CC=8  out:12
+    diff  CC=9  out:27
+    monitor  CC=1  out:4
+    scan  CC=5  out:10
+  deta.config  [3 funcs]
+    _load_yaml  CC=7  out:11
+    _parse_config  CC=8  out:36
+    load_config  CC=4  out:7
+  deta.formatter.graph  [9 funcs]
+    _parse_host_ports  CC=3  out:4
+    _resolve_host_port  CC=8  out:7
+    _safe_mermaid_id  CC=3  out:2
+    _split_port_mapping  CC=7  out:5
+    generate_graph_yaml  CC=11  out:18
+    generate_mermaid  CC=10  out:16
+    save_graph_yaml  CC=1  out:2
+    save_mermaid  CC=1  out:2
+    save_png  CC=12  out:15
+  deta.formatter.toon  [2 funcs]
+    generate_toon  CC=30  out:58
+    save_toon  CC=1  out:2
+  deta.integration.semcod  [4 funcs]
+    generate_for_pyqual  CC=2  out:6
+    generate_for_sumd  CC=1  out:4
+    generate_for_vallm  CC=3  out:4
+    pre_deploy_check  CC=7  out:10
+  deta.monitor.alerter  [5 funcs]
+    _get_console  CC=3  out:1
+    alert_anomaly  CC=2  out:10
+    alert_probe_failure  CC=4  out:3
+    alert_probe_success  CC=2  out:3
+    print_topology_table  CC=8  out:19
+  deta.monitor.prober  [4 funcs]
+    _extract_health_url  CC=16  out:14
+    _split_port_mapping  CC=7  out:5
+    probe_all  CC=2  out:2
+    probe_service  CC=4  out:16
+  deta.monitor.watcher  [3 funcs]
+    _is_config_file  CC=2  out:4
+    _poll_configs  CC=16  out:22
+    watch_configs  CC=6  out:10
+  deta.scanner.openapi  [2 funcs]
+    _load  CC=6  out:8
+    scan_openapi  CC=12  out:14
+  deta.scanner.python  [3 funcs]
+    _load_toml  CC=4  out:6
+    _parse_requirements  CC=6  out:11
+    scan_python  CC=11  out:20
+  project.map.toon  [3 funcs]
+    build_topology  CC=0  out:0
+    load_config  CC=0  out:0
+    probe_all  CC=0  out:0
+
+EDGES:
+  deta.monitor.alerter.alert_anomaly → deta.monitor.alerter._get_console
+  deta.monitor.alerter.alert_probe_failure → deta.monitor.alerter._get_console
+  deta.monitor.alerter.alert_probe_success → deta.monitor.alerter._get_console
+  deta.monitor.alerter.print_topology_table → deta.monitor.alerter._get_console
+  deta.scanner.python.scan_python → deta.scanner.python._load_toml
+  deta.scanner.python.scan_python → deta.scanner.python._parse_requirements
+  deta.scanner.openapi.scan_openapi → deta.scanner.openapi._load
+  deta.integration.semcod.generate_for_sumd → project.map.toon.build_topology
+  deta.integration.semcod.generate_for_sumd → deta.formatter.toon.save_toon
+  deta.integration.semcod.generate_for_pyqual → deta.scanner.python.scan_python
+  deta.integration.semcod.generate_for_vallm → project.map.toon.build_topology
+  deta.integration.semcod.pre_deploy_check → project.map.toon.build_topology
+  deta.formatter.toon.save_toon → deta.formatter.toon.generate_toon
+  deta.monitor.watcher.watch_configs → deta.monitor.watcher._is_config_file
+  deta.monitor.watcher.watch_configs → deta.monitor.watcher._poll_configs
+  deta.formatter.graph._parse_host_ports → deta.formatter.graph._split_port_mapping
+  deta.formatter.graph._parse_host_ports → deta.formatter.graph._resolve_host_port
+  deta.formatter.graph.generate_graph_yaml → deta.formatter.graph._parse_host_ports
+  deta.formatter.graph.save_graph_yaml → deta.formatter.graph.generate_graph_yaml
+  deta.formatter.graph.generate_mermaid → deta.formatter.graph._safe_mermaid_id
+  deta.formatter.graph.generate_mermaid → deta.formatter.graph._parse_host_ports
+  deta.formatter.graph.save_mermaid → deta.formatter.graph.generate_mermaid
+  deta.formatter.graph.save_png → deta.formatter.graph._parse_host_ports
+  deta.cli._get_topology → project.map.toon.build_topology
+  deta.cli._print_summary → deta.monitor.alerter.print_topology_table
+  deta.cli._print_summary → deta.monitor.alerter.alert_anomaly
+  deta.cli._probe_once → project.map.toon.probe_all
+  deta.cli._probe_once → deta.monitor.alerter.alert_probe_success
+  deta.cli._probe_once → deta.monitor.alerter.alert_probe_failure
+  deta.cli._write_outputs → deta.formatter.toon.save_toon
+  deta.cli._write_outputs → deta.formatter.graph.save_graph_yaml
+  deta.cli._write_outputs → deta.formatter.graph.save_mermaid
+  deta.cli._write_outputs → deta.formatter.graph.save_png
+  deta.cli.scan → deta.cli._resolve_formats
+  deta.cli.scan → deta.cli._get_topology
+  deta.cli.scan → deta.cli._write_outputs
+  deta.cli.scan → deta.cli._print_summary
+  deta.cli.scan → project.map.toon.load_config
+  deta.cli.scan → deta.cli._filter_anomalies
+  deta.cli.scan → deta.cli._probe_once
+  deta.cli.monitor → deta.cli._monitor_loop
+  deta.cli._monitor_loop → deta.cli._resolve_formats
+  deta.cli._monitor_loop → deta.cli._get_topology
+  deta.cli._monitor_loop → deta.cli._filter_anomalies
+  deta.cli._monitor_loop → deta.cli._write_outputs
+  deta.cli._monitor_loop → deta.cli._print_summary
+  deta.cli._monitor_loop → project.map.toon.load_config
+  deta.cli.diff → project.map.toon.load_config
+  deta.cli.diff → deta.cli._get_topology
+  deta.config.load_config → deta.config._load_yaml

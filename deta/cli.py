@@ -9,6 +9,7 @@ from pathlib import Path
 
 from deta.builder.topology import build_topology, InfraTopology
 from deta.config import load_config, DetaConfig
+from deta.formatter.graph import save_graph_yaml, save_mermaid, save_png
 from deta.formatter.toon import save_toon
 from deta.monitor.alerter import (
     alert_anomaly,
@@ -71,9 +72,70 @@ def _print_summary(topology: InfraTopology, output: Path, config: DetaConfig = N
           f"{len(anomalies)} anomalies → {output}")
 
 
-def scan(root: Path = Path("."), depth: int = 3, output: Path = Path("infra-map.json"), config: DetaConfig = None):
+def _resolve_formats(formats: list[str] | None, config: DetaConfig) -> list[str]:
+    selected = formats if formats else list(config.output.formats)
+    normalized = []
+    for item in selected:
+        value = item.strip().lower()
+        if value == "graph_yaml":
+            value = "yaml"
+        normalized.append(value)
+    return normalized
+
+
+def _probe_once(topology: InfraTopology) -> dict:
+    services = list(topology.services.values())
+    if not services:
+        return {}
+    results = asyncio.run(probe_all(services))
+    by_service = {r.service: r for r in results}
+    for result in results:
+        if result.ok:
+            alert_probe_success(result)
+        else:
+            alert_probe_failure(result)
+    return by_service
+
+
+def _write_outputs(
+    topology: InfraTopology,
+    config: DetaConfig,
+    output: Path,
+    formats: list[str],
+    probe_results: dict | None,
+) -> None:
+    if "json" in formats:
+        output.write_text(topology.to_json())
+
+    if "toon" in formats and config.output.toon_enabled:
+        save_toon(topology, Path(config.output.toon_path), config.project.get("name"))
+
+    if "yaml" in formats:
+        save_graph_yaml(topology, Path(config.output.graph_yaml_path), probe_results)
+
+    if "mermaid" in formats:
+        save_mermaid(topology, Path(config.output.mermaid_path), probe_results)
+
+    if "png" in formats:
+        try:
+            save_png(topology, Path(config.output.png_path), probe_results)
+        except RuntimeError as exc:
+            print(f"WARNING: {exc}; skipping PNG export")
+
+
+def scan(
+    root: Path = Path("."),
+    depth: int = 3,
+    output: Path = Path("infra-map.json"),
+    config: DetaConfig = None,
+    formats: list[str] | None = None,
+    online: bool | None = None,
+):
     if config is None:
         config = load_config()
+
+    selected_formats = _resolve_formats(formats, config)
+    online_enabled = config.monitor.probe_online if online is None else online
     
     topology = _get_topology(root, depth, config)
     
@@ -82,22 +144,38 @@ def scan(root: Path = Path("."), depth: int = 3, output: Path = Path("infra-map.
         filtered_anomalies = _filter_anomalies(anomalies, config)
         topology._filtered_anomalies = filtered_anomalies
     
-    output.write_text(topology.to_json())
-    
-    if config.output and config.output.toon_enabled:
-        toon_path = Path(config.output.toon_path) if config.output.toon_path else Path("infra.toon.yaml")
-        save_toon(topology, toon_path, config.project.get("name"))
+    probe_results = _probe_once(topology) if online_enabled else None
+    _write_outputs(topology, config, output, selected_formats, probe_results)
     
     _print_summary(topology, output, config)
 
 
-def monitor(root: Path = Path("."), interval: int = 30, depth: int = 3, config: DetaConfig = None):
-    asyncio.run(_monitor_loop(root, interval, depth, config))
+def monitor(
+    root: Path = Path("."),
+    interval: int = 30,
+    depth: int = 3,
+    config: DetaConfig = None,
+    output: Path = Path("infra-map.json"),
+    formats: list[str] | None = None,
+    online: bool | None = None,
+):
+    asyncio.run(_monitor_loop(root, interval, depth, config, output, formats, online))
 
 
-async def _monitor_loop(root: Path, interval: int, depth: int, config: DetaConfig = None):
+async def _monitor_loop(
+    root: Path,
+    interval: int,
+    depth: int,
+    config: DetaConfig = None,
+    output: Path = Path("infra-map.json"),
+    formats: list[str] | None = None,
+    online: bool | None = None,
+):
     if config is None:
         config = load_config()
+
+    selected_formats = _resolve_formats(formats, config)
+    online_enabled = config.monitor.probe_online if online is None else online
     
     print(f"Starting monitoring on {root} (interval: {interval}s)")
     print("Press Ctrl+C to stop\n")
@@ -107,21 +185,41 @@ async def _monitor_loop(root: Path, interval: int, depth: int, config: DetaConfi
         topology = _get_topology(root, depth, config)
         anomalies = topology.detect_anomalies()
         filtered_anomalies = _filter_anomalies(anomalies, config)
+        topology._filtered_anomalies = filtered_anomalies
         
         for a in filtered_anomalies:
             alert_anomaly(a)
         
-        if config.monitor and config.monitor.enabled:
+        probe_results = None
+        if online_enabled:
             services = list(topology.services.values())
             results = await probe_all(services)
+            probe_results = {r.service: r for r in results}
             for r in results:
                 if r.ok:
                     alert_probe_success(r)
                 else:
                     alert_probe_failure(r)
+
+        _write_outputs(topology, config, output, selected_formats, probe_results)
     
     topology = _get_topology(root, depth, config)
-    _print_summary(topology, Path("infra-map.json"), config)
+    anomalies = topology.detect_anomalies()
+    topology._filtered_anomalies = _filter_anomalies(anomalies, config)
+
+    initial_probe_results = None
+    if online_enabled:
+        services = list(topology.services.values())
+        results = await probe_all(services)
+        initial_probe_results = {r.service: r for r in results}
+        for r in results:
+            if r.ok:
+                alert_probe_success(r)
+            else:
+                alert_probe_failure(r)
+
+    _write_outputs(topology, config, output, selected_formats, initial_probe_results)
+    _print_summary(topology, output, config)
     
     try:
         await watch_configs(root, on_change)
@@ -180,6 +278,10 @@ def main():
         root: Path = typer.Argument(Path("."), help="Root directory to scan"),
         depth: int = typer.Option(None, help="Max scan depth (overrides deta.yaml)"),
         output: Path = typer.Option(None, help="Output file (overrides deta.yaml)"),
+        watch: bool = typer.Option(False, help="Run continuously and regenerate outputs on changes"),
+        interval: int = typer.Option(None, help="Watch/probe interval in seconds"),
+        online: bool = typer.Option(True, help="Check what is online via HTTP probes"),
+        formats: str = typer.Option(None, help="Comma-separated formats: json,toon,yaml,mermaid,png"),
         config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
     ):
         config = load_config(config_file)
@@ -188,14 +290,27 @@ def main():
             depth = config.scan.max_depth if config.scan else 3
         if output is None:
             output = Path(config.output.json_path) if config.output else Path("infra-map.json")
+
+        selected_formats = None
+        if formats:
+            selected_formats = [f.strip() for f in formats.split(",") if f.strip()]
+
+        if watch:
+            if interval is None:
+                interval = config.monitor.interval_seconds if config.monitor else 30
+            monitor(root, interval, depth, config, output, selected_formats, online)
+            return
         
-        scan(root, depth, output, config)
+        scan(root, depth, output, config, selected_formats, online)
     
     @app.command("monitor")
     def monitor_cmd(
         root: Path = typer.Argument(Path("."), help="Root directory to monitor"),
         interval: int = typer.Option(None, help="Probe interval in seconds"),
         depth: int = typer.Option(None, help="Max scan depth"),
+        output: Path = typer.Option(None, help="Output file (overrides deta.yaml)"),
+        online: bool = typer.Option(True, help="Check what is online via HTTP probes"),
+        formats: str = typer.Option(None, help="Comma-separated formats: json,toon,yaml,mermaid,png"),
         config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
     ):
         config = load_config(config_file)
@@ -204,8 +319,14 @@ def main():
             interval = config.monitor.interval_seconds if config.monitor else 30
         if depth is None:
             depth = config.scan.max_depth if config.scan else 3
+        if output is None:
+            output = Path(config.output.json_path) if config.output else Path("infra-map.json")
+
+        selected_formats = None
+        if formats:
+            selected_formats = [f.strip() for f in formats.split(",") if f.strip()]
         
-        monitor(root, interval, depth, config)
+        monitor(root, interval, depth, config, output, selected_formats, online)
     
     @app.command("diff")
     def diff_cmd(

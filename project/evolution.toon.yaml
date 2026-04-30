@@ -1,0 +1,55 @@
+# code2llm/evolution | 97 func | 14f | 2026-04-30
+
+NEXT[4] (ranked by impact):
+  [1] !! SPLIT-FUNC      generate_toon  CC=30  fan=16
+      WHY: CC=30 exceeds 15
+      EFFORT: ~1h  IMPACT: 480
+
+  [2] !  SPLIT-FUNC      _poll_configs  CC=16  fan=12
+      WHY: CC=16 exceeds 15
+      EFFORT: ~1h  IMPACT: 192
+
+  [3] !  SPLIT-FUNC      _extract_health_url  CC=16  fan=12
+      WHY: CC=16 exceeds 15
+      EFFORT: ~1h  IMPACT: 192
+
+  [4] !  SPLIT-FUNC      _filter_anomalies  CC=15  fan=3
+      WHY: CC=15 exceeds 15
+      EFFORT: ~1h  IMPACT: 45
+
+
+RISKS[0]: none
+
+METRICS-TARGET:
+  CC̄:          3.5 → ≤2.4
+  max-CC:      30 → ≤15
+  god-modules: 0 → 0
+  high-CC(≥15): 4 → ≤2
+  hub-types:   0 → ≤0
+
+PATTERNS (language parser shared logic):
+  _extract_declarations() in base.py — unified extraction for:
+    - TypeScript: interfaces, types, classes, functions, arrow funcs
+    - PHP: namespaces, traits, classes, functions, includes
+    - Ruby: modules, classes, methods, requires
+    - C++: classes, structs, functions, #includes
+    - C#: classes, interfaces, methods, usings
+    - Java: classes, interfaces, methods, imports
+    - Go: packages, functions, structs
+    - Rust: modules, functions, traits, use statements
+
+  Shared regex patterns per language:
+    - import: language-specific import/require/using patterns
+    - class: class/struct/trait declarations with inheritance
+    - function: function/method signatures with visibility
+    - brace_tracking: for C-family languages ({ })
+    - end_keyword_tracking: for Ruby (module/class/def...end)
+
+  Benefits:
+    - Consistent extraction logic across all languages
+    - Reduced code duplication (~70% reduction in parser LOC)
+    - Easier maintenance: fix once, apply everywhere
+    - Standardized FunctionInfo/ClassInfo models
+
+HISTORY:
+  prev CC̄=5.9 → now CC̄=3.5

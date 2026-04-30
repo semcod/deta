@@ -1,0 +1,619 @@
+project: /home/tom/github/semcod/deta
+generated_from: code2llm call graph analysis
+stats:
+  total_nodes: 48
+  total_edges: 54
+  modules_count: 11
+nodes:
+  deta.formatter.graph._parse_host_ports:
+    name: _parse_host_ports
+    module: deta.formatter.graph
+    line: 48
+    cyclomatic_complexity: 3
+    calls_out: 4
+    calls_in: 3
+  deta.monitor.prober._extract_health_url:
+    name: _extract_health_url
+    module: deta.monitor.prober
+    line: 43
+    cyclomatic_complexity: 16
+    calls_out: 14
+    calls_in: 1
+  deta.cli.scan:
+    name: scan
+    module: deta.cli
+    line: 126
+    cyclomatic_complexity: 5
+    calls_out: 10
+    calls_in: 1
+  deta.monitor.prober.probe_all:
+    name: probe_all
+    module: deta.monitor.prober
+    line: 151
+    cyclomatic_complexity: 2
+    calls_out: 2
+    calls_in: 0
+  deta.formatter.graph._resolve_host_port:
+    name: _resolve_host_port
+    module: deta.formatter.graph
+    line: 30
+    cyclomatic_complexity: 8
+    calls_out: 7
+    calls_in: 1
+  deta.cli._monitor_loop:
+    name: _monitor_loop
+    module: deta.cli
+    line: 165
+    cyclomatic_complexity: 8
+    calls_out: 28
+    calls_in: 1
+  deta.cli._get_topology:
+    name: _get_topology
+    module: deta.cli
+    line: 24
+    cyclomatic_complexity: 1
+    calls_out: 1
+    calls_in: 4
+  deta.integration.semcod.generate_for_pyqual:
+    name: generate_for_pyqual
+    module: deta.integration.semcod
+    line: 31
+    cyclomatic_complexity: 2
+    calls_out: 6
+    calls_in: 0
+  deta.scanner.python._load_toml:
+    name: _load_toml
+    module: deta.scanner.python
+    line: 68
+    cyclomatic_complexity: 4
+    calls_out: 6
+    calls_in: 1
+  deta.cli._filter_anomalies:
+    name: _filter_anomalies
+    module: deta.cli
+    line: 28
+    cyclomatic_complexity: 15
+    calls_out: 5
+    calls_in: 3
+  project.map.toon.probe_all:
+    name: probe_all
+    module: project.map.toon
+    line: 88
+    cyclomatic_complexity: 0
+    calls_out: 0
+    calls_in: 3
+  deta.monitor.watcher._poll_configs:
+    name: _poll_configs
+    module: deta.monitor.watcher
+    line: 49
+    cyclomatic_complexity: 16
+    calls_out: 22
+    calls_in: 1
+  deta.monitor.alerter._get_console:
+    name: _get_console
+    module: deta.monitor.alerter
+    line: 12
+    cyclomatic_complexity: 3
+    calls_out: 1
+    calls_in: 4
+  deta.monitor.alerter.print_topology_table:
+    name: print_topology_table
+    module: deta.monitor.alerter
+    line: 71
+    cyclomatic_complexity: 8
+    calls_out: 19
+    calls_in: 1
+  deta.monitor.prober._split_port_mapping:
+    name: _split_port_mapping
+    module: deta.monitor.prober
+    line: 24
+    cyclomatic_complexity: 7
+    calls_out: 5
+    calls_in: 1
+  deta.scanner.openapi._load:
+    name: _load
+    module: deta.scanner.openapi
+    line: 68
+    cyclomatic_complexity: 6
+    calls_out: 8
+    calls_in: 1
+  deta.integration.semcod.pre_deploy_check:
+    name: pre_deploy_check
+    module: deta.integration.semcod
+    line: 100
+    cyclomatic_complexity: 7
+    calls_out: 10
+    calls_in: 0
+  deta.monitor.alerter.alert_anomaly:
+    name: alert_anomaly
+    module: deta.monitor.alerter
+    line: 32
+    cyclomatic_complexity: 2
+    calls_out: 10
+    calls_in: 2
+  deta.formatter.graph.save_mermaid:
+    name: save_mermaid
+    module: deta.formatter.graph
+    line: 149
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 1
+  deta.monitor.alerter.alert_probe_failure:
+    name: alert_probe_failure
+    module: deta.monitor.alerter
+    line: 46
+    cyclomatic_complexity: 4
+    calls_out: 3
+    calls_in: 3
+  deta.scanner.python.scan_python:
+    name: scan_python
+    module: deta.scanner.python
+    line: 9
+    cyclomatic_complexity: 11
+    calls_out: 20
+    calls_in: 1
+  deta.monitor.alerter.alert_probe_success:
+    name: alert_probe_success
+    module: deta.monitor.alerter
+    line: 59
+    cyclomatic_complexity: 2
+    calls_out: 3
+    calls_in: 3
+  deta.formatter.graph._safe_mermaid_id:
+    name: _safe_mermaid_id
+    module: deta.formatter.graph
+    line: 63
+    cyclomatic_complexity: 3
+    calls_out: 2
+    calls_in: 4
+  deta.formatter.graph.generate_mermaid:
+    name: generate_mermaid
+    module: deta.formatter.graph
+    line: 114
+    cyclomatic_complexity: 10
+    calls_out: 16
+    calls_in: 1
+  deta.cli._write_outputs:
+    name: _write_outputs
+    module: deta.cli
+    line: 100
+    cyclomatic_complexity: 8
+    calls_out: 12
+    calls_in: 3
+  deta.integration.semcod.generate_for_vallm:
+    name: generate_for_vallm
+    module: deta.integration.semcod
+    line: 64
+    cyclomatic_complexity: 3
+    calls_out: 4
+    calls_in: 0
+  deta.cli._resolve_formats:
+    name: _resolve_formats
+    module: deta.cli
+    line: 75
+    cyclomatic_complexity: 4
+    calls_out: 4
+    calls_in: 2
+  deta.monitor.watcher.watch_configs:
+    name: watch_configs
+    module: deta.monitor.watcher
+    line: 22
+    cyclomatic_complexity: 6
+    calls_out: 10
+    calls_in: 0
+  deta.formatter.toon.save_toon:
+    name: save_toon
+    module: deta.formatter.toon
+    line: 121
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 2
+  deta.config._load_yaml:
+    name: _load_yaml
+    module: deta.config
+    line: 135
+    cyclomatic_complexity: 7
+    calls_out: 11
+    calls_in: 1
+  deta.monitor.watcher._is_config_file:
+    name: _is_config_file
+    module: deta.monitor.watcher
+    line: 104
+    cyclomatic_complexity: 2
+    calls_out: 4
+    calls_in: 1
+  deta.scanner.python._parse_requirements:
+    name: _parse_requirements
+    module: deta.scanner.python
+    line: 89
+    cyclomatic_complexity: 6
+    calls_out: 11
+    calls_in: 1
+  deta.cli._print_summary:
+    name: _print_summary
+    module: deta.cli
+    line: 56
+    cyclomatic_complexity: 4
+    calls_out: 11
+    calls_in: 2
+  deta.formatter.graph.save_png:
+    name: save_png
+    module: deta.formatter.graph
+    line: 157
+    cyclomatic_complexity: 12
+    calls_out: 15
+    calls_in: 1
+  project.map.toon.build_topology:
+    name: build_topology
+    module: project.map.toon
+    line: 37
+    cyclomatic_complexity: 0
+    calls_out: 0
+    calls_in: 4
+  deta.formatter.toon.generate_toon:
+    name: generate_toon
+    module: deta.formatter.toon
+    line: 12
+    cyclomatic_complexity: 30
+    calls_out: 58
+    calls_in: 1
+  deta.formatter.graph.generate_graph_yaml:
+    name: generate_graph_yaml
+    module: deta.formatter.graph
+    line: 67
+    cyclomatic_complexity: 11
+    calls_out: 18
+    calls_in: 1
+  deta.cli.monitor:
+    name: monitor
+    module: deta.cli
+    line: 153
+    cyclomatic_complexity: 1
+    calls_out: 4
+    calls_in: 2
+  deta.monitor.prober.probe_service:
+    name: probe_service
+    module: deta.monitor.prober
+    line: 94
+    cyclomatic_complexity: 4
+    calls_out: 16
+    calls_in: 1
+  deta.config._parse_config:
+    name: _parse_config
+    module: deta.config
+    line: 169
+    cyclomatic_complexity: 8
+    calls_out: 36
+    calls_in: 1
+  deta.config.load_config:
+    name: load_config
+    module: deta.config
+    line: 111
+    cyclomatic_complexity: 4
+    calls_out: 7
+    calls_in: 0
+  deta.formatter.graph._split_port_mapping:
+    name: _split_port_mapping
+    module: deta.formatter.graph
+    line: 11
+    cyclomatic_complexity: 7
+    calls_out: 5
+    calls_in: 1
+  project.map.toon.load_config:
+    name: load_config
+    module: project.map.toon
+    line: 57
+    cyclomatic_complexity: 0
+    calls_out: 0
+    calls_in: 6
+  deta.cli._probe_once:
+    name: _probe_once
+    module: deta.cli
+    line: 86
+    cyclomatic_complexity: 5
+    calls_out: 6
+    calls_in: 1
+  deta.cli.diff:
+    name: diff
+    module: deta.cli
+    line: 230
+    cyclomatic_complexity: 9
+    calls_out: 27
+    calls_in: 1
+  deta.integration.semcod.generate_for_sumd:
+    name: generate_for_sumd
+    module: deta.integration.semcod
+    line: 12
+    cyclomatic_complexity: 1
+    calls_out: 4
+    calls_in: 0
+  deta.formatter.graph.save_graph_yaml:
+    name: save_graph_yaml
+    module: deta.formatter.graph
+    line: 106
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 1
+  deta.scanner.openapi.scan_openapi:
+    name: scan_openapi
+    module: deta.scanner.openapi
+    line: 18
+    cyclomatic_complexity: 12
+    calls_out: 14
+    calls_in: 0
+edges:
+- caller: deta.monitor.alerter.alert_anomaly
+  callee: deta.monitor.alerter._get_console
+  call_type: resolved
+- caller: deta.monitor.alerter.alert_probe_failure
+  callee: deta.monitor.alerter._get_console
+  call_type: resolved
+- caller: deta.monitor.alerter.alert_probe_success
+  callee: deta.monitor.alerter._get_console
+  call_type: resolved
+- caller: deta.monitor.alerter.print_topology_table
+  callee: deta.monitor.alerter._get_console
+  call_type: resolved
+- caller: deta.scanner.python.scan_python
+  callee: deta.scanner.python._load_toml
+  call_type: resolved
+- caller: deta.scanner.python.scan_python
+  callee: deta.scanner.python._parse_requirements
+  call_type: resolved
+- caller: deta.scanner.openapi.scan_openapi
+  callee: deta.scanner.openapi._load
+  call_type: resolved
+- caller: deta.integration.semcod.generate_for_sumd
+  callee: project.map.toon.build_topology
+  call_type: resolved
+- caller: deta.integration.semcod.generate_for_sumd
+  callee: deta.formatter.toon.save_toon
+  call_type: resolved
+- caller: deta.integration.semcod.generate_for_pyqual
+  callee: deta.scanner.python.scan_python
+  call_type: resolved
+- caller: deta.integration.semcod.generate_for_vallm
+  callee: project.map.toon.build_topology
+  call_type: resolved
+- caller: deta.integration.semcod.pre_deploy_check
+  callee: project.map.toon.build_topology
+  call_type: resolved
+- caller: deta.formatter.toon.save_toon
+  callee: deta.formatter.toon.generate_toon
+  call_type: resolved
+- caller: deta.monitor.watcher.watch_configs
+  callee: deta.monitor.watcher._is_config_file
+  call_type: resolved
+- caller: deta.monitor.watcher.watch_configs
+  callee: deta.monitor.watcher._poll_configs
+  call_type: resolved
+- caller: deta.formatter.graph._parse_host_ports
+  callee: deta.formatter.graph._split_port_mapping
+  call_type: resolved
+- caller: deta.formatter.graph._parse_host_ports
+  callee: deta.formatter.graph._resolve_host_port
+  call_type: resolved
+- caller: deta.formatter.graph.generate_graph_yaml
+  callee: deta.formatter.graph._parse_host_ports
+  call_type: resolved
+- caller: deta.formatter.graph.save_graph_yaml
+  callee: deta.formatter.graph.generate_graph_yaml
+  call_type: resolved
+- caller: deta.formatter.graph.generate_mermaid
+  callee: deta.formatter.graph._safe_mermaid_id
+  call_type: resolved
+- caller: deta.formatter.graph.generate_mermaid
+  callee: deta.formatter.graph._parse_host_ports
+  call_type: resolved
+- caller: deta.formatter.graph.save_mermaid
+  callee: deta.formatter.graph.generate_mermaid
+  call_type: resolved
+- caller: deta.formatter.graph.save_png
+  callee: deta.formatter.graph._parse_host_ports
+  call_type: resolved
+- caller: deta.cli._get_topology
+  callee: project.map.toon.build_topology
+  call_type: resolved
+- caller: deta.cli._print_summary
+  callee: deta.monitor.alerter.print_topology_table
+  call_type: resolved
+- caller: deta.cli._print_summary
+  callee: deta.monitor.alerter.alert_anomaly
+  call_type: resolved
+- caller: deta.cli._probe_once
+  callee: project.map.toon.probe_all
+  call_type: resolved
+- caller: deta.cli._probe_once
+  callee: deta.monitor.alerter.alert_probe_success
+  call_type: resolved
+- caller: deta.cli._probe_once
+  callee: deta.monitor.alerter.alert_probe_failure
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.toon.save_toon
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.graph.save_graph_yaml
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.graph.save_mermaid
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.graph.save_png
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._resolve_formats
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._get_topology
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._write_outputs
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._print_summary
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: project.map.toon.load_config
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._filter_anomalies
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._probe_once
+  call_type: resolved
+- caller: deta.cli.monitor
+  callee: deta.cli._monitor_loop
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._resolve_formats
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._get_topology
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._filter_anomalies
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._write_outputs
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._print_summary
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: project.map.toon.load_config
+  call_type: resolved
+- caller: deta.cli.diff
+  callee: project.map.toon.load_config
+  call_type: resolved
+- caller: deta.cli.diff
+  callee: deta.cli._get_topology
+  call_type: resolved
+- caller: deta.config.load_config
+  callee: deta.config._load_yaml
+  call_type: resolved
+- caller: deta.config.load_config
+  callee: deta.config._parse_config
+  call_type: resolved
+- caller: deta.monitor.prober._extract_health_url
+  callee: deta.monitor.prober._split_port_mapping
+  call_type: resolved
+- caller: deta.monitor.prober.probe_service
+  callee: deta.monitor.prober._extract_health_url
+  call_type: resolved
+- caller: deta.monitor.prober.probe_all
+  callee: deta.monitor.prober.probe_service
+  call_type: resolved
+modules:
+  deta.cli:
+  - deta.cli._filter_anomalies
+  - deta.cli._get_topology
+  - deta.cli._monitor_loop
+  - deta.cli._print_summary
+  - deta.cli._probe_once
+  - deta.cli._resolve_formats
+  - deta.cli._write_outputs
+  - deta.cli.diff
+  - deta.cli.monitor
+  - deta.cli.scan
+  deta.config:
+  - deta.config._load_yaml
+  - deta.config._parse_config
+  - deta.config.load_config
+  deta.formatter.graph:
+  - deta.formatter.graph._parse_host_ports
+  - deta.formatter.graph._resolve_host_port
+  - deta.formatter.graph._safe_mermaid_id
+  - deta.formatter.graph._split_port_mapping
+  - deta.formatter.graph.generate_graph_yaml
+  - deta.formatter.graph.generate_mermaid
+  - deta.formatter.graph.save_graph_yaml
+  - deta.formatter.graph.save_mermaid
+  - deta.formatter.graph.save_png
+  deta.formatter.toon:
+  - deta.formatter.toon.generate_toon
+  - deta.formatter.toon.save_toon
+  deta.integration.semcod:
+  - deta.integration.semcod.generate_for_pyqual
+  - deta.integration.semcod.generate_for_sumd
+  - deta.integration.semcod.generate_for_vallm
+  - deta.integration.semcod.pre_deploy_check
+  deta.monitor.alerter:
+  - deta.monitor.alerter._get_console
+  - deta.monitor.alerter.alert_anomaly
+  - deta.monitor.alerter.alert_probe_failure
+  - deta.monitor.alerter.alert_probe_success
+  - deta.monitor.alerter.print_topology_table
+  deta.monitor.prober:
+  - deta.monitor.prober._extract_health_url
+  - deta.monitor.prober._split_port_mapping
+  - deta.monitor.prober.probe_all
+  - deta.monitor.prober.probe_service
+  deta.monitor.watcher:
+  - deta.monitor.watcher._is_config_file
+  - deta.monitor.watcher._poll_configs
+  - deta.monitor.watcher.watch_configs
+  deta.scanner.openapi:
+  - deta.scanner.openapi._load
+  - deta.scanner.openapi.scan_openapi
+  deta.scanner.python:
+  - deta.scanner.python._load_toml
+  - deta.scanner.python._parse_requirements
+  - deta.scanner.python.scan_python
+  project.map.toon:
+  - project.map.toon.build_topology
+  - project.map.toon.load_config
+  - project.map.toon.probe_all
+entry_points:
+- deta.cli.main
+- deta.config.load_config
+- deta.core.Wup.__init__
+- deta.core.Wup.__repr__
+- deta.core.Wup.get_info
+- deta.integration.semcod.generate_for_pyqual
+- deta.integration.semcod.generate_for_sumd
+- deta.integration.semcod.generate_for_vallm
+- deta.integration.semcod.pre_deploy_check
+- deta.monitor.prober.probe_all
+- deta.monitor.watcher.watch_configs
+- deta.scanner.compose.scan_compose
+- deta.scanner.npm.scan_npm
+- deta.scanner.openapi.scan_openapi
+- project.map.toon._extract_health_url
+- project.map.toon._filter_anomalies
+- project.map.toon._get_console
+- project.map.toon._get_topology
+- project.map.toon._is_config_file
+- project.map.toon._load
+- project.map.toon._load_toml
+- project.map.toon._load_yaml
+- project.map.toon._monitor_loop
+- project.map.toon._parse_config
+- project.map.toon._parse_depends_on
+- project.map.toon._parse_env
+- project.map.toon._parse_labels
+- project.map.toon._parse_ports
+- project.map.toon._parse_requirements
+- project.map.toon._poll_configs
+- project.map.toon._print_summary
+- project.map.toon.alert_anomaly
+- project.map.toon.alert_probe_failure
+- project.map.toon.alert_probe_success
+- project.map.toon.diff
+- project.map.toon.generate_for_pyqual
+- project.map.toon.generate_for_sumd
+- project.map.toon.generate_for_vallm
+- project.map.toon.generate_toon
+- project.map.toon.main
+- project.map.toon.monitor
+- project.map.toon.pre_deploy_check
+- project.map.toon.print_topology_table
+- project.map.toon.probe_service
+- project.map.toon.save_toon
+- project.map.toon.scan
+- project.map.toon.scan_compose
+- project.map.toon.scan_npm
+- project.map.toon.scan_openapi
+- project.map.toon.scan_python
+- project.map.toon.test_import
+- project.map.toon.test_placeholder

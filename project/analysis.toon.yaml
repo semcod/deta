@@ -1,0 +1,85 @@
+# code2llm | 34f 4499L | python:18,yaml:11,shell:2,json:1,toml:1,txt:1 | 2026-04-30
+# CC̄=3.5 | critical:4/97 | dups:0 | cycles:0
+
+HEALTH[4]:
+  🟡 CC    generate_toon CC=30 (limit:15)
+  🟡 CC    _poll_configs CC=16 (limit:15)
+  🟡 CC    _filter_anomalies CC=15 (limit:15)
+  🟡 CC    _extract_health_url CC=16 (limit:15)
+
+REFACTOR[1]:
+  1. split 4 high-CC methods  (CC>15)
+
+PIPELINES[11]:
+  [1] Src [scan_npm]: scan_npm
+      PURITY: 100% pure
+  [2] Src [scan_openapi]: scan_openapi → _load
+      PURITY: 100% pure
+  [3] Src [scan_compose]: scan_compose → _parse_ports
+      PURITY: 100% pure
+  [4] Src [generate_for_sumd]: generate_for_sumd → build_topology
+      PURITY: 100% pure
+  [5] Src [generate_for_pyqual]: generate_for_pyqual → scan_python → _load_toml
+      PURITY: 100% pure
+
+LAYERS:
+  deta/                           CC̄=6.1    ←in:0  →out:24  !! split
+  │ !! cli                        344L  0C   11m  CC=15     ←0
+  │ config                     235L  7C    3m  CC=8      ←0
+  │ graph                      193L  0C    9m  CC=12     ←1
+  │ !! prober                     161L  1C    4m  CC=16     ←0
+  │ !! toon                       131L  0C    2m  CC=30     ←2
+  │ compose                    130L  1C    5m  CC=11     ←0
+  │ semcod                     129L  0C    4m  CC=7      ←0
+  │ !! watcher                    110L  0C    3m  CC=16     ←0
+  │ python                     102L  0C    3m  CC=11     ←1
+  │ alerter                     99L  0C    5m  CC=8      ←1
+  │ openapi                     89L  1C    2m  CC=12     ←0
+  │ npm                         45L  0C    1m  CC=5      ←0
+  │ core                        26L  1C    3m  CC=2      ←0
+  │ __init__                    23L  0C    0m  CC=0.0    ←0
+  │ __init__                    22L  0C    0m  CC=0.0    ←0
+  │ __init__                    18L  0C    0m  CC=0.0    ←0
+  │ __init__                    17L  0C    0m  CC=0.0    ←0
+  │ __init__                    17L  0C    0m  CC=0.0    ←0
+  │
+  project/                        CC̄=0.0    ←in:0  →out:0
+  │ calls.yaml                 371L  0C    0m  CC=0.0    ←0
+  │ calls.toon.yaml            120L  0C    0m  CC=0.0    ←0
+  │ map.toon.yaml              119L  0C   42m  CC=0.0    ←2
+  │ analysis.toon.yaml          66L  0C    0m  CC=0.0    ←0
+  │ project.toon.yaml           57L  0C    0m  CC=0.0    ←0
+  │ evolution.toon.yaml         51L  0C    0m  CC=0.0    ←0
+  │ prompt.txt                  49L  0C    0m  CC=0.0    ←0
+  │ duplication.toon.yaml        9L  0C    0m  CC=0.0    ←0
+  │
+  ./                              CC̄=0.0    ←in:0  →out:0
+  │ !! infra-map.json             757L  0C    0m  CC=0.0    ←0
+  │ !! goal.yaml                  512L  0C    0m  CC=0.0    ←0
+  │ infra-graph.yaml           241L  0C    0m  CC=0.0    ←0
+  │ pyproject.toml              81L  0C    0m  CC=0.0    ←0
+  │ infra.toon.yaml             68L  0C    0m  CC=0.0    ←0
+  │ project.sh                  50L  0C    0m  CC=0.0    ←0
+  │ scan-infra.sh               37L  0C    0m  CC=0.0    ←0
+  │
+  testql-scenarios/               CC̄=0.0    ←in:0  →out:0
+  │ generated-cli-tests.testql.toon.yaml    20L  0C    0m  CC=0.0    ←0
+  │
+
+COUPLING:
+                                deta       project.map      deta.monitor    deta.formatter  deta.integration      deta.scanner
+              deta                ──                11                 9                 4                                      !! fan-out
+       project.map               ←11                ──                                                    ←3                    hub
+      deta.monitor                ←9                                  ──                                                        hub
+    deta.formatter                ←4                                                    ──                ←1                    hub
+  deta.integration                                   3                                   1                ──                 1
+      deta.scanner                                                                                        ←1                ──
+  CYCLES: none
+  HUB: deta.formatter/ (fan-in=5)
+  HUB: deta.monitor/ (fan-in=9)
+  HUB: project.map/ (fan-in=14)
+  SMELL: deta/ fan-out=24 → split needed
+
+EXTERNAL:
+  validation: run `vallm batch .` → validation.toon
+  duplication: run `redup scan .` → duplication.toon

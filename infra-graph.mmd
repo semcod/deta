@@ -1,0 +1,77 @@
+graph TD
+    n_traefik["traefik"]
+    n_postgres["postgres"]
+    n_frontend["frontend"]
+    n_backend["backend"]
+    n_firmware["firmware"]
+    n_c2004_pg["c2004-pg"]
+    n_service_id_pilot["service-id-pilot\nlocalhost:8111"]
+    n_service_manager_pilot["service-manager-pilot\nlocalhost:8112"]
+    n_connect_id_backend["connect-id-backend\nlocalhost:8117"]
+    n_connect_data_backend["connect-data-backend\nlocalhost:8121"]
+    n_connect_manager_backend["connect-manager-backend\nlocalhost:8107"]
+    n_connect_template_backend["connect-template-backend\nlocalhost:8106"]
+    n_connect_test_backend["connect-test-backend\nlocalhost:8119"]
+    n_connect_protocol_backend["connect-protocol-backend\nlocalhost:8120"]
+    n_cql_backend["cql-backend\nlocalhost:8101"]
+    n_connect_scenario_backend["connect-scenario-backend\nlocalhost:8105"]
+    n_connect_scenario["connect-scenario\nlocalhost:8096"]
+    n_c2004_backup["c2004-backup"]
+    n_connect_id["connect-id\nlocalhost:8093"]
+    n_connect_config_network["connect-config-network\nlocalhost:8300"]
+    n_connect_id_user_list["connect-id-user-list\nlocalhost:8301"]
+    n_connect_manager_library["connect-manager-library\nlocalhost:8302"]
+    n_connect_reports_month["connect-reports-month\nlocalhost:8303"]
+    n_cql_scenario_backend["cql-scenario-backend"]
+    n_connect_deleted_backend["connect-deleted-backend\nlocalhost:8120"]
+    n_connect_deleted["connect-deleted\nlocalhost:8121"]
+    n_connect_test["connect-test\nlocalhost:8097"]
+    n_connect_manager["connect-manager\nlocalhost:8095"]
+    n_connect_template["connect-template\nlocalhost:8094"]
+    n_aider["aider"]
+    n_c2004_pg --> n_backend
+    n_postgres --> n_service_id_pilot
+    n_postgres --> n_service_manager_pilot
+    n_postgres --> n_connect_protocol_backend
+    n_backend --> n_cql_backend
+    n_cql_scenario_backend --> n_connect_scenario_backend
+    n_connect_scenario_backend --> n_connect_scenario
+    n_cql_scenario_backend --> n_connect_scenario
+    n_c2004_pg --> n_c2004_backup
+    n_connect_id_backend --> n_connect_id
+    n_connect_deleted_backend --> n_connect_deleted
+    n_connect_test_backend --> n_connect_test
+    n_connect_manager_backend --> n_connect_manager
+    n_connect_template_backend --> n_connect_template
+    classDef online fill:#d1fae5,stroke:#059669,stroke-width:2px
+    classDef offline fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+    class n_traefik offline
+    class n_postgres offline
+    class n_frontend offline
+    class n_backend offline
+    class n_firmware offline
+    class n_c2004_pg offline
+    class n_service_id_pilot offline
+    class n_service_manager_pilot offline
+    class n_connect_id_backend offline
+    class n_connect_data_backend online
+    class n_connect_manager_backend offline
+    class n_connect_template_backend offline
+    class n_connect_test_backend offline
+    class n_connect_protocol_backend online
+    class n_cql_backend offline
+    class n_connect_scenario_backend offline
+    class n_connect_scenario offline
+    class n_c2004_backup offline
+    class n_connect_id offline
+    class n_connect_config_network offline
+    class n_connect_id_user_list offline
+    class n_connect_manager_library offline
+    class n_connect_reports_month offline
+    class n_cql_scenario_backend offline
+    class n_connect_deleted_backend offline
+    class n_connect_deleted offline
+    class n_connect_test offline
+    class n_connect_manager offline
+    class n_connect_template offline
+    class n_aider offline

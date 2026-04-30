@@ -28,7 +28,7 @@ async def watch_configs(root: Path, on_change: Callable[[dict], Awaitable[None]]
         on_change: Async callback function that receives change events
     """
     try:
-        from watchfiles import watch, Change
+        from watchfiles import awatch
     except ImportError:
         # Fallback: simple polling if watchfiles not available
         import asyncio
@@ -36,11 +36,11 @@ async def watch_configs(root: Path, on_change: Callable[[dict], Awaitable[None]]
         await _poll_configs(root, on_change)
         return
     
-    async for changes in watch(root):
+    async for changes in awatch(root):
         for change_type, path in changes:
             if _is_config_file(path):
                 await on_change({
-                    "type": change_type.name,  # added/modified/deleted
+                    "type": change_type.name if hasattr(change_type, "name") else str(change_type),
                     "path": str(path),
                     "timestamp": datetime.utcnow().isoformat(),
                 })
