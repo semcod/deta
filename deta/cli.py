@@ -278,7 +278,10 @@ async def _monitor_loop(
 
     _write_outputs(topology, config, output, selected_formats, initial_probe_results)
     _print_summary(topology, output, config)
-    
+
+    # Initialize snapshot for port change tracking
+    ports_snapshot = _extract_ports_snapshot(topology)
+
     try:
         await watch_configs(root, on_change)
     except KeyboardInterrupt:
