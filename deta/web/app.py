@@ -112,7 +112,14 @@ HTML = """
       <div id="alerts"></div>
     </section>
     <section class="card">
-      <h3>Monitor</h3>
+      <div class="row">
+        <h3>Monitor</h3>
+        <div class="actions">
+          <button class="btn" id="copy-monitor-json">Copy JSON</button>
+          <button class="btn" id="copy-monitor-csv">Copy CSV</button>
+          <button class="btn" id="download-monitor-csv">Download CSV</button>
+        </div>
+      </div>
       <div class="tabs">
         <button class="tab-btn active" data-tab-group="monitor" data-tab="monitor">Table</button>
         <button class="tab-btn" data-tab-group="monitor" data-tab="notify">Notifications</button>
@@ -225,8 +232,24 @@ HTML = """
 
     let _prevRowStatus = {};
 
+    function monitorRowsToSortedArray() {
+      return Object.values(monitorRows).sort((a, b) => a.service.localeCompare(b.service));
+    }
+
+    function monitorRowsToJson() {
+      return JSON.stringify(monitorRowsToSortedArray(), null, 2);
+    }
+
+    function monitorRowsToCsv() {
+      const rows = monitorRowsToSortedArray();
+      const header = 'service,status,latency_ms,updated_at';
+      const lines = rows.map(r => `${r.service},${r.status || ''},${r.latency_ms ?? ''},${r.updated_at || ''}`);
+      return [header, ...lines].join('\n');
+    }
+
     function renderMonitorTable() {
-      const rows = Object.values(monitorRows).sort((a, b) => a.service.localeCompare(b.service));
+      const rows = monitorRowsToSortedArray();
+      const fragment = document.createDocumentFragment();
       rows.forEach(row => {
         const status = row.status || 'unknown';
         const cls = STATUS_CLASS[status] || 's-unknown';
@@ -235,10 +258,10 @@ HTML = """
         _prevRowStatus[row.service] = status;
         const trId = `mtr-${row.service.replace(/[^a-z0-9]/gi, '_')}`;
         let tr = document.getElementById(trId);
-        if (!tr) {
+        const isNew = !tr;
+        if (isNew) {
           tr = document.createElement('tr');
           tr.id = trId;
-          monitorTableBody.appendChild(tr);
         }
         tr.innerHTML = `
           <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px;">${row.service}</td>
@@ -246,16 +269,15 @@ HTML = """
           <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:12px; color:#93a3b8;">${fmtLatency(row.latency_ms)}</td>
           <td style="padding:6px; border-bottom:1px solid #1a2540; font-size:11px; color:#6b7ea0;">${fmtTs(row.updated_at)}</td>
         `;
-        if (changed) {
+        if (changed && !isNew) {
           tr.classList.remove('row-flash');
           void tr.offsetWidth;
           tr.classList.add('row-flash');
         }
+        fragment.appendChild(tr);
       });
-      const currentIds = new Set(rows.map(r => `mtr-${r.service.replace(/[^a-z0-9]/gi, '_')}`));
-      Array.from(monitorTableBody.querySelectorAll('tr')).forEach(tr => {
-        if (!currentIds.has(tr.id)) tr.remove();
-      });
+      monitorTableBody.innerHTML = '';
+      monitorTableBody.appendChild(fragment);
     }
 
     function rebuildMonitorRowsFromPayload(payload) {

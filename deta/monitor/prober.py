@@ -280,6 +280,25 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
 
 async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/health") -> ProbeResult:
     """Probe a specific port binding, trying /health, /healthz and / in order."""
+    # Use TCP connect check for known database ports
+    if binding.host_port and _is_database_port(binding.host_port):
+        host = binding.host or "localhost"
+        try:
+            port_num = int(binding.host_port)
+        except ValueError:
+            port_num = 0
+        if port_num > 0:
+            ok, latency, error = await _tcp_connect_check(host, port_num)
+            return ProbeResult(
+                service=service.name,
+                url=f"tcp://{host}:{binding.host_port}",
+                status=200 if ok else None,
+                ok=ok,
+                latency_ms=latency,
+                error=error,
+                host_port=binding.host_port,
+            )
+
     base_url = published_url(binding, "")
     if not base_url:
         return ProbeResult(
