@@ -62,11 +62,12 @@ HTML = """
     /* ── graph panel ── */
     #graph-wrap { flex: 1 1 0; overflow: hidden; background: #0f1526; border: 1px solid #223; border-radius: 8px; cursor: grab; position: relative; }
     #graph-wrap.dragging { cursor: grabbing; }
-    #graph { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
-    #graph svg { display: block; width: auto !important; max-width: none !important; height: auto !important; }
-    #zoom-controls { position: absolute; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
-    .zoom-btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 6px; width: 28px; height: 28px; font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .zoom-btn:hover { background: #253456; }
+    #graph { position: absolute; top: 0; left: 0; transform-origin: 0 0; display: inline-block; }
+    #graph svg { display: block; width: auto !important; max-width: none !important; height: auto !important; min-width: 200px; }
+    #zoom-controls { position: absolute; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 20; pointer-events: all; }
+    .zoom-btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 6px; width: 32px; height: 32px; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; }
+    .zoom-btn:hover { background: #3a5080; }
+    .zoom-btn:active { background: #4f6fa0; }
     /* ── map data panel ── */
     #sub-json-dump, #sub-yaml-dump { flex: 1 1 0; overflow: auto; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #0b1328; border: 1px solid #223; border-radius: 8px; padding: 10px; display:none; }
     #sub-json-dump.active, #sub-yaml-dump.active { display: block; }
@@ -133,6 +134,7 @@ HTML = """
           <button class="zoom-btn" id="zoom-reset" title="Reset" style="font-size:11px;">⌂</button>
           <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
         </div>
+        <div id="graph-debug" style="position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,.7);color:#6b7ea0;font-size:10px;font-family:monospace;padding:4px 7px;border-radius:4px;pointer-events:none;line-height:1.6;">loading…</div>
       </div>
     </section>
 
@@ -172,6 +174,10 @@ HTML = """
           <button class="btn" id="copy-monitor-json">Copy JSON</button>
           <button class="btn" id="copy-monitor-csv">Copy CSV</button>
           <button class="btn" id="download-monitor-csv">Download CSV</button>
+          <button class="btn" id="copy-monitor-yaml">Copy YAML</button>
+          <button class="btn" id="download-monitor-yaml">Download YAML</button>
+          <button class="btn" id="copy-monitor-toon">Copy TOON</button>
+          <button class="btn" id="download-monitor-toon">Download TOON</button>
         </div>
       </div>
       <div id="monitor-table-wrap" class="active">
@@ -394,12 +400,24 @@ HTML = """
       offlinePill.textContent = `offline: ${summary.offline || 0}`;
 
       const graphHash = payload.graph_hash || null;
+      console.log('[render] type=' + payload.type + ' graphHash=' + graphHash + ' lastHash=' + lastGraphHash);
       if (!isDelta && graphHash !== lastGraphHash) {
         lastGraphHash = graphHash;
+        console.log('[Mermaid] rendering graph, mermaid length:', (payload.mermaid || '').length);
         graph.removeAttribute('data-processed');
         graph.textContent = payload.mermaid;
-        await mermaid.init(undefined, graph);
-        setTimeout(() => window._graphFit && window._graphFit(), 50);
+        try {
+          await mermaid.init(undefined, graph);
+          const svg = graph.querySelector('svg');
+          console.log('[Mermaid] done — svg found:', !!svg, 'viewBox:', svg && svg.getAttribute('viewBox'));
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const wrap = document.getElementById('graph-wrap');
+            console.log('[Mermaid] calling _graphFit, wrap size:', wrap.clientWidth, 'x', wrap.clientHeight);
+            window._graphFit && window._graphFit();
+          }));
+        } catch (mermaidErr) {
+          console.error('[Mermaid] init error:', mermaidErr);
+        }
 
         try {
           const pngBlob = await renderPngBlob();
@@ -531,24 +549,38 @@ HTML = """
     (function initPanZoom() {
       const wrap = document.getElementById('graph-wrap');
       const g = document.getElementById('graph');
+      const zoomInBtn = document.getElementById('zoom-in');
+      const zoomOutBtn = document.getElementById('zoom-out');
+      const zoomResetBtn = document.getElementById('zoom-reset');
+      console.log('[PanZoom] init — wrap:', wrap, 'graph:', g, 'zoomIn:', zoomInBtn);
+      if (!wrap || !g || !zoomInBtn) { console.error('[PanZoom] missing elements, aborting'); return; }
+
       let scale = 1, tx = 0, ty = 0;
       let dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
 
+      const dbg = document.getElementById('graph-debug');
       function applyTransform() {
         g.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+        if (dbg) dbg.textContent = `zoom: ${(scale*100).toFixed(0)}%  tx: ${tx.toFixed(0)}  ty: ${ty.toFixed(0)}`;
       }
 
       function fitToWrap() {
         const svg = g.querySelector('svg');
-        if (!svg) return;
-        const ww = wrap.clientWidth, wh = wrap.clientHeight;
-        const sw = svg.getBoundingClientRect().width / scale;
-        const sh = svg.getBoundingClientRect().height / scale;
-        if (!sw || !sh) return;
-        scale = Math.min(ww / sw, wh / sh, 1);
-        tx = (ww - sw * scale) / 2;
+        if (!svg) { console.warn('[PanZoom] fitToWrap: no SVG found'); return; }
+        svg.style.maxWidth = 'none';
+        svg.style.width = 'auto';
+        const vb = svg.viewBox && svg.viewBox.baseVal;
+        const sw = (vb && vb.width) ? vb.width : svg.getBBox ? svg.getBBox().width : svg.scrollWidth;
+        const sh = (vb && vb.height) ? vb.height : svg.getBBox ? svg.getBBox().height : svg.scrollHeight;
+        console.log('[PanZoom] fitToWrap — svgW:', sw, 'svgH:', sh, 'wrapW:', wrap.clientWidth, 'wrapH:', wrap.clientHeight);
+        if (!sw || !sh) { console.warn('[PanZoom] fitToWrap: zero SVG dimensions'); return; }
+        const ww = wrap.clientWidth - 16, wh = wrap.clientHeight - 16;
+        scale = Math.min(ww / sw, wh / sh);
+        tx = (ww - sw * scale) / 2 + 8;
         ty = 8;
         applyTransform();
+        console.log('[PanZoom] fitToWrap done — scale:', scale.toFixed(3), 'tx:', tx.toFixed(1), 'ty:', ty.toFixed(1));
+        if (dbg) dbg.textContent = `zoom: ${(scale*100).toFixed(0)}%  svg: ${sw.toFixed(0)}x${sh.toFixed(0)}`;
       }
 
       window._graphFit = fitToWrap;
@@ -566,6 +598,7 @@ HTML = """
       }, { passive: false });
 
       wrap.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('#zoom-controls')) return;
         if (e.button !== 0) return;
         dragging = true; startX = e.clientX; startY = e.clientY; startTx = tx; startTy = ty;
         wrap.setPointerCapture(e.pointerId);
@@ -579,23 +612,20 @@ HTML = """
       });
       wrap.addEventListener('pointerup', () => { dragging = false; wrap.classList.remove('dragging'); });
 
-      document.getElementById('zoom-in').addEventListener('click', () => {
+      function zoomAround(d) {
         const cx = wrap.clientWidth / 2, cy = wrap.clientHeight / 2;
         const mx = cx - tx, my = cy - ty;
-        const d = 1.25;
-        scale = Math.min(scale * d, 10);
+        scale = Math.min(Math.max(scale * d, 0.05), 20);
         tx -= mx * (d - 1); ty -= my * (d - 1);
         applyTransform();
-      });
-      document.getElementById('zoom-out').addEventListener('click', () => {
-        const cx = wrap.clientWidth / 2, cy = wrap.clientHeight / 2;
-        const mx = cx - tx, my = cy - ty;
-        const d = 1 / 1.25;
-        scale = Math.max(scale * d, 0.1);
-        tx -= mx * (d - 1); ty -= my * (d - 1);
-        applyTransform();
-      });
-      document.getElementById('zoom-reset').addEventListener('click', fitToWrap);
+        console.log('[PanZoom] zoom d=' + d.toFixed(2) + ' scale=' + scale.toFixed(3));
+      }
+
+      zoomInBtn.addEventListener('click', (e) => { e.stopPropagation(); zoomAround(1.25); });
+      zoomOutBtn.addEventListener('click', (e) => { e.stopPropagation(); zoomAround(1 / 1.25); });
+      zoomResetBtn.addEventListener('click', (e) => { e.stopPropagation(); fitToWrap(); });
+
+      console.log('[PanZoom] listeners attached');
     })();
 
     copyMermaidBtn.addEventListener('click', () => copyText('Mermaid', latestFullPayload?.mermaid || ''));
@@ -613,6 +643,20 @@ HTML = """
       downloadBlob(new Blob([csv], { type: 'text/csv' }), 'monitor.csv');
       addAlert('monitor.csv downloaded', 'info', new Date().toISOString());
     });
+    document.getElementById('copy-monitor-yaml').addEventListener('click', () => copyText('Monitor YAML', latestFullPayload?.graph_yaml || ''));
+    document.getElementById('download-monitor-yaml').addEventListener('click', () => {
+      const yaml = latestFullPayload?.graph_yaml || '';
+      if (!yaml) { addAlert('YAML data is empty', 'warning', new Date().toISOString()); return; }
+      downloadBlob(new Blob([yaml], { type: 'text/yaml' }), 'infra.yaml');
+      addAlert('infra.yaml downloaded', 'info', new Date().toISOString());
+    });
+    document.getElementById('copy-monitor-toon').addEventListener('click', () => copyText('Monitor TOON', latestFullPayload?.graph_yaml || ''));
+    document.getElementById('download-monitor-toon').addEventListener('click', () => {
+      const toon = latestFullPayload?.graph_yaml || '';
+      if (!toon) { addAlert('TOON data is empty', 'warning', new Date().toISOString()); return; }
+      downloadBlob(new Blob([toon], { type: 'text/yaml' }), 'infra.toon.yaml');
+      addAlert('infra.toon.yaml downloaded', 'info', new Date().toISOString());
+    });
 
     document.querySelectorAll('.main-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -620,6 +664,9 @@ HTML = """
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.panel).classList.add('active');
+        if (btn.dataset.panel === 'panel-map') {
+          requestAnimationFrame(() => window._graphFit && window._graphFit());
+        }
       });
     });
 
@@ -648,7 +695,11 @@ HTML = """
     Notification.requestPermission().catch(() => {});
     const wsScheme = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${wsScheme}://${location.host}/ws`);
-    ws.onopen = () => console.log('[WS] Connected');
+    const _dbgOverlay = document.getElementById('graph-debug');
+    ws.onopen = () => {
+      console.log('[WS] Connected');
+      if (_dbgOverlay) _dbgOverlay.textContent = 'ws: connected — waiting for data…';
+    };
     ws.onmessage = async (event) => {
       console.log('[WS] Received data, length:', event.data.length);
       try {
@@ -1073,6 +1124,15 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             pub_ports = [b.host_port for b in resolved if b.is_resolved]
             pub_hosts = [b.host or "localhost" for b in resolved if b.is_resolved]
 
+            # Fallback: try to extract ports from raw ports definition
+            raw_ports = []
+            if not pub_ports and svc_def and svc_def.ports:
+                for p in svc_def.ports:
+                    if ":" in p:
+                        raw_ports.append(p.split(":")[0])
+                    else:
+                        raw_ports.append(p)
+
             # Best host: from probe URL, fallback to resolved binding host
             probe_url = first_probe.url if first_probe else ""
             try:
@@ -1087,6 +1147,8 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 port = probe_hp
             elif pub_ports:
                 port = ",".join(pub_ports)
+            elif raw_ports:
+                port = ",".join(raw_ports)
             else:
                 port = probe_hp
 
