@@ -43,7 +43,12 @@ HTML = """
     #alerts { max-height: 40vh; overflow:auto; }
     .alert { border-bottom:1px solid #223; padding: 8px 0; font-size: 13px; }
     .ts { color:#93a3b8; font-size:11px; }
-    .dump { margin-top: 8px; max-height: 220px; overflow: auto; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #0b1328; border: 1px solid #223; border-radius: 8px; padding: 10px; }
+    .dump { margin-top: 8px; max-height: 220px; overflow: auto; white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #0b1328; border: 1px solid #223; border-radius: 8px; padding: 10px; display: none; }
+    .dump.active { display: block; }
+    .tabs { display:flex; gap:6px; margin-top: 8px; }
+    .tab-btn { background: #1f2a44; color: #93a3b8; border: 1px solid #2f446e; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .tab-btn.active { background: #2f446e; color: #dbeafe; }
+    #png-dump { width: 100%; height: auto; object-fit: contain; padding: 0; }
   </style>
 </head>
 <body>
@@ -80,8 +85,16 @@ HTML = """
           <button class="btn" id="download-png">Download PNG</button>
         </div>
       </div>
-      <pre id="json-dump" class="dump"></pre>
-      <pre id="yaml-dump" class="dump"></pre>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="json">JSON</button>
+        <button class="tab-btn" data-tab="yaml">YAML</button>
+        <button class="tab-btn" data-tab="png">PNG</button>
+      </div>
+      <div class="tab-panes">
+        <pre id="json-dump" class="dump active"></pre>
+        <pre id="yaml-dump" class="dump"></pre>
+        <img id="png-dump" class="dump" alt="infra map png">
+      </div>
     </section>
     <section class="card">
       <h3>Alerts</h3>
@@ -108,6 +121,7 @@ HTML = """
     const rootInfo = document.getElementById('root');
     const jsonDump = document.getElementById('json-dump');
     const yamlDump = document.getElementById('yaml-dump');
+    const pngDump = document.getElementById('png-dump');
     const copyMermaidBtn = document.getElementById('copy-mermaid');
     const copyPngBtn = document.getElementById('copy-png');
     const copyJsonBtn = document.getElementById('copy-json');
@@ -115,6 +129,7 @@ HTML = """
     const downloadPngBtn = document.getElementById('download-png');
 
     let latestPayload = null;
+    let latestPngUrl = null;
 
     function addAlert(message, severity, ts) {
       const div = document.createElement('div');
@@ -127,7 +142,7 @@ HTML = """
       }
     }
 
-    function render(payload) {
+    async function render(payload) {
       latestPayload = payload;
       rootInfo.textContent = payload.root || '';
       servicesPill.textContent = `services: ${payload.summary.services}`;
@@ -136,10 +151,17 @@ HTML = """
 
       graph.removeAttribute('data-processed');
       graph.textContent = payload.mermaid;
-      mermaid.init(undefined, graph);
+      await mermaid.init(undefined, graph);
 
       jsonDump.textContent = payload.topology_json || '';
       yamlDump.textContent = payload.graph_yaml || '';
+
+      const pngBlob = await renderPngBlob();
+      if (pngBlob) {
+        if (latestPngUrl) URL.revokeObjectURL(latestPngUrl);
+        latestPngUrl = URL.createObjectURL(pngBlob);
+        pngDump.src = latestPngUrl;
+      }
 
       (payload.events || []).forEach(ev => addAlert(ev.message, ev.severity, ev.timestamp));
     }
@@ -242,12 +264,21 @@ HTML = """
     copyPngBtn.addEventListener('click', copyPng);
     downloadPngBtn.addEventListener('click', downloadPng);
 
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panes .dump').forEach(d => d.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`${btn.dataset.tab}-dump`).classList.add('active');
+      });
+    });
+
     Notification.requestPermission().catch(() => {});
     const wsScheme = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${wsScheme}://${location.host}/ws`);
-    ws.onmessage = (event) => {
+    ws.onmessage = async (event) => {
       const payload = JSON.parse(event.data);
-      render(payload);
+      await render(payload);
     };
     ws.onclose = () => addAlert('WebSocket disconnected', 'warning', new Date().toISOString());
   </script>
