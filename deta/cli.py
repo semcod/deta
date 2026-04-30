@@ -20,6 +20,12 @@ from deta.monitor.alerter import (
 from deta.monitor.prober import probe_all
 from deta.monitor.watcher import watch_configs
 from deta.web import run_dashboard
+from deta.dsl import (
+    format_probe_change,
+    format_port_changes,
+    format_service_changes,
+    status_summary,
+)
 
 
 def _get_topology(root: Path, depth: int, config: DetaConfig = None) -> InfraTopology:
@@ -227,18 +233,34 @@ async def _monitor_loop(
 
     print(f"Starting monitoring on {root} (interval: {interval}s)")
     print("Press Ctrl+C to stop\n")
+    print("DSL commands enabled: SERVICE_UP, SERVICE_DOWN, PORT_ADDED, PORT_REMOVED, SERVICE_ADDED, SERVICE_REMOVED\n")
 
     # State for change detection
     ports_snapshot: dict[str, list[str]] = {}
     last_status_time = 0.0
+    prev_topology: InfraTopology | None = None
+    prev_probes: list = []
 
     async def on_change(change: dict):
-        nonlocal ports_snapshot, last_status_time
+        nonlocal ports_snapshot, last_status_time, prev_topology, prev_probes
         print(f"\n[CHANGE] {change['type']}: {change['path']}")
+
         topology = _get_topology(root, depth, config)
         new_snapshot = _extract_ports_snapshot(topology)
         _log_port_changes(ports_snapshot, new_snapshot)
         ports_snapshot = new_snapshot
+
+        # DSL: Service changes (added/removed)
+        if prev_topology:
+            svc_changes = format_service_changes(prev_topology, topology)
+            for cmd in svc_changes:
+                print(f"  DSL> {cmd}")
+
+        # DSL: Port changes
+        if prev_topology:
+            port_changes = format_port_changes(prev_topology, topology)
+            for cmd in port_changes:
+                print(f"  DSL> {cmd}")
 
         anomalies = topology.detect_anomalies()
         filtered_anomalies = _filter_anomalies(anomalies, config)
@@ -257,13 +279,28 @@ async def _monitor_loop(
                 else:
                     alert_probe_failure(r)
 
+            # DSL: Probe status changes
+            if prev_probes:
+                probe_changes = format_probe_change(prev_probes, probe_results)
+                for cmd in probe_changes:
+                    print(f"  DSL> {cmd}")
+
         # Print status if minute elapsed
         now = datetime.utcnow().timestamp()
         if now - last_status_time >= 60:
             _print_status_summary(topology, probe_results)
+            # DSL: Status summary
+            if probe_results:
+                up = sum(1 for p in probe_results if p.ok)
+                down = len(probe_results) - up
+                unknown = len(topology.services) - len(probe_results)
+                sum_cmd = status_summary(up, down, unknown, len(topology.services))
+                print(f"  DSL> {sum_cmd}")
             last_status_time = now
 
         _write_outputs(topology, config, output, selected_formats, probe_results)
+        prev_topology = topology
+        prev_probes = probe_results or []
     
     topology = _get_topology(root, depth, config)
     anomalies = topology.detect_anomalies()

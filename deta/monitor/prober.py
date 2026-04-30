@@ -59,6 +59,18 @@ def _extract_health_url(service: ServiceDef) -> Optional[str]:
     return published_url(binding, "/health")
 
 
+def _extract_host_port_from_url(url: str) -> str:
+    """Extract port number from a URL, defaulting to 80/443 based on scheme."""
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        if parsed.port:
+            return str(parsed.port)
+        return "443" if parsed.scheme == "https" else "80"
+    except Exception:
+        return ""
+
+
 async def probe_service(service: ServiceDef) -> ProbeResult:
     """
     Probe a single service's health check endpoint.
@@ -81,6 +93,7 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
         )
 
     start = asyncio.get_event_loop().time()
+    host_port = _extract_host_port_from_url(url)
 
     try:
         import httpx
@@ -93,6 +106,7 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
                 status=resp.status_code,
                 ok=resp.is_success,
                 latency_ms=latency,
+                host_port=host_port,
             )
     except ImportError:
         latency = (asyncio.get_event_loop().time() - start) * 1000
@@ -102,7 +116,8 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             status=None,
             ok=False,
             latency_ms=latency,
-            error="httpx not installed"
+            error="httpx not installed",
+            host_port=host_port,
         )
     except Exception as e:
         latency = (asyncio.get_event_loop().time() - start) * 1000
@@ -112,7 +127,8 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             status=None,
             ok=False,
             latency_ms=latency,
-            error=str(e)
+            error=str(e),
+            host_port=host_port,
         )
 
 
@@ -169,6 +185,19 @@ async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/he
         )
 
 
+async def _noop_probe(service: ServiceDef) -> ProbeResult:
+    """Return a ProbeResult indicating no ports to probe."""
+    return ProbeResult(
+        service=service.name,
+        url="",
+        status=None,
+        ok=False,
+        latency_ms=0,
+        error="no ports to probe",
+        host_port="",
+    )
+
+
 async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
     """
     Probe all services concurrently.
@@ -179,7 +208,7 @@ async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
     Returns:
         List of ProbeResult objects (one per resolved port per service)
     """
-    probes: list[asyncio.Future[ProbeResult]] = []
+    probes: list[asyncio.Coroutine[None, None, ProbeResult]] = []
 
     for service in services:
         # Use healthcheck URL if defined, otherwise probe each resolved port
@@ -199,20 +228,7 @@ async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
                 for binding in bindings:
                     probes.append(probe_port(service, binding))
             else:
-                # No ports to probe - return completed future with result
-                probes.append(asyncio.ensure_future(_noop_probe(service)))
+                # No ports to probe
+                probes.append(_noop_probe(service))
 
     return await asyncio.gather(*probes)
-
-
-async def _noop_probe(service: ServiceDef) -> ProbeResult:
-    """Return a ProbeResult indicating no ports to probe."""
-    return ProbeResult(
-        service=service.name,
-        url="",
-        status=None,
-        ok=False,
-        latency_ms=0,
-        error="no ports to probe",
-        host_port="",
-    )

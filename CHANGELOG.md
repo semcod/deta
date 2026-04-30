@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.18] - 2026-04-30
+
+### Docs
+- Update README.md
+- Update TODO.md
+
+### Test
+- Update tests/test_dsl.py
+
+### Other
+- Update deta/cli.py
+- Update deta/dsl/__init__.py
+- Update deta/dsl/commands.py
+- Update deta/monitor/prober.py
+
 ## [0.2.17] - 2026-04-30
 
 ### Docs
