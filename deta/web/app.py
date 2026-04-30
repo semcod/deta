@@ -275,7 +275,7 @@ HTML = """
             pngDump.src = latestPngUrl;
           }
         } catch (pngErr) {
-          if (!(pngErr instanceof SecurityError || (pngErr && pngErr.name === 'SecurityError'))) {
+          if (!(pngErr && pngErr.name === 'SecurityError')) {
             console.warn('[PNG] renderPngBlob error:', pngErr);
           }
         }
