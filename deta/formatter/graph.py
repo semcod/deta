@@ -26,7 +26,7 @@ def _safe_mermaid_id(name: str) -> str:
 
 def generate_graph_yaml(
     topology: InfraTopology,
-    probe_results: dict[str, ProbeResult] | None = None,
+    probe_results: list[ProbeResult] | None = None,
 ) -> str:
     lines: list[str] = ["graph:", "  nodes:"]
 

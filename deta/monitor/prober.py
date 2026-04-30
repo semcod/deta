@@ -10,6 +10,19 @@ from typing import Optional
 from deta.scanner.compose import ServiceDef
 from deta.scanner.ports import PortBinding, parse_port, published_url
 
+_shared_client: Optional["httpx.AsyncClient"] = None
+
+
+async def _get_client():
+    global _shared_client
+    try:
+        import httpx
+        if _shared_client is None or _shared_client.is_closed:
+            _shared_client = httpx.AsyncClient(timeout=1.5)
+        return _shared_client
+    except ImportError:
+        return None
+
 
 @dataclass
 class ProbeResult:
@@ -95,20 +108,8 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
     start = asyncio.get_event_loop().time()
     host_port = _extract_host_port_from_url(url)
 
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(url)
-            latency = (asyncio.get_event_loop().time() - start) * 1000
-            return ProbeResult(
-                service=service.name,
-                url=url,
-                status=resp.status_code,
-                ok=resp.is_success,
-                latency_ms=latency,
-                host_port=host_port,
-            )
-    except ImportError:
+    client = await _get_client()
+    if client is None:
         latency = (asyncio.get_event_loop().time() - start) * 1000
         return ProbeResult(
             service=service.name,
@@ -117,6 +118,17 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             ok=False,
             latency_ms=latency,
             error="httpx not installed",
+            host_port=host_port,
+        )
+    try:
+        resp = await client.get(url)
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        return ProbeResult(
+            service=service.name,
+            url=url,
+            status=resp.status_code,
+            ok=resp.is_success,
+            latency_ms=latency,
             host_port=host_port,
         )
     except Exception as e:
@@ -147,29 +159,26 @@ async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/he
         )
 
     start = asyncio.get_event_loop().time()
-
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(url)
-            latency = (asyncio.get_event_loop().time() - start) * 1000
-            return ProbeResult(
-                service=service.name,
-                url=url,
-                status=resp.status_code,
-                ok=resp.is_success,
-                latency_ms=latency,
-                host_port=binding.host_port,
-            )
-    except ImportError:
-        latency = (asyncio.get_event_loop().time() - start) * 1000
+    client = await _get_client()
+    if client is None:
         return ProbeResult(
             service=service.name,
             url=url,
             status=None,
             ok=False,
-            latency_ms=latency,
+            latency_ms=0,
             error="httpx not installed",
+            host_port=binding.host_port,
+        )
+    try:
+        resp = await client.get(url)
+        latency = (asyncio.get_event_loop().time() - start) * 1000
+        return ProbeResult(
+            service=service.name,
+            url=url,
+            status=resp.status_code,
+            ok=resp.is_success,
+            latency_ms=latency,
             host_port=binding.host_port,
         )
     except Exception as e:

@@ -1,7 +1,7 @@
-# deta | 34f 4108L | python:31,shell:2,less:1 | 2026-04-30
-# stats: 142 func | 16 cls | 34 mod | CC̄=4.8 | critical:15 | cycles:0
+# deta | 34f 4167L | python:31,shell:2,less:1 | 2026-04-30
+# stats: 143 func | 16 cls | 34 mod | CC̄=4.8 | critical:15 | cycles:0
 # alerts[5]: CC generate_graph_yaml=23; CC _compute_events=22; CC generate_mermaid=17; CC format_port_changes=16; CC _filter_anomalies=15
-# hotspots[5]: create_app fan=35; _monitor_loop fan=27; main fan=15; save_png fan=15; generate_toon fan=15
+# hotspots[5]: create_app fan=40; _monitor_loop fan=27; main fan=15; save_png fan=15; generate_toon fan=15
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
 M[34]:
@@ -21,7 +21,7 @@ M[34]:
   deta/integration/semcod.py,130
   deta/monitor/__init__.py,19
   deta/monitor/alerter.py,100
-  deta/monitor/prober.py,235
+  deta/monitor/prober.py,244
   deta/monitor/watcher.py,117
   deta/scanner/__init__.py,18
   deta/scanner/compose.py,279
@@ -31,7 +31,7 @@ M[34]:
   deta/scanner/ports.py,117
   deta/scanner/python.py,103
   deta/web/__init__.py,6
-  deta/web/app.py,580
+  deta/web/app.py,630
   project.sh,48
   scan-infra.sh,38
   tests/test_compose_env.py,123
@@ -136,8 +136,9 @@ D:
     alert_probe_success(result)
     print_topology_table(topology)
   deta/monitor/prober.py:
-    e: _first_resolved_binding,_extract_health_url,_extract_host_port_from_url,probe_service,probe_port,_noop_probe,probe_all,ProbeResult
+    e: _get_client,_first_resolved_binding,_extract_health_url,_extract_host_port_from_url,probe_service,probe_port,_noop_probe,probe_all,ProbeResult
     ProbeResult:  # Result of a health check probe.
+    _get_client()
     _first_resolved_binding(service)
     _extract_health_url(service)
     _extract_host_port_from_url(url)

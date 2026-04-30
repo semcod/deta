@@ -299,6 +299,8 @@ flowchart TD
     deta__formatter__graph__save_mermaid --> deta__formatter__graph__generate_mermaid
     deta__formatter__graph__save_png --> deta__formatter__graph___service_bindings
     deta__web__app__create_app --> project__map__toon__build_topology
+    deta__web__app__create_app --> deta__formatter__graph__generate_mermaid
+    deta__web__app__create_app --> deta__formatter__graph__generate_graph_yaml
     deta__web__app__create_app --> deta__web__app___compute_events
     deta__web__app__run_dashboard --> deta__config__load_config
     deta__web__app__run_dashboard --> deta__web__app__create_app

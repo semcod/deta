@@ -286,11 +286,25 @@ HTML = """
     Notification.requestPermission().catch(() => {});
     const wsScheme = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${wsScheme}://${location.host}/ws`);
+    ws.onopen = () => console.log('[WS] Connected');
     ws.onmessage = async (event) => {
-      const payload = JSON.parse(event.data);
-      await render(payload);
+      console.log('[WS] Received data, length:', event.data.length);
+      try {
+        const payload = JSON.parse(event.data);
+        console.log('[WS] Payload keys:', Object.keys(payload));
+        console.log('[WS] Summary:', payload.summary);
+        await render(payload);
+        console.log('[WS] Render completed');
+      } catch (err) {
+        console.error('[WS] Error processing message:', err);
+        addAlert('WebSocket error: ' + err.message, 'error', new Date().toISOString());
+      }
     };
-    ws.onclose = () => addAlert('WebSocket disconnected', 'warning', new Date().toISOString());
+    ws.onerror = (err) => console.error('[WS] Error:', err);
+    ws.onclose = (ev) => {
+      console.log('[WS] Closed:', ev.code, ev.reason);
+      addAlert('WebSocket disconnected', 'warning', new Date().toISOString());
+    };
   </script>
 </body>
 </html>
@@ -589,17 +603,24 @@ def create_app(root: Path, depth: int, config: DetaConfig):
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         await manager.connect(websocket)
+        client = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
+        print(f"[WS] Client connected: {client}")
         try:
             if state["topology"] is not None:
                 payload = await collect_payload()
             else:
                 payload = await collect_payload(force_rescan=True)
-            await websocket.send_text(json.dumps(payload))
+            message = json.dumps(payload)
+            print(f"[WS] Sending payload to {client}: {len(message)} bytes, {len(payload.get('summary', {}))} summary fields")
+            await websocket.send_text(message)
+            print(f"[WS] Payload sent to {client}")
             while True:
                 await websocket.receive_text()
         except WebSocketDisconnect:
+            print(f"[WS] Client disconnected: {client}")
             manager.disconnect(websocket)
-        except Exception:
+        except Exception as e:
+            print(f"[WS] Error with client {client}: {e}")
             manager.disconnect(websocket)
 
     return app

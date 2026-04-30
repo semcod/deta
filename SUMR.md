@@ -16,7 +16,7 @@ SUMD - Structured Unified Markdown Descriptor for AI-aware project refactorizati
 ## Metadata
 
 - **name**: `deta`
-- **version**: `0.2.18`
+- **version**: `0.2.19`
 - **python_requires**: `>=3.8`
 - **license**: {'text': 'Apache-2.0'}
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
@@ -36,7 +36,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 app {
   name: deta;
-  version: 0.2.18;
+  version: 0.2.19;
 }
 
 dependencies {
@@ -137,63 +137,63 @@ class Wup:  # Base class for wup operations.
 
 ## Call Graph
 
-*88 nodes · 98 edges · 16 modules · CC̄=2.3*
+*88 nodes · 99 edges · 16 modules · CC̄=2.3*
 
 ### Hubs (by degree)
 
 | Function | CC | in | out | total |
 |----------|----|----|-----|-------|
+| `create_app` *(in deta.web.app)* | 5 | 1 | 57 | **58** |
 | `_monitor_loop` *(in deta.cli)* | 7 | 1 | 48 | **49** |
-| `create_app` *(in deta.web.app)* | 5 | 1 | 46 | **47** |
 | `_parse_config` *(in deta.config)* | 9 | 1 | 43 | **44** |
 | `diff` *(in deta.cli)* | 9 | 1 | 27 | **28** |
-| `generate_mermaid` *(in deta.formatter.graph)* | 17 ⚠ | 2 | 23 | **25** |
+| `generate_mermaid` *(in deta.formatter.graph)* | 17 ⚠ | 3 | 23 | **26** |
+| `generate_graph_yaml` *(in deta.formatter.graph)* | 23 ⚠ | 3 | 22 | **25** |
 | `_build_service_def` *(in deta.scanner.compose)* | 5 | 1 | 23 | **24** |
-| `generate_graph_yaml` *(in deta.formatter.graph)* | 23 ⚠ | 2 | 22 | **24** |
 | `generate_toon` *(in deta.formatter.toon)* | 2 | 1 | 21 | **22** |
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/semcod/deta
-# nodes: 88 | edges: 98 | modules: 16
+# nodes: 88 | edges: 99 | modules: 16
 # CC̄=2.3
 
 HUBS[20]:
+  deta.web.app.create_app
+    CC=5  in:1  out:57  total:58
   deta.cli._monitor_loop
     CC=7  in:1  out:48  total:49
-  deta.web.app.create_app
-    CC=5  in:1  out:46  total:47
   deta.config._parse_config
     CC=9  in:1  out:43  total:44
   deta.cli.diff
     CC=9  in:1  out:27  total:28
   deta.formatter.graph.generate_mermaid
-    CC=17  in:2  out:23  total:25
+    CC=17  in:3  out:23  total:26
+  deta.formatter.graph.generate_graph_yaml
+    CC=23  in:3  out:22  total:25
   deta.scanner.compose._build_service_def
     CC=5  in:1  out:23  total:24
-  deta.formatter.graph.generate_graph_yaml
-    CC=23  in:2  out:22  total:24
   deta.formatter.toon.generate_toon
     CC=2  in:1  out:21  total:22
   deta.scanner.python.scan_python
     CC=11  in:1  out:20  total:21
   deta.monitor.alerter.print_topology_table
     CC=8  in:1  out:19  total:20
-  deta.formatter.graph.save_png
-    CC=15  in:1  out:17  total:18
   deta.monitor.prober.probe_service
     CC=4  in:1  out:17  total:18
+  deta.formatter.graph.save_png
+    CC=15  in:1  out:17  total:18
   deta.monitor.prober.probe_port
     CC=4  in:1  out:16  total:17
   deta.scanner.env.load_env_file
     CC=12  in:2  out:14  total:16
-  deta.config.load_config
-    CC=4  in:8  out:7  total:15
   deta.cli._write_outputs
     CC=8  in:3  out:12  total:15
-  deta.scanner.openapi.scan_openapi
-    CC=12  in:0  out:14  total:14
+  deta.config.load_config
+    CC=4  in:8  out:7  total:15
   deta.scanner.ports.parse_port
     CC=10  in:2  out:12  total:14
+  deta.scanner.openapi.scan_openapi
+    CC=12  in:0  out:14  total:14
   deta.monitor.prober.probe_all
     CC=10  in:4  out:9  total:13
   deta.cli._print_summary
@@ -299,7 +299,7 @@ MODULES:
     _parse_requirements  CC=6  out:11
     scan_python  CC=11  out:20
   deta.web.app  [2 funcs]
-    create_app  CC=5  out:46
+    create_app  CC=5  out:57
     run_dashboard  CC=4  out:5
   project.map.toon  [1 funcs]
     build_topology  CC=0  out:0
@@ -373,46 +373,46 @@ EDGES:
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/semcod/deta
-# nodes: 88 | edges: 98 | modules: 16
+# nodes: 88 | edges: 99 | modules: 16
 # CC̄=2.3
 
 HUBS[20]:
+  deta.web.app.create_app
+    CC=5  in:1  out:57  total:58
   deta.cli._monitor_loop
     CC=7  in:1  out:48  total:49
-  deta.web.app.create_app
-    CC=5  in:1  out:46  total:47
   deta.config._parse_config
     CC=9  in:1  out:43  total:44
   deta.cli.diff
     CC=9  in:1  out:27  total:28
   deta.formatter.graph.generate_mermaid
-    CC=17  in:2  out:23  total:25
+    CC=17  in:3  out:23  total:26
+  deta.formatter.graph.generate_graph_yaml
+    CC=23  in:3  out:22  total:25
   deta.scanner.compose._build_service_def
     CC=5  in:1  out:23  total:24
-  deta.formatter.graph.generate_graph_yaml
-    CC=23  in:2  out:22  total:24
   deta.formatter.toon.generate_toon
     CC=2  in:1  out:21  total:22
   deta.scanner.python.scan_python
     CC=11  in:1  out:20  total:21
   deta.monitor.alerter.print_topology_table
     CC=8  in:1  out:19  total:20
-  deta.formatter.graph.save_png
-    CC=15  in:1  out:17  total:18
   deta.monitor.prober.probe_service
     CC=4  in:1  out:17  total:18
+  deta.formatter.graph.save_png
+    CC=15  in:1  out:17  total:18
   deta.monitor.prober.probe_port
     CC=4  in:1  out:16  total:17
   deta.scanner.env.load_env_file
     CC=12  in:2  out:14  total:16
-  deta.config.load_config
-    CC=4  in:8  out:7  total:15
   deta.cli._write_outputs
     CC=8  in:3  out:12  total:15
-  deta.scanner.openapi.scan_openapi
-    CC=12  in:0  out:14  total:14
+  deta.config.load_config
+    CC=4  in:8  out:7  total:15
   deta.scanner.ports.parse_port
     CC=10  in:2  out:12  total:14
+  deta.scanner.openapi.scan_openapi
+    CC=12  in:0  out:14  total:14
   deta.monitor.prober.probe_all
     CC=10  in:4  out:9  total:13
   deta.cli._print_summary
@@ -518,7 +518,7 @@ MODULES:
     _parse_requirements  CC=6  out:11
     scan_python  CC=11  out:20
   deta.web.app  [2 funcs]
-    create_app  CC=5  out:46
+    create_app  CC=5  out:57
     run_dashboard  CC=4  out:5
   project.map.toon  [1 funcs]
     build_topology  CC=0  out:0
@@ -579,7 +579,7 @@ EDGES:
 ### Code Analysis (`project/analysis.toon.yaml`)
 
 ```toon markpact:analysis path=project/analysis.toon.yaml
-# code2llm | 43f 7265L | python:24,yaml:11,yml:3,shell:2,json:1,toml:1,txt:1 | 2026-04-30
+# code2llm | 43f 7307L | python:24,yaml:11,yml:3,shell:2,json:1,toml:1,txt:1 | 2026-04-30
 # CC̄=2.3 | critical:7/256 | dups:0 | cycles:2
 
 HEALTH[7]:
@@ -609,7 +609,7 @@ PIPELINES[14]:
 
 LAYERS:
   deta/                           CC̄=5.1    ←in:1  →out:23  !! split
-  │ !! app                        579L  1C   10m  CC=22     ←0
+  │ !! app                        629L  1C   10m  CC=22     ←0
   │ !! cli                        458L  0C   14m  CC=15     ←0
   │ compose                    278L  1C   13m  CC=7      ←0
   │ config                     268L  8C    3m  CC=9      ←2
@@ -635,12 +635,12 @@ LAYERS:
   │ __init__                     5L  0C    0m  CC=0.0    ←0
   │
   project/                        CC̄=0.0    ←in:0  →out:0
-  │ !! calls.yaml                1184L  0C    0m  CC=0.0    ←0
+  │ !! calls.yaml                1182L  0C    0m  CC=0.0    ←0
   │ map.toon.yaml              254L  0C  142m  CC=0.0    ←3
-  │ calls.toon.yaml            206L  0C    0m  CC=0.0    ←0
-  │ analysis.toon.yaml         102L  0C    0m  CC=0.0    ←0
+  │ calls.toon.yaml            202L  0C    0m  CC=0.0    ←0
+  │ analysis.toon.yaml         103L  0C    0m  CC=0.0    ←0
   │ evolution.toon.yaml         68L  0C    0m  CC=0.0    ←0
-  │ project.toon.yaml           54L  0C    0m  CC=0.0    ←0
+  │ project.toon.yaml           51L  0C    0m  CC=0.0    ←0
   │ prompt.txt                  47L  0C    0m  CC=0.0    ←0
   │ duplication.toon.yaml       43L  0C    0m  CC=0.0    ←0
   │
@@ -663,21 +663,22 @@ LAYERS:
   │
 
 COUPLING:
-                                deta      deta.monitor    deta.formatter      deta.scanner          deta.web       project.map  deta.integration          deta.dsl
-              deta                ──                13                 4                                  ←1                 2                                   4  !! fan-out
-      deta.monitor               ←13                ──                                   4                ←2                                                        hub
-    deta.formatter                ←4                                  ──                 1                ←2                                  ←1                    hub
-      deta.scanner                                  ←4                ←1                ──                                                    ←1                    hub
-          deta.web                 1                 2                 2                                  ──                 1                                    
-       project.map                ←2                                                                      ←1                ──                ←3                    hub
-  deta.integration                                                     1                 1                                   3                ──                  
+                                deta      deta.monitor    deta.formatter          deta.web      deta.scanner       project.map  deta.integration          deta.dsl
+              deta                ──                13                 4                ←1                                   2                                   4  !! fan-out
+      deta.monitor               ←13                ──                                  ←2                 4                                                        hub
+    deta.formatter                ←4                                  ──                ←4                 1                                  ←1                    hub
+          deta.web                 1                 2                 4                ──                                   1                                      !! fan-out
+      deta.scanner                                  ←4                ←1                                  ──                                  ←1                    hub
+       project.map                ←2                                                    ←1                                  ──                ←3                    hub
+  deta.integration                                                     1                                   1                 3                ──                  
           deta.dsl                ←4                                                                                                                            ──
   CYCLES: 2
-  HUB: deta.scanner/ (fan-in=6)
   HUB: deta.monitor/ (fan-in=15)
   HUB: project.map/ (fan-in=6)
-  HUB: deta.formatter/ (fan-in=7)
+  HUB: deta.scanner/ (fan-in=6)
+  HUB: deta.formatter/ (fan-in=9)
   SMELL: deta/ fan-out=23 → split needed
+  SMELL: deta.web/ fan-out=8 → split needed
 
 EXTERNAL:
   validation: run `vallm batch .` → validation.toon
@@ -687,19 +688,19 @@ EXTERNAL:
 ### Duplication (`project/duplication.toon.yaml`)
 
 ```toon markpact:analysis path=project/duplication.toon.yaml
-# redup/duplication | 2 groups | 24f 3384L | 2026-04-30
+# redup/duplication | 2 groups | 24f 3443L | 2026-04-30
 
 SUMMARY:
   files_scanned: 24
-  total_lines:   3384
+  total_lines:   3443
   dup_groups:    2
   dup_fragments: 4
   saved_lines:   15
-  scan_ms:       4496
+  scan_ms:       2979
 
 HOTSPOTS[2] (files with most duplication):
   deta/dsl/commands.py  dup=18L  groups=1  frags=2  (0.5%)
-  deta/formatter/graph.py  dup=12L  groups=1  frags=2  (0.4%)
+  deta/formatter/graph.py  dup=12L  groups=1  frags=2  (0.3%)
 
 DUPLICATES[2] (ranked by impact):
   [966af33370a97c1c]   STRU  port_added  L=9 N=2 saved=9 sim=1.00
@@ -739,8 +740,8 @@ METRICS-TARGET:
 
 NEXT[7] (ranked by impact):
   [1] !! SPLIT           deta/web/app.py
-      WHY: 579L, 1 classes, max CC=22
-      EFFORT: ~4h  IMPACT: 12738
+      WHY: 629L, 1 classes, max CC=22
+      EFFORT: ~4h  IMPACT: 13838
 
   [2] !  SPLIT-FUNC      _compute_events  CC=22  fan=12
       WHY: CC=22 exceeds 15
@@ -802,7 +803,7 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=2.5 → now CC̄=2.3
+  prev CC̄=2.3 → now CC̄=2.3
 ```
 
 ## Intent

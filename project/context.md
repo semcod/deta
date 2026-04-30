@@ -476,8 +476,8 @@ Returns list of SERVICE_ADDED/SERVIC
 
 Functions exposed as public API (no underscore prefix):
 
+- `deta.web.app.create_app` - 57 calls
 - `deta.cli.main` - 55 calls
-- `deta.web.app.create_app` - 46 calls
 - `deta.cli.diff` - 27 calls
 - `deta.formatter.graph.generate_mermaid` - 23 calls
 - `deta.formatter.graph.generate_graph_yaml` - 22 calls

@@ -1,16 +1,16 @@
-# redup/duplication | 2 groups | 24f 3384L | 2026-04-30
+# redup/duplication | 2 groups | 24f 3443L | 2026-04-30
 
 SUMMARY:
   files_scanned: 24
-  total_lines:   3384
+  total_lines:   3443
   dup_groups:    2
   dup_fragments: 4
   saved_lines:   15
-  scan_ms:       4496
+  scan_ms:       2979
 
 HOTSPOTS[2] (files with most duplication):
   deta/dsl/commands.py  dup=18L  groups=1  frags=2  (0.5%)
-  deta/formatter/graph.py  dup=12L  groups=1  frags=2  (0.4%)
+  deta/formatter/graph.py  dup=12L  groups=1  frags=2  (0.3%)
 
 DUPLICATES[2] (ranked by impact):
   [966af33370a97c1c]   STRU  port_added  L=9 N=2 saved=9 sim=1.00

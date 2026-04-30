@@ -13,9 +13,9 @@ flowchart TD
     deta__cli ==>|4| deta__formatter
     deta__cli ==>|4| deta__dsl
     deta__monitor ==>|4| deta__scanner
+    deta__web ==>|4| deta__formatter
     deta__integration -->|3| project__map
     deta__cli -->|2| project__map
-    deta__web -->|2| deta__formatter
     deta__web -->|2| deta__monitor
     deta__integration -->|1| deta__formatter
     deta__integration -->|1| deta__scanner
