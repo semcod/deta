@@ -207,7 +207,10 @@ async def _noop_probe(service: ServiceDef) -> ProbeResult:
     )
 
 
-async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
+async def probe_all(
+    services: list[ServiceDef],
+    max_concurrency: int = 20,
+) -> list[ProbeResult]:
     """
     Probe all services concurrently.
 
@@ -218,13 +221,18 @@ async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
         List of ProbeResult objects (one per resolved port per service)
     """
     probes: list[asyncio.Coroutine[None, None, ProbeResult]] = []
+    semaphore = asyncio.Semaphore(max(1, max_concurrency))
+
+    async def _run_limited(coro: asyncio.Coroutine[None, None, ProbeResult]) -> ProbeResult:
+        async with semaphore:
+            return await coro
 
     for service in services:
         # Use healthcheck URL if defined, otherwise probe each resolved port
         healthcheck_url = _extract_health_url(service)
         if healthcheck_url:
             # Probe the explicit healthcheck
-            probes.append(probe_service(service))
+            probes.append(_run_limited(probe_service(service)))
         else:
             # Probe each resolved port
             bindings = service.resolved_ports or []
@@ -235,9 +243,9 @@ async def probe_all(services: list[ServiceDef]) -> list[ProbeResult]:
 
             if bindings:
                 for binding in bindings:
-                    probes.append(probe_port(service, binding))
+                    probes.append(_run_limited(probe_port(service, binding)))
             else:
                 # No ports to probe
-                probes.append(_noop_probe(service))
+                probes.append(_run_limited(_noop_probe(service)))
 
     return await asyncio.gather(*probes)

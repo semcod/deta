@@ -319,6 +319,9 @@ class ConnectionManager:
         await websocket.accept()
         self._connections.add(websocket)
 
+    def has_connections(self) -> bool:
+        return bool(self._connections)
+
     def disconnect(self, websocket) -> None:
         self._connections.discard(websocket)
 
@@ -327,10 +330,13 @@ class ConnectionManager:
             return
         message = json.dumps(payload)
         dead = []
-        for conn in self._connections:
-            try:
-                await conn.send_text(message)
-            except Exception:
+        connections = list(self._connections)
+        results = await asyncio.gather(
+            *(conn.send_text(message) for conn in connections),
+            return_exceptions=True,
+        )
+        for conn, result in zip(connections, results):
+            if isinstance(result, Exception):
                 dead.append(conn)
         for conn in dead:
             self.disconnect(conn)
@@ -346,8 +352,13 @@ def _probe_status(probe: ProbeResult | None) -> str:
     return "offline"
 
 
-def _topology_summary(topology: InfraTopology, probes: list[ProbeResult] | None) -> dict:
-    anomalies = topology.detect_anomalies()
+def _topology_summary(
+    topology: InfraTopology,
+    probes: list[ProbeResult] | None,
+    anomaly_count: int | None = None,
+) -> dict:
+    if anomaly_count is None:
+        anomaly_count = len(topology.detect_anomalies())
     offline = 0
     restarting = 0
     if probes:
@@ -360,7 +371,7 @@ def _topology_summary(topology: InfraTopology, probes: list[ProbeResult] | None)
                 offline += 1
     return {
         "services": len(topology.services),
-        "anomalies": len(anomalies),
+        "anomalies": anomaly_count,
         "offline": offline,
         "restarting": restarting,
     }
@@ -369,10 +380,16 @@ def _topology_summary(topology: InfraTopology, probes: list[ProbeResult] | None)
 def _topology_json_with_status(
     topology: InfraTopology,
     probes: list[ProbeResult] | None,
+    static_services: dict[str, dict] | None = None,
+    static_meta: dict | None = None,
 ) -> str:
     services: dict[str, dict] = {}
-    for service_name, service in topology.services.items():
-        payload = asdict(service)
+    source_services = static_services or {
+        service_name: asdict(service)
+        for service_name, service in topology.services.items()
+    }
+    for service_name, base_payload in source_services.items():
+        payload = dict(base_payload)
         # Get all probes for this service (may be multiple, one per port)
         service_probes = [p for p in (probes or []) if p.service == service_name]
 
@@ -404,12 +421,20 @@ def _topology_json_with_status(
 
         services[service_name] = payload
 
+    if static_meta is None:
+        static_meta = {
+            "endpoints": [asdict(endpoint) for endpoint in topology.endpoints],
+            "anomalies": topology.detect_anomalies(),
+            "cycles": topology.detect_cycles(),
+            "hubs": topology.find_hubs(),
+        }
+
     map_payload = {
         "services": services,
-        "endpoints": [asdict(endpoint) for endpoint in topology.endpoints],
-        "anomalies": topology.detect_anomalies(),
-        "cycles": topology.detect_cycles(),
-        "hubs": topology.find_hubs(),
+        "endpoints": static_meta.get("endpoints", []),
+        "anomalies": static_meta.get("anomalies", []),
+        "cycles": static_meta.get("cycles", []),
+        "hubs": static_meta.get("hubs", []),
     }
     return json.dumps(map_payload, indent=2)
 
@@ -487,10 +512,15 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         "prev_services": set(),
         "prev_probes": None,
         "topology": None,
+        "topology_services": {},
+        "topology_meta": {},
+        "anomaly_count": 0,
         "mermaid": "",
         "graph_yaml": "",
         "graph_hash": "",
         "topology_dirty": True,
+        "pending_change_events": [],
+        "debounce_task": None,
     }
 
     _http_client = None
@@ -507,9 +537,26 @@ def create_app(root: Path, depth: int, config: DetaConfig):
 
     async def _refresh_topology():
         topology = build_topology(root, depth)
+        anomalies = topology.detect_anomalies()
+        cycles = topology.detect_cycles()
+        hubs = topology.find_hubs()
+        static_services = {
+            service_name: asdict(service)
+            for service_name, service in topology.services.items()
+        }
+        static_meta = {
+            "endpoints": [asdict(endpoint) for endpoint in topology.endpoints],
+            "anomalies": anomalies,
+            "cycles": cycles,
+            "hubs": hubs,
+        }
+
         mermaid_code = generate_mermaid(topology, state["prev_probes"])
         graph_hash = hashlib.md5(mermaid_code.encode()).hexdigest()[:8]
         state["topology"] = topology
+        state["topology_services"] = static_services
+        state["topology_meta"] = static_meta
+        state["anomaly_count"] = len(anomalies)
         state["mermaid"] = mermaid_code
         state["graph_yaml"] = generate_graph_yaml(topology, state["prev_probes"])
         state["graph_hash"] = graph_hash
@@ -535,11 +582,19 @@ def create_app(root: Path, depth: int, config: DetaConfig):
 
         payload = {
             "root": str(root),
-            "summary": _topology_summary(topology, probes),
+            "summary": {
+                **_topology_summary(topology, probes, state["anomaly_count"]),
+                "anomalies": state["anomaly_count"],
+            },
             "mermaid": state["mermaid"],
             "graph_yaml": state["graph_yaml"],
             "graph_hash": state["graph_hash"],
-            "topology_json": _topology_json_with_status(topology, probes),
+            "topology_json": _topology_json_with_status(
+                topology,
+                probes,
+                state["topology_services"],
+                state["topology_meta"],
+            ),
             "events": events or [],
         }
 
@@ -565,17 +620,34 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         async def periodic_refresh():
             while True:
                 await asyncio.sleep(config.web.refresh_seconds)
+                if not manager.has_connections():
+                    continue
                 payload = await collect_payload()
                 await manager.broadcast(payload)
 
+        async def flush_changes_after_debounce(debounce_seconds: float = 0.5):
+            try:
+                await asyncio.sleep(debounce_seconds)
+            except asyncio.CancelledError:
+                return
+
+            pending_events = list(state["pending_change_events"])
+            state["pending_change_events"].clear()
+            payload = await collect_payload(events=pending_events)
+            await manager.broadcast(payload)
+
         async def on_change(change: dict):
             state["topology_dirty"] = True
-            payload = await collect_payload(events=[{
+            state["pending_change_events"].append({
                 "severity": "warning",
                 "message": f"config change: {change.get('path', '')}",
                 "timestamp": change.get("timestamp", ""),
-            }])
-            await manager.broadcast(payload)
+            })
+
+            task = state.get("debounce_task")
+            if task and not task.done():
+                task.cancel()
+            state["debounce_task"] = asyncio.create_task(flush_changes_after_debounce())
 
         await asyncio.gather(
             periodic_refresh(),
