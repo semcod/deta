@@ -1,15 +1,15 @@
-# redup/duplication | 2 groups | 24f 3443L | 2026-04-30
+# redup/duplication | 2 groups | 25f 4036L | 2026-04-30
 
 SUMMARY:
-  files_scanned: 24
-  total_lines:   3443
+  files_scanned: 25
+  total_lines:   4036
   dup_groups:    2
   dup_fragments: 4
   saved_lines:   15
-  scan_ms:       2979
+  scan_ms:       2936
 
 HOTSPOTS[2] (files with most duplication):
-  deta/dsl/commands.py  dup=18L  groups=1  frags=2  (0.5%)
+  deta/dsl/commands.py  dup=18L  groups=1  frags=2  (0.4%)
   deta/formatter/graph.py  dup=12L  groups=1  frags=2  (0.3%)
 
 DUPLICATES[2] (ranked by impact):

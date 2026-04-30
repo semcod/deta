@@ -1,5 +1,8 @@
 flowchart TD
     subgraph deta__cli
+        deta__cli___port_in_use["_port_in_use"]
+        deta__cli___pid_on_port("_pid_on_port CC=11")
+        deta__cli___terminate_pid["_terminate_pid"]
         deta__cli___get_topology["_get_topology"]
         deta__cli___filter_anomalies{{_filter_anomalies CC=15}}
         deta__cli___print_summary["_print_summary"]
@@ -75,19 +78,21 @@ flowchart TD
         deta__monitor__alerter__alert_probe_failure["alert_probe_failure"]
         deta__monitor__alerter__alert_probe_success["alert_probe_success"]
         deta__monitor__alerter__print_topology_table("print_topology_table CC=8")
-        deta__monitor__prober___first_resolved_binding["_first_resolved_binding"]
-        deta__monitor__prober___extract_health_url("_extract_health_url CC=11")
-        deta__monitor__prober___extract_host_port_from_url["_extract_host_port_from_url"]
-        deta__monitor__prober__probe_service["probe_service"]
-        deta__monitor__prober__probe_port["probe_port"]
-        deta__monitor__prober___noop_probe["_noop_probe"]
-        deta__monitor__prober__probe_all("probe_all CC=10")
         deta__monitor__watcher__watch_configs["watch_configs"]
         deta__monitor__watcher___scan_file_mtimes["_scan_file_mtimes"]
         deta__monitor__watcher___detect_change_type("_detect_change_type CC=8")
         deta__monitor__watcher___emit_changes["_emit_changes"]
         deta__monitor__watcher___poll_configs["_poll_configs"]
         deta__monitor__watcher___is_config_file["_is_config_file"]
+        deta__monitor__prober___get_client["_get_client"]
+        deta__monitor__prober__close_client["close_client"]
+        deta__monitor__prober___first_resolved_binding["_first_resolved_binding"]
+        deta__monitor__prober___extract_health_url("_extract_health_url CC=11")
+        deta__monitor__prober___extract_host_port_from_url["_extract_host_port_from_url"]
+        deta__monitor__prober__probe_service("probe_service CC=8")
+        deta__monitor__prober__probe_port["probe_port"]
+        deta__monitor__prober___noop_probe["_noop_probe"]
+        deta__monitor__prober__probe_all("probe_all CC=11")
     end
     subgraph deta__scanner
         deta__scanner__python__scan_python("scan_python CC=11")
@@ -122,11 +127,13 @@ flowchart TD
     subgraph deta__web
         deta__web__app__ConnectionManager____init__["__init__"]
         deta__web__app__ConnectionManager__connect["connect"]
+        deta__web__app__ConnectionManager__has_connections["has_connections"]
         deta__web__app__ConnectionManager__disconnect["disconnect"]
         deta__web__app__ConnectionManager__broadcast["broadcast"]
         deta__web__app___probe_status["_probe_status"]
         deta__web__app___topology_summary["_topology_summary"]
-        deta__web__app___topology_json_with_status("_topology_json_with_status CC=14")
+        deta__web__app___topology_json_with_status{{_topology_json_with_status CC=17}}
+        deta__web__app___service_status_map("_service_status_map CC=10")
         deta__web__app___compute_events{{_compute_events CC=22}}
         deta__web__app__create_app["create_app"]
         deta__web__app__run_dashboard["run_dashboard"]
@@ -193,51 +200,10 @@ flowchart TD
         project__map__toon__alert_probe_success["alert_probe_success"]
         project__map__toon__print_topology_table["print_topology_table"]
     end
-    deta__config__load_config --> deta__config___load_yaml
-    deta__config__load_config --> deta__config___parse_config
-    deta__cli___get_topology --> project__map__toon__build_topology
-    deta__cli___print_summary --> deta__monitor__alerter__print_topology_table
-    deta__cli___print_summary --> deta__monitor__alerter__alert_anomaly
-    deta__cli___probe_once --> deta__monitor__prober__probe_all
-    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_success
-    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_failure
-    deta__cli___write_outputs --> deta__formatter__toon__save_toon
-    deta__cli___write_outputs --> deta__formatter__graph__save_graph_yaml
-    deta__cli___write_outputs --> deta__formatter__graph__save_mermaid
-    deta__cli___write_outputs --> deta__formatter__graph__save_png
-    deta__cli__scan --> deta__cli___resolve_formats
-    deta__cli__scan --> deta__cli___get_topology
-    deta__cli__scan --> deta__cli___write_outputs
-    deta__cli__scan --> deta__cli___print_summary
-    deta__cli__scan --> deta__config__load_config
-    deta__cli__scan --> deta__cli___filter_anomalies
-    deta__cli__scan --> deta__cli___probe_once
-    deta__cli__monitor --> deta__cli___monitor_loop
-    deta__cli___monitor_loop --> deta__cli___resolve_formats
-    deta__cli___monitor_loop --> deta__cli___get_topology
-    deta__cli___monitor_loop --> deta__cli___filter_anomalies
-    deta__cli___monitor_loop --> deta__cli___write_outputs
-    deta__cli___monitor_loop --> deta__cli___print_summary
-    deta__cli___monitor_loop --> deta__cli___extract_ports_snapshot
-    deta__cli___monitor_loop --> deta__config__load_config
-    deta__cli__diff --> deta__config__load_config
-    deta__cli__diff --> deta__cli___get_topology
-    deta__cli__main --> deta__config__load_config
     deta__monitor__alerter__alert_anomaly --> deta__monitor__alerter___get_console
     deta__monitor__alerter__alert_probe_failure --> deta__monitor__alerter___get_console
     deta__monitor__alerter__alert_probe_success --> deta__monitor__alerter___get_console
     deta__monitor__alerter__print_topology_table --> deta__monitor__alerter___get_console
-    deta__monitor__prober___first_resolved_binding --> deta__scanner__ports__parse_port
-    deta__monitor__prober___extract_health_url --> deta__monitor__prober___first_resolved_binding
-    deta__monitor__prober___extract_health_url --> deta__scanner__ports__published_url
-    deta__monitor__prober__probe_service --> deta__monitor__prober___extract_health_url
-    deta__monitor__prober__probe_service --> deta__monitor__prober___extract_host_port_from_url
-    deta__monitor__prober__probe_port --> deta__scanner__ports__published_url
-    deta__monitor__prober__probe_all --> deta__monitor__prober___extract_health_url
-    deta__monitor__prober__probe_all --> deta__monitor__prober__probe_service
-    deta__monitor__prober__probe_all --> deta__monitor__prober___noop_probe
-    deta__monitor__prober__probe_all --> deta__scanner__ports__parse_ports
-    deta__monitor__prober__probe_all --> deta__monitor__prober__probe_port
     deta__monitor__watcher__watch_configs --> deta__monitor__watcher___is_config_file
     deta__monitor__watcher__watch_configs --> deta__monitor__watcher___poll_configs
     deta__monitor__watcher___emit_changes --> deta__monitor__watcher___detect_change_type
@@ -298,14 +264,55 @@ flowchart TD
     deta__formatter__graph__save_mermaid --> deta__formatter__graph___save_output
     deta__formatter__graph__save_mermaid --> deta__formatter__graph__generate_mermaid
     deta__formatter__graph__save_png --> deta__formatter__graph___service_bindings
-    deta__web__app__create_app --> project__map__toon__build_topology
-    deta__web__app__create_app --> deta__formatter__graph__generate_mermaid
-    deta__web__app__create_app --> deta__formatter__graph__generate_graph_yaml
-    deta__web__app__create_app --> deta__web__app___compute_events
-    deta__web__app__run_dashboard --> deta__config__load_config
+    deta__cli___get_topology --> project__map__toon__build_topology
+    deta__cli___print_summary --> deta__monitor__alerter__print_topology_table
+    deta__cli___print_summary --> deta__monitor__alerter__alert_anomaly
+    deta__cli___probe_once --> project__map__toon__probe_all
+    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_success
+    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_failure
+    deta__cli___write_outputs --> deta__formatter__toon__save_toon
+    deta__cli___write_outputs --> project__map__toon__save_graph_yaml
+    deta__cli___write_outputs --> project__map__toon__save_mermaid
+    deta__cli___write_outputs --> project__map__toon__save_png
+    deta__cli__scan --> deta__cli___resolve_formats
+    deta__cli__scan --> deta__cli___get_topology
+    deta__cli__scan --> deta__cli___write_outputs
+    deta__cli__scan --> deta__cli___print_summary
+    deta__cli__scan --> project__map__toon__load_config
+    deta__cli__scan --> deta__cli___filter_anomalies
+    deta__cli__scan --> deta__cli___probe_once
+    deta__cli__monitor --> deta__cli___monitor_loop
+    deta__cli___monitor_loop --> deta__cli___resolve_formats
+    deta__cli___monitor_loop --> deta__cli___get_topology
+    deta__cli___monitor_loop --> deta__cli___filter_anomalies
+    deta__cli___monitor_loop --> deta__cli___write_outputs
+    deta__cli___monitor_loop --> deta__cli___print_summary
+    deta__cli___monitor_loop --> deta__cli___extract_ports_snapshot
+    deta__cli___monitor_loop --> project__map__toon__load_config
+    deta__cli__diff --> project__map__toon__load_config
+    deta__cli__diff --> deta__cli___get_topology
+    deta__cli__main --> project__map__toon__load_config
+    deta__config__load_config --> deta__config___load_yaml
+    deta__config__load_config --> deta__config___parse_config
+    deta__monitor__prober___first_resolved_binding --> deta__scanner__ports__parse_port
+    deta__monitor__prober___extract_health_url --> deta__monitor__prober___first_resolved_binding
+    deta__monitor__prober___extract_health_url --> deta__scanner__ports__published_url
+    deta__monitor__prober__probe_service --> deta__monitor__prober___extract_health_url
+    deta__monitor__prober__probe_service --> deta__monitor__prober___extract_host_port_from_url
+    deta__monitor__prober__probe_service --> deta__monitor__prober___get_client
+    deta__monitor__prober__probe_port --> deta__scanner__ports__published_url
+    deta__monitor__prober__probe_port --> deta__monitor__prober___get_client
+    deta__monitor__prober__probe_all --> deta__monitor__prober___extract_health_url
+    deta__monitor__prober__probe_all --> deta__monitor__prober__probe_service
+    deta__monitor__prober__probe_all --> deta__scanner__ports__parse_ports
+    deta__monitor__prober__probe_all --> deta__monitor__prober___noop_probe
+    deta__monitor__prober__probe_all --> deta__monitor__prober__probe_port
+    deta__web__app__create_app --> project__map__toon__generate_mermaid
+    deta__web__app__create_app --> project__map__toon__generate_graph_yaml
+    deta__web__app__run_dashboard --> project__map__toon__load_config
     deta__web__app__run_dashboard --> deta__web__app__create_app
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class deta__cli___filter_anomalies,deta__dsl__commands__format_probe_change,deta__dsl__commands__format_port_changes,deta__formatter__graph__generate_graph_yaml,deta__formatter__graph__generate_mermaid,deta__formatter__graph__save_png,deta__web__app___compute_events highCC
-    class deta__config___parse_config,deta__cli___write_outputs,deta__cli___print_status_summary,deta__cli__diff,deta__monitor__alerter__print_topology_table,deta__monitor__prober___extract_health_url,deta__monitor__prober__probe_all,deta__monitor__watcher___detect_change_type,deta__scanner__python__scan_python,deta__scanner__ports__parse_port,deta__scanner__openapi__scan_openapi,deta__scanner__env__load_env_file,deta__web__app___topology_json_with_status medCC
+    class deta__dsl__commands__format_probe_change,deta__dsl__commands__format_port_changes,deta__formatter__graph__generate_graph_yaml,deta__formatter__graph__generate_mermaid,deta__formatter__graph__save_png,deta__cli___filter_anomalies,deta__web__app___topology_json_with_status,deta__web__app___compute_events highCC
+    class deta__monitor__alerter__print_topology_table,deta__monitor__watcher___detect_change_type,deta__scanner__python__scan_python,deta__scanner__ports__parse_port,deta__scanner__openapi__scan_openapi,deta__scanner__env__load_env_file,deta__cli___pid_on_port,deta__cli___write_outputs,deta__cli___print_status_summary,deta__cli__diff,deta__config___parse_config,deta__monitor__prober___extract_health_url,deta__monitor__prober__probe_service,deta__monitor__prober__probe_all,deta__web__app___service_status_map medCC

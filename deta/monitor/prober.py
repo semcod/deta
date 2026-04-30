@@ -22,7 +22,6 @@ async def _get_client():
             _shared_client = httpx.AsyncClient(
                 timeout=1.5,
                 limits=limits,
-                http2=True,
             )
         return _shared_client
     except ImportError:
