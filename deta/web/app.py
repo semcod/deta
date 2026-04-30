@@ -555,43 +555,144 @@ HTML = """
       console.log('[PanZoom] init — wrap:', wrap, 'graph:', g, 'zoomIn:', zoomInBtn);
       if (!wrap || !g || !zoomInBtn) { console.error('[PanZoom] missing elements, aborting'); return; }
 
+      const PAD = 12;
+      const MIN_SCALE = 0.05;
+      const MAX_SCALE = 20;
+      const DEFAULT_FIT_ZOOM_MULT = 2.0;
+
       let scale = 1, tx = 0, ty = 0;
       let dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
+      let svgBaseW = 0, svgBaseH = 0;
+      let contentCx = 0, contentCy = 0;
+      let contentMinX = 0, contentMinY = 0, contentW = 0, contentH = 0;
+      let svgFontPx = 0;
 
-      const dbg = document.getElementById('graph-debug');
-      function applyTransform() {
-        g.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-        if (dbg) dbg.textContent = `zoom: ${(scale*100).toFixed(0)}%  tx: ${tx.toFixed(0)}  ty: ${ty.toFixed(0)}`;
-      }
-
-      function fitToWrap() {
+      function readSvgSize() {
         const svg = g.querySelector('svg');
-        if (!svg) { console.warn('[PanZoom] fitToWrap: no SVG found'); return; }
+        if (!svg) return null;
         svg.style.maxWidth = 'none';
         svg.style.width = 'auto';
         const vb = svg.viewBox && svg.viewBox.baseVal;
-        const sw = (vb && vb.width) ? vb.width : svg.getBBox ? svg.getBBox().width : svg.scrollWidth;
-        const sh = (vb && vb.height) ? vb.height : svg.getBBox ? svg.getBBox().height : svg.scrollHeight;
-        console.log('[PanZoom] fitToWrap — svgW:', sw, 'svgH:', sh, 'wrapW:', wrap.clientWidth, 'wrapH:', wrap.clientHeight);
+        const sw = (vb && vb.width) ? vb.width : (svg.getBBox ? svg.getBBox().width : svg.scrollWidth);
+        const sh = (vb && vb.height) ? vb.height : (svg.getBBox ? svg.getBBox().height : svg.scrollHeight);
+        if (!sw || !sh) return null;
+        svgBaseW = sw;
+        svgBaseH = sh;
+
+        const rootGroup = svg.querySelector('g.root');
+        svgFontPx = parseFloat(getComputedStyle(svg).fontSize || '0') || 0;
+        if (rootGroup) {
+          try {
+            const b = rootGroup.getBBox();
+            if (b && b.width > 0 && b.height > 0) {
+              contentMinX = b.x;
+              contentMinY = b.y;
+              contentW = b.width;
+              contentH = b.height;
+              contentCx = b.x + b.width / 2;
+              contentCy = b.y + b.height / 2;
+            } else {
+              contentMinX = 0;
+              contentMinY = 0;
+              contentW = sw;
+              contentH = sh;
+              contentCx = sw / 2;
+              contentCy = sh / 2;
+            }
+          } catch (_e) {
+            contentMinX = 0;
+            contentMinY = 0;
+            contentW = sw;
+            contentH = sh;
+            contentCx = sw / 2;
+            contentCy = sh / 2;
+          }
+        } else {
+          contentMinX = 0;
+          contentMinY = 0;
+          contentW = sw;
+          contentH = sh;
+          contentCx = sw / 2;
+          contentCy = sh / 2;
+        }
+
+        return { sw, sh };
+      }
+
+      function clampPan() {
+        if (!contentW || !contentH) return;
+        const ww = Math.max(1, wrap.clientWidth - PAD * 2);
+        const wh = Math.max(1, wrap.clientHeight - PAD * 2);
+        const contentScaledW = contentW * scale;
+        const contentScaledH = contentH * scale;
+
+        if (contentScaledW <= ww) {
+          tx = PAD + (ww - contentScaledW) / 2 - contentMinX * scale;
+        } else {
+          const minTx = PAD + ww - (contentMinX + contentW) * scale;
+          const maxTx = PAD - contentMinX * scale;
+          tx = Math.max(minTx, Math.min(maxTx, tx));
+        }
+
+        if (contentScaledH <= wh) {
+          ty = PAD + (wh - contentScaledH) / 2 - contentMinY * scale;
+        } else {
+          const minTy = PAD + wh - (contentMinY + contentH) * scale;
+          const maxTy = PAD - contentMinY * scale;
+          ty = Math.max(minTy, Math.min(maxTy, ty));
+        }
+      }
+
+      function updateDebugOverlay() {
+        if (!dbg) return;
+        const leftTopX = tx + contentMinX * scale;
+        const leftTopY = ty + contentMinY * scale;
+        const contentScaledW = contentW * scale;
+        const contentScaledH = contentH * scale;
+        dbg.textContent = [
+          `zoom:${(scale * 100).toFixed(0)}% tx:${tx.toFixed(0)} ty:${ty.toFixed(0)}`,
+          `content:${contentW.toFixed(0)}x${contentH.toFixed(0)} scaled:${contentScaledW.toFixed(0)}x${contentScaledH.toFixed(0)}`,
+          `left-top:${leftTopX.toFixed(0)},${leftTopY.toFixed(0)} margin:${PAD}px font:${svgFontPx ? svgFontPx.toFixed(1) : '?'}px`
+        ].join(' | ');
+      }
+
+      const dbg = document.getElementById('graph-debug');
+      function applyTransform() {
+        clampPan();
+        g.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+        updateDebugOverlay();
+      }
+
+      function fitToWrap() {
+        const size = readSvgSize();
+        if (!size) { console.warn('[PanZoom] fitToWrap: no SVG found'); return; }
+        const { sw, sh } = size;
+        console.log('[PanZoom] fitToWrap — svgW:', sw, 'svgH:', sh, 'contentW:', contentW, 'contentH:', contentH, 'wrapW:', wrap.clientWidth, 'wrapH:', wrap.clientHeight, 'margin:', PAD, 'fontPx:', svgFontPx);
         if (!sw || !sh) { console.warn('[PanZoom] fitToWrap: zero SVG dimensions'); return; }
-        const ww = wrap.clientWidth - 16, wh = wrap.clientHeight - 16;
-        scale = Math.min(ww / sw, wh / sh);
-        tx = (ww - sw * scale) / 2 + 8;
-        ty = 8;
+        const ww = Math.max(1, wrap.clientWidth - PAD * 2);
+        const wh = Math.max(1, wrap.clientHeight - PAD * 2);
+        const fitWidthScale = ww / sw;
+        scale = Math.min(Math.max(fitWidthScale * DEFAULT_FIT_ZOOM_MULT, MIN_SCALE), MAX_SCALE);
+
+        const viewportCx = PAD + ww / 2;
+        const viewportCy = PAD + wh / 2;
+        tx = viewportCx - contentCx * scale;
+        ty = viewportCy - contentCy * scale;
         applyTransform();
-        console.log('[PanZoom] fitToWrap done — scale:', scale.toFixed(3), 'tx:', tx.toFixed(1), 'ty:', ty.toFixed(1));
-        if (dbg) dbg.textContent = `zoom: ${(scale*100).toFixed(0)}%  svg: ${sw.toFixed(0)}x${sh.toFixed(0)}`;
+        console.log('[PanZoom] fitToWrap done — fitWidthScale:', fitWidthScale.toFixed(3), 'defaultMult:', DEFAULT_FIT_ZOOM_MULT.toFixed(2), 'scale:', scale.toFixed(3), 'tx:', tx.toFixed(1), 'ty:', ty.toFixed(1), 'contentCx:', contentCx.toFixed(1), 'contentCy:', contentCy.toFixed(1), 'contentMin:', `${contentMinX.toFixed(1)},${contentMinY.toFixed(1)}`);
+        updateDebugOverlay();
       }
 
       window._graphFit = fitToWrap;
 
       wrap.addEventListener('wheel', (e) => {
         e.preventDefault();
+        if (!svgBaseW || !svgBaseH) readSvgSize();
         const rect = wrap.getBoundingClientRect();
         const mx = e.clientX - rect.left - tx;
         const my = e.clientY - rect.top - ty;
         const delta = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-        scale = Math.min(Math.max(scale * delta, 0.1), 10);
+        scale = Math.min(Math.max(scale * delta, MIN_SCALE), MAX_SCALE);
         tx -= mx * (delta - 1);
         ty -= my * (delta - 1);
         applyTransform();
@@ -613,9 +714,10 @@ HTML = """
       wrap.addEventListener('pointerup', () => { dragging = false; wrap.classList.remove('dragging'); });
 
       function zoomAround(d) {
+        if (!svgBaseW || !svgBaseH) readSvgSize();
         const cx = wrap.clientWidth / 2, cy = wrap.clientHeight / 2;
         const mx = cx - tx, my = cy - ty;
-        scale = Math.min(Math.max(scale * d, 0.05), 20);
+        scale = Math.min(Math.max(scale * d, MIN_SCALE), MAX_SCALE);
         tx -= mx * (d - 1); ty -= my * (d - 1);
         applyTransform();
         console.log('[PanZoom] zoom d=' + d.toFixed(2) + ' scale=' + scale.toFixed(3));
