@@ -50,9 +50,9 @@ HTML = """
     .panel { display: none; position: absolute; inset: 0; overflow: hidden; flex-direction: column; padding: 12px; gap: 8px; }
     .panel.active { display: flex; }
     /* ── shared ── */
-    .row { display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: wrap; }
-    .actions { display:flex; gap: 6px; flex-wrap: wrap; }
-    .btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: nowrap; min-height: 36px; }
+    .actions { display:flex; gap: 4px; flex-wrap: nowrap; overflow-x: auto; flex-shrink: 1; }
+    .btn { background: #1f2a44; color: #dbeafe; border: 1px solid #2f446e; border-radius: 8px; padding: 4px 8px; font-size: 11px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
     .btn:hover { background: #253456; }
     h3 { margin: 0; font-size: 14px; color: #93c5fd; }
     /* ── sub-tabs (map data / monitor) ── */
@@ -121,12 +121,13 @@ HTML = """
     <!-- SERVICE MAP -->
     <section id="panel-map" class="panel active">
       <div class="row">
-        <h3>Service Map</h3>
         <div class="actions">
           <button class="btn" id="copy-mermaid">Copy Mermaid</button>
           <button class="btn" id="download-mermaid">⬇ Mermaid</button>
           <button class="btn" id="copy-png">Copy PNG</button>
           <button class="btn" id="download-png">⬇ PNG</button>
+          <button class="btn" id="copy-svg">Copy SVG</button>
+          <button class="btn" id="download-svg">⬇ SVG</button>
           <button class="btn" id="copy-map-yaml">Copy YAML</button>
           <button class="btn" id="copy-map-json">Copy JSON</button>
         </div>
@@ -153,7 +154,7 @@ HTML = """
         <div class="actions">
           <button class="btn" id="copy-json">Copy JSON</button>
           <button class="btn" id="copy-yaml">Copy YAML</button>
-          <button class="btn" id="download-png">Download PNG</button>
+          <button class="btn" id="download-data-png">Download PNG</button>
         </div>
       </div>
       <pre id="sub-json-dump" class="active"></pre>
@@ -163,7 +164,6 @@ HTML = """
 
     <!-- ALERTS -->
     <section id="panel-alerts" class="panel">
-      <div class="row"><h3>Alerts</h3></div>
       <div id="alerts"></div>
     </section>
 
@@ -245,7 +245,7 @@ HTML = """
     const copyPngBtn = document.getElementById('copy-png');
     const copyJsonBtn = document.getElementById('copy-json');
     const copyYamlBtn = document.getElementById('copy-yaml');
-    const downloadPngBtn = document.getElementById('download-png');
+    const downloadPngBtn = document.getElementById('download-data-png');
     const copyMapYamlBtn = document.getElementById('copy-map-yaml');
     const copyMapJsonBtn = document.getElementById('copy-map-json');
 
@@ -479,36 +479,44 @@ HTML = """
 
     async function renderPngBlob() {
       const svg = getGraphSvg();
-      if (!svg) return null;
+      if (!svg) { console.warn('[PNG] no SVG'); return null; }
 
-      const serialized = new XMLSerializer().serializeToString(svg);
+      const vb = svg.viewBox && svg.viewBox.baseVal;
+      const width  = Math.max(1, Math.round((vb && vb.width)  || svg.scrollWidth  || 1200));
+      const height = Math.max(1, Math.round((vb && vb.height) || svg.scrollHeight || 800));
+      console.log('[PNG] SVG dims:', width, 'x', height);
+
+      const clone = svg.cloneNode(true);
+      clone.setAttribute('width',  width);
+      clone.setAttribute('height', height);
+      clone.style.maxWidth = 'none';
+
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('width',  '100%');
+      bg.setAttribute('height', '100%');
+      bg.setAttribute('fill', '#0f1526');
+      clone.insertBefore(bg, clone.firstChild);
+
+      const serialized = new XMLSerializer().serializeToString(clone);
       const svgBlob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
 
       const img = new Image();
       await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+        img.onload = () => { console.log('[PNG] img loaded'); resolve(); };
+        img.onerror = (e) => { console.error('[PNG] img load error', e); reject(new Error('SVG img load failed')); };
         img.src = url;
       });
-
-      const width = Math.max(1, Math.round(svg.viewBox.baseVal.width || img.width || 1200));
-      const height = Math.max(1, Math.round(svg.viewBox.baseVal.height || img.height || 800));
 
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        URL.revokeObjectURL(url);
-        return null;
-      }
+      if (!ctx) { URL.revokeObjectURL(url); return null; }
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-
+      console.log('[PNG] canvas drawn, toBlob…');
       return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     }
 
@@ -543,13 +551,29 @@ HTML = """
     }
 
     async function downloadPng() {
-      const blob = await renderPngBlob();
-      if (!blob) {
-        addAlert('PNG not ready yet', 'warning', new Date().toISOString());
-        return;
+      try {
+        console.log('[PNG] downloadPng start');
+        const blob = await renderPngBlob();
+        if (!blob) {
+          console.warn('[PNG] renderPngBlob returned null');
+          addAlert('PNG not ready — try Download SVG instead', 'warning', new Date().toISOString());
+          return;
+        }
+        console.log('[PNG] blob size:', blob.size);
+        downloadBlob(blob, 'infra-map.png');
+        addAlert('PNG downloaded', 'info', new Date().toISOString());
+      } catch (err) {
+        console.error('[PNG] downloadPng error:', err);
+        addAlert('PNG download failed: ' + err.message + ' — try SVG instead', 'error', new Date().toISOString());
       }
-      downloadBlob(blob, 'infra-map.png');
-      addAlert('PNG downloaded', 'info', new Date().toISOString());
+    }
+
+    function downloadSvg() {
+      const svg = getGraphSvg();
+      if (!svg) { addAlert('SVG not ready yet', 'warning', new Date().toISOString()); return; }
+      const serialized = new XMLSerializer().serializeToString(svg);
+      downloadBlob(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }), 'infra-map.svg');
+      addAlert('infra-map.svg downloaded', 'info', new Date().toISOString());
     }
 
     // ── pan/zoom ──
@@ -748,6 +772,13 @@ HTML = """
     copyMapJsonBtn.addEventListener('click', () => copyText('JSON', latestFullPayload?.topology_json || ''));
     copyPngBtn.addEventListener('click', copyPng);
     downloadPngBtn.addEventListener('click', downloadPng);
+    document.getElementById('download-png').addEventListener('click', downloadPng);
+    document.getElementById('copy-svg').addEventListener('click', () => {
+      const svg = getGraphSvg();
+      if (!svg) { addAlert('SVG not ready yet', 'warning', new Date().toISOString()); return; }
+      copyText('SVG', new XMLSerializer().serializeToString(svg));
+    });
+    document.getElementById('download-svg').addEventListener('click', downloadSvg);
     notifyPermissionBtn.addEventListener('click', () => Notification.requestPermission().catch(() => {}));
 
     document.getElementById('copy-monitor-json').addEventListener('click', () => copyText('Monitor JSON', monitorRowsToJson()));
