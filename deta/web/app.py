@@ -782,18 +782,6 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         },
     }
 
-    _http_client = None
-
-    async def _get_http_client():
-        nonlocal _http_client
-        try:
-            import httpx
-            if _http_client is None or _http_client.is_closed:
-                _http_client = httpx.AsyncClient(timeout=3.0)
-        except ImportError:
-            pass
-        return _http_client
-
     async def _refresh_topology():
         topology = await topology_cache.get(root, depth, build_topology)
         anomalies = topology.detect_anomalies()
@@ -876,8 +864,11 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         graph_changed = False
         probes = None
         if config.monitor.probe_online:
+            # Invalidate probes cache on topology rescan
+            if force_rescan or state["topology_dirty"]:
+                state["probes_cache"] = None
             # Use cached probes if still valid (half of refresh_interval)
-            cache_ttl = config.web.refresh_seconds / 2
+            cache_ttl = max(config.web.refresh_seconds / 2, 5.0)
             now = datetime.utcnow().timestamp()
             if state["probes_cache"] and (now - state["probes_cache_ts"]) < cache_ttl:
                 probes = state["probes_cache"]
