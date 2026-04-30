@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import datetime
 from pathlib import Path
 
 from deta.builder.topology import InfraTopology, build_topology
@@ -151,8 +152,7 @@ def _compute_events(
     enabled: set[str],
 ) -> list[dict]:
     events = []
-    now = asyncio.get_event_loop().time()
-    ts = str(now)
+    ts = datetime.utcnow().isoformat()
 
     current_services = set(topology.services.keys())
 
@@ -246,7 +246,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             task.cancel()
             try:
                 await task
-            except Exception:
+            except BaseException:
                 pass
 
     @app.get("/")
