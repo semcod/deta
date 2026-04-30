@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import sys
 from dataclasses import asdict
@@ -132,6 +133,7 @@ HTML = """
 
     let latestPayload = null;
     let latestPngUrl = null;
+    let lastGraphHash = null;
 
     function addAlert(message, severity, ts) {
       const div = document.createElement('div');
@@ -153,19 +155,23 @@ HTML = """
       if (restartPill) restartPill.textContent = `restarting: ${payload.summary.restarting || 0}`;
       offlinePill.textContent = `offline: ${payload.summary.offline}`;
 
-      graph.removeAttribute('data-processed');
-      graph.textContent = payload.mermaid;
-      await mermaid.init(undefined, graph);
+      const graphHash = payload.graph_hash || null;
+      if (graphHash !== lastGraphHash) {
+        lastGraphHash = graphHash;
+        graph.removeAttribute('data-processed');
+        graph.textContent = payload.mermaid;
+        await mermaid.init(undefined, graph);
+
+        const pngBlob = await renderPngBlob();
+        if (pngBlob) {
+          if (latestPngUrl) URL.revokeObjectURL(latestPngUrl);
+          latestPngUrl = URL.createObjectURL(pngBlob);
+          pngDump.src = latestPngUrl;
+        }
+      }
 
       jsonDump.textContent = payload.topology_json || '';
       yamlDump.textContent = payload.graph_yaml || '';
-
-      const pngBlob = await renderPngBlob();
-      if (pngBlob) {
-        if (latestPngUrl) URL.revokeObjectURL(latestPngUrl);
-        latestPngUrl = URL.createObjectURL(pngBlob);
-        pngDump.src = latestPngUrl;
-      }
 
       (payload.events || []).forEach(ev => addAlert(ev.message, ev.severity, ev.timestamp));
     }
@@ -466,20 +472,59 @@ def create_app(root: Path, depth: int, config: DetaConfig):
     state = {
         "prev_services": set(),
         "prev_probes": None,
+        "topology": None,
+        "mermaid": "",
+        "graph_yaml": "",
+        "graph_hash": "",
+        "topology_dirty": True,
     }
 
-    async def collect_payload(events: list[dict] | None = None) -> dict:
+    _http_client = None
+
+    async def _get_http_client():
+        nonlocal _http_client
+        try:
+            import httpx
+            if _http_client is None or _http_client.is_closed:
+                _http_client = httpx.AsyncClient(timeout=3.0)
+        except ImportError:
+            pass
+        return _http_client
+
+    async def _refresh_topology():
         topology = build_topology(root, depth)
+        mermaid_code = generate_mermaid(topology, state["prev_probes"])
+        graph_hash = hashlib.md5(mermaid_code.encode()).hexdigest()[:8]
+        state["topology"] = topology
+        state["mermaid"] = mermaid_code
+        state["graph_yaml"] = generate_graph_yaml(topology, state["prev_probes"])
+        state["graph_hash"] = graph_hash
+        state["topology_dirty"] = False
+        return topology
+
+    async def collect_payload(events: list[dict] | None = None, force_rescan: bool = False) -> dict:
+        if state["topology_dirty"] or force_rescan or state["topology"] is None:
+            topology = await _refresh_topology()
+        else:
+            topology = state["topology"]
+
         probes = None
         if config.monitor.probe_online:
-            results = await probe_all(list(topology.services.values()))
-            probes = {r.service: r for r in results}
+            probes = await probe_all(list(topology.services.values()))
+            if probes and state["topology_dirty"] is False:
+                mermaid_code = generate_mermaid(topology, probes)
+                graph_hash = hashlib.md5(mermaid_code.encode()).hexdigest()[:8]
+                if graph_hash != state["graph_hash"]:
+                    state["mermaid"] = mermaid_code
+                    state["graph_yaml"] = generate_graph_yaml(topology, probes)
+                    state["graph_hash"] = graph_hash
 
         payload = {
             "root": str(root),
             "summary": _topology_summary(topology, probes),
-            "mermaid": generate_mermaid(topology, probes),
-            "graph_yaml": generate_graph_yaml(topology, probes),
+            "mermaid": state["mermaid"],
+            "graph_yaml": state["graph_yaml"],
+            "graph_hash": state["graph_hash"],
             "topology_json": _topology_json_with_status(topology, probes),
             "events": events or [],
         }
@@ -500,7 +545,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         return payload
 
     async def monitor_loop() -> None:
-        payload = await collect_payload()
+        payload = await collect_payload(force_rescan=True)
         await manager.broadcast(payload)
 
         async def periodic_refresh():
@@ -510,6 +555,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 await manager.broadcast(payload)
 
         async def on_change(change: dict):
+            state["topology_dirty"] = True
             payload = await collect_payload(events=[{
                 "severity": "warning",
                 "message": f"config change: {change.get('path', '')}",
@@ -544,7 +590,10 @@ def create_app(root: Path, depth: int, config: DetaConfig):
     async def websocket_endpoint(websocket: WebSocket):
         await manager.connect(websocket)
         try:
-            payload = await collect_payload()
+            if state["topology"] is not None:
+                payload = await collect_payload()
+            else:
+                payload = await collect_payload(force_rescan=True)
             await websocket.send_text(json.dumps(payload))
             while True:
                 await websocket.receive_text()
