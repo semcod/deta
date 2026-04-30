@@ -115,7 +115,7 @@ def generate_mermaid(
     topology: InfraTopology,
     probe_results: dict[str, ProbeResult] | None = None,
 ) -> str:
-    lines = ["graph TD"]
+    lines = ["graph LR"]
 
     for service_name, svc in topology.services.items():
         node_id = _safe_mermaid_id(service_name)

@@ -68,7 +68,7 @@ HTML = """
         </div>
       </div>
       <div id="graph-wrap">
-        <div id="graph" class="mermaid">graph TD; Boot[Loading] --> Wait[Waiting for data]</div>
+        <div id="graph" class="mermaid">graph LR; Boot[Loading] --> Wait[Waiting for data]</div>
       </div>
     </section>
     <section class="card">
@@ -90,7 +90,15 @@ HTML = """
   </main>
 
   <script>
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'loose',
+      flowchart: {
+        useMaxWidth: true,
+        nodeSpacing: 40,
+        rankSpacing: 70,
+      },
+    });
 
     const alerts = document.getElementById('alerts');
     const graph = document.getElementById('graph');
