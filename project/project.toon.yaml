@@ -1,57 +1,54 @@
-# deta | 97 func | 14f | 6831L | python | 2026-04-30
+# deta | 187 func | 17f | 9427L | python | 2026-04-30
 
 HEALTH:
-  CC̄=3.5  critical=10 (limit:10)  dup=0  cycles=0
+  CC̄=2.5  critical=10 (limit:10)  dup=0  cycles=2
 
-ALERTS[16]:
-  !!! cc_exceeded      generate_toon = 30 (limit:15)
-  !!  high_fan_out     scan_compose = 17 (limit:10)
-  !!  high_fan_out     generate_toon = 16 (limit:10)
+ALERTS[15]:
+  !!! high_fan_out     create_app = 36 (limit:10)
   !!  high_fan_out     _monitor_loop = 16 (limit:10)
-  !   cc_exceeded      _poll_configs = 16 (limit:15)
-  !   cc_exceeded      _extract_health_url = 16 (limit:15)
+  !!  high_fan_out     _parse_config = 15 (limit:10)
+  !!  high_fan_out     main = 15 (limit:10)
+  !!  high_fan_out     generate_toon = 15 (limit:10)
+  !!  high_fan_out     _build_service_def = 15 (limit:10)
+  !   cc_exceeded      _compute_events = 18 (limit:15)
   !   cc_exceeded      _filter_anomalies = 15 (limit:15)
   !   high_fan_out     diff = 14 (limit:10)
-  !   high_fan_out     main = 14 (limit:10)
-  !   high_fan_out     save_png = 13 (limit:10)
+  !   high_fan_out     save_png = 14 (limit:10)
 
-MODULES[34] (top by size):
+MODULES[41] (top by size):
+  M[project/calls.yaml] 807L C:0 F:0 CC↑0 D:0 (yaml)
   M[infra-map.json] 757L C:0 F:0 CC↑0 D:0 (json)
+  M[deta/web/app.py] 547L C:1 F:10 CC↑18 D:1 (python)
   M[goal.yaml] 512L C:0 F:0 CC↑0 D:0 (yaml)
-  M[project/calls.yaml] 371L C:0 F:0 CC↑0 D:0 (yaml)
-  M[deta/cli.py] 344L C:0 F:11 CC↑15 D:0 (python)
+  M[deta/cli.py] 358L C:0 F:11 CC↑15 D:0 (python)
+  M[deta/scanner/compose.py] 278L C:1 F:13 CC↑7 D:0 (python)
+  M[deta/config.py] 268L C:8 F:3 CC↑9 D:2 (python)
   M[infra-graph.yaml] 241L C:0 F:0 CC↑0 D:0 (yaml)
-  M[deta/config.py] 235L C:7 F:3 CC↑8 D:0 (python)
-  M[deta/formatter/graph.py] 193L C:0 F:9 CC↑12 D:1 (python)
-  M[deta/monitor/prober.py] 161L C:1 F:4 CC↑16 D:0 (python)
-  M[deta/formatter/toon.py] 131L C:0 F:2 CC↑30 D:2 (python)
-  M[deta/scanner/compose.py] 130L C:1 F:5 CC↑11 D:0 (python)
+  M[project/map.toon.yaml] 195L C:0 F:92 CC↑0 D:3 (yaml)
+  M[deta/formatter/toon.py] 182L C:0 F:13 CC↑5 D:0 (python)
+  M[project/calls.toon.yaml] 178L C:0 F:0 CC↑0 D:0 (yaml)
+  M[deta/formatter/graph.py] 162L C:0 F:8 CC↑12 D:2 (python)
+  M[deta/scanner/env.py] 140L C:0 F:5 CC↑12 D:2 (python)
   M[deta/integration/semcod.py] 129L C:0 F:4 CC↑7 D:0 (python)
-  M[project/calls.toon.yaml] 120L C:0 F:0 CC↑0 D:0 (yaml)
-  M[project/map.toon.yaml] 119L C:0 F:42 CC↑0 D:2 (yaml)
-  M[deta/monitor/watcher.py] 110L C:0 F:3 CC↑16 D:0 (python)
-  M[deta/scanner/python.py] 102L C:0 F:3 CC↑11 D:1 (python)
-  LANGS: python:18/yaml:11/shell:2/json:1/txt:1/toml:1
+  M[deta/monitor/prober.py] 128L C:1 F:4 CC↑11 D:2 (python)
+  LANGS: python:22/yaml:11/yml:3/shell:2/json:1/txt:1/toml:1
 
 HOTSPOTS[10]:
-  ★ scan_compose fan=17  // Scan for docker-compose files and extract service definitions.
-
-Args:
-    root: 
-  ★ generate_toon fan=16  // Generate toon format output for infrastructure status.
+  ★ create_app fan=36  // Orchestrates 36 calls
+  ★ _monitor_loop fan=16  // Orchestrates 16 calls
+  ★ _parse_config fan=15  // Parse configuration dictionary into DetaConfig object.
+  ★ main fan=15  // Orchestrates 15 calls
+  ★ generate_toon fan=15  // Generate toon format output for infrastructure status.
 
 Args:
     topology: Infr
-  ★ _monitor_loop fan=16  // Orchestrates 16 calls
-  ★ diff fan=14  // Orchestrates 14 calls
-  ★ main fan=14  // Orchestrates 14 calls
 
-REFACTOR[9]:
-  [1] H/L Split generate_toon (CC=30)
+REFACTOR[11]:
+  [1] H/H Split god module deta/web/app.py (547L, 1 classes)
   [2] H/H Split god module goal.yaml (512L, 0 classes)
   [3] H/H Split god module infra-map.json (757L, 0 classes)
-  [4] M/L Split _poll_configs (CC=16)
+  [4] H/H Split god module project/calls.yaml (807L, 0 classes)
   [5] M/L Split _filter_anomalies (CC=15)
 
 EVOLUTION:
-  2026-04-30 CC̄=3.5 crit=10 6831L // Automated analysis
+  2026-04-30 CC̄=2.5 crit=10 9427L // Automated analysis

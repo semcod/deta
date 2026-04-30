@@ -1,30 +1,23 @@
-# code2llm/evolution | 97 func | 14f | 2026-04-30
+# code2llm/evolution | 187 func | 17f | 2026-04-30
 
-NEXT[4] (ranked by impact):
-  [1] !! SPLIT-FUNC      generate_toon  CC=30  fan=16
-      WHY: CC=30 exceeds 15
-      EFFORT: ~1h  IMPACT: 480
+NEXT[2] (ranked by impact):
+  [1] !! SPLIT           deta/web/app.py
+      WHY: 547L, 1 classes, max CC=18
+      EFFORT: ~4h  IMPACT: 9846
 
-  [2] !  SPLIT-FUNC      _poll_configs  CC=16  fan=12
-      WHY: CC=16 exceeds 15
-      EFFORT: ~1h  IMPACT: 192
-
-  [3] !  SPLIT-FUNC      _extract_health_url  CC=16  fan=12
-      WHY: CC=16 exceeds 15
-      EFFORT: ~1h  IMPACT: 192
-
-  [4] !  SPLIT-FUNC      _filter_anomalies  CC=15  fan=3
-      WHY: CC=15 exceeds 15
-      EFFORT: ~1h  IMPACT: 45
+  [2] !  SPLIT-FUNC      _compute_events  CC=18  fan=8
+      WHY: CC=18 exceeds 15
+      EFFORT: ~1h  IMPACT: 144
 
 
-RISKS[0]: none
+RISKS[1]:
+  ⚠ Splitting deta/web/app.py may break 10 import paths
 
 METRICS-TARGET:
-  CC̄:          3.5 → ≤2.4
-  max-CC:      30 → ≤15
-  god-modules: 0 → 0
-  high-CC(≥15): 4 → ≤2
+  CC̄:          2.5 → ≤1.8
+  max-CC:      18 → ≤9
+  god-modules: 1 → 0
+  high-CC(≥15): 2 → ≤1
   hub-types:   0 → ≤0
 
 PATTERNS (language parser shared logic):
@@ -52,4 +45,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=5.9 → now CC̄=3.5
+  prev CC̄=3.4 → now CC̄=2.5

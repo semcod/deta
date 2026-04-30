@@ -66,12 +66,17 @@ def generate_graph_yaml(
     return "\n".join(lines) + "\n"
 
 
+def _save_output(output_path: Path, content: str) -> None:
+    """Write content to file."""
+    output_path.write_text(content)
+
+
 def save_graph_yaml(
     topology: InfraTopology,
     output_path: Path,
     probe_results: dict[str, ProbeResult] | None = None,
 ) -> None:
-    output_path.write_text(generate_graph_yaml(topology, probe_results))
+    _save_output(output_path, generate_graph_yaml(topology, probe_results))
 
 
 def generate_mermaid(
@@ -120,7 +125,7 @@ def save_mermaid(
     output_path: Path,
     probe_results: dict[str, ProbeResult] | None = None,
 ) -> None:
-    output_path.write_text(generate_mermaid(topology, probe_results))
+    _save_output(output_path, generate_mermaid(topology, probe_results))
 
 
 def save_png(

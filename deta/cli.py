@@ -163,6 +163,47 @@ def monitor(
     asyncio.run(_monitor_loop(root, interval, depth, config, output, formats, online))
 
 
+def _extract_ports_snapshot(topology: InfraTopology) -> dict[str, list[str]]:
+    """Extract port bindings snapshot for change detection."""
+    snapshot: dict[str, list[str]] = {}
+    for svc in topology.services.values():
+        ports = [f"{p.host}:{p.host_port}->{p.container_port}" for p in svc.resolved_ports]
+        snapshot[svc.name] = sorted(ports)
+    return snapshot
+
+
+def _log_port_changes(
+    old_snapshot: dict[str, list[str]], new_snapshot: dict[str, list[str]]
+):
+    """Log port changes between snapshots."""
+    all_services = set(old_snapshot.keys()) | set(new_snapshot.keys())
+    for svc in sorted(all_services):
+        old_ports = set(old_snapshot.get(svc, []))
+        new_ports = set(new_snapshot.get(svc, []))
+        added = new_ports - old_ports
+        removed = old_ports - new_ports
+        if added:
+            print(f"[PORT ADD] {svc}: +{', '.join(sorted(added))}")
+        if removed:
+            print(f"[PORT REMOVED] {svc}: -{', '.join(sorted(removed))}")
+
+
+def _print_status_summary(topology: InfraTopology, probe_results: dict | None):
+    """Print compact status summary of all services."""
+    print(f"\n=== STATUS [{datetime.now().strftime('%H:%M:%S')}] ===")
+    services = sorted(topology.services.values(), key=lambda s: s.name)
+    for svc in services:
+        ports = ",".join(p.host_port for p in svc.resolved_ports) or "-"
+        health = "✓" if svc.healthcheck else "✗"
+        if probe_results and svc.name in probe_results:
+            r = probe_results[svc.name]
+            status = "UP" if r.ok else "DOWN"
+            print(f"  {svc.name:<20} {status:<5} ports={ports:<12} health={health}")
+        else:
+            print(f"  {svc.name:<20} -     ports={ports:<12} health={health}")
+    print("")
+
+
 async def _monitor_loop(
     root: Path,
     interval: int,
@@ -172,25 +213,35 @@ async def _monitor_loop(
     formats: list[str] | None = None,
     online: bool | None = None,
 ):
+    from datetime import datetime
     if config is None:
         config = load_config()
 
     selected_formats = _resolve_formats(formats, config)
     online_enabled = config.monitor.probe_online if online is None else online
-    
+
     print(f"Starting monitoring on {root} (interval: {interval}s)")
     print("Press Ctrl+C to stop\n")
-    
+
+    # State for change detection
+    ports_snapshot: dict[str, list[str]] = {}
+    last_status_time = 0.0
+
     async def on_change(change: dict):
+        nonlocal ports_snapshot, last_status_time
         print(f"\n[CHANGE] {change['type']}: {change['path']}")
         topology = _get_topology(root, depth, config)
+        new_snapshot = _extract_ports_snapshot(topology)
+        _log_port_changes(ports_snapshot, new_snapshot)
+        ports_snapshot = new_snapshot
+
         anomalies = topology.detect_anomalies()
         filtered_anomalies = _filter_anomalies(anomalies, config)
         topology._filtered_anomalies = filtered_anomalies
-        
+
         for a in filtered_anomalies:
             alert_anomaly(a)
-        
+
         probe_results = None
         if online_enabled:
             services = list(topology.services.values())
@@ -201,6 +252,12 @@ async def _monitor_loop(
                     alert_probe_success(r)
                 else:
                     alert_probe_failure(r)
+
+        # Print status if minute elapsed
+        now = datetime.utcnow().timestamp()
+        if now - last_status_time >= 60:
+            _print_status_summary(topology, probe_results)
+            last_status_time = now
 
         _write_outputs(topology, config, output, selected_formats, probe_results)
     

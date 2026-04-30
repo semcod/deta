@@ -85,3 +85,38 @@ def test_port_conflict_detected(tmp_path: Path):
     assert len(conflict) == 1
     assert set(conflict[0]["services"]) == {"a", "b"}
     assert conflict[0]["port"] == "9000"
+
+
+def test_compose_override_merging(tmp_path: Path):
+    """Override files should merge with base, not replace."""
+    # Base file defines postgres with ports
+    base = tmp_path / "docker-compose.yml"
+    base.write_text(
+        "services:\n"
+        "  postgres:\n"
+        "    image: postgres:16\n"
+        "    ports:\n"
+        '      - "5432:5432"\n'
+        "    environment:\n"
+        '      POSTGRES_DB: app\n'
+    )
+
+    # Override file redefines postgres with extra env but NO ports
+    override = tmp_path / "docker-compose.prod.yml"
+    override.write_text(
+        "services:\n"
+        "  postgres:\n"
+        "    environment:\n"
+        '      POSTGRES_PASSWORD: secret\n'
+    )
+
+    services = scan_compose(tmp_path, max_depth=1)
+    svc = next((s for s in services if s.name == "postgres"), None)
+    assert svc is not None
+    # Ports should be preserved from base file
+    assert len(svc.ports) == 1
+    assert svc.resolved_ports
+    assert svc.resolved_ports[0].host_port == "5432"
+    # Environment should be merged
+    assert svc.environment.get("POSTGRES_DB") == "app"
+    assert svc.environment.get("POSTGRES_PASSWORD") == "secret"

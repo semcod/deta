@@ -1,43 +1,33 @@
-# redup/duplication | 2 groups | 19f 1932L | 2026-04-30
+# redup/duplication | 1 groups | 22f 2814L | 2026-04-30
 
 SUMMARY:
-  files_scanned: 19
-  total_lines:   1932
-  dup_groups:    2
-  dup_fragments: 4
-  saved_lines:   23
-  scan_ms:       4552
+  files_scanned: 22
+  total_lines:   2814
+  dup_groups:    1
+  dup_fragments: 2
+  saved_lines:   6
+  scan_ms:       4230
 
-HOTSPOTS[2] (files with most duplication):
-  deta/formatter/graph.py  dup=29L  groups=2  frags=3  (1.5%)
-  deta/monitor/prober.py  dup=17L  groups=1  frags=1  (0.9%)
+HOTSPOTS[1] (files with most duplication):
+  deta/formatter/graph.py  dup=12L  groups=1  frags=2  (0.4%)
 
-DUPLICATES[2] (ranked by impact):
-  [1f55f99cef41a53e]   EXAC  _split_port_mapping  L=17 N=2 saved=17 sim=1.00
-      deta/formatter/graph.py:11-27  (_split_port_mapping)
-      deta/monitor/prober.py:24-40  (_split_port_mapping)
+DUPLICATES[1] (ranked by impact):
   [b78b4f28f5959a4a]   STRU  save_graph_yaml  L=6 N=2 saved=6 sim=1.00
-      deta/formatter/graph.py:106-111  (save_graph_yaml)
-      deta/formatter/graph.py:149-154  (save_mermaid)
+      deta/formatter/graph.py:69-74  (save_graph_yaml)
+      deta/formatter/graph.py:118-123  (save_mermaid)
 
-REFACTOR[2] (ranked by priority):
-  [1] ○ extract_function   → deta/utils/_split_port_mapping.py
-      WHY: 2 occurrences of 17-line block across 2 files — saves 17 lines
-      FILES: deta/formatter/graph.py, deta/monitor/prober.py
-  [2] ○ extract_function   → deta/formatter/utils/save_graph_yaml.py
+REFACTOR[1] (ranked by priority):
+  [1] ○ extract_function   → deta/formatter/utils/save_graph_yaml.py
       WHY: 2 occurrences of 6-line block across 1 files — saves 6 lines
       FILES: deta/formatter/graph.py
 
-QUICK_WINS[2] (low risk, high savings — do first):
-  [1] extract_function   saved=17L  → deta/utils/_split_port_mapping.py
-      FILES: graph.py, prober.py
-  [2] extract_function   saved=6L  → deta/formatter/utils/save_graph_yaml.py
+QUICK_WINS[1] (low risk, high savings — do first):
+  [1] extract_function   saved=6L  → deta/formatter/utils/save_graph_yaml.py
       FILES: graph.py
 
-EFFORT_ESTIMATE (total ≈ 0.8h):
-  medium _split_port_mapping                 saved=17L  ~34min
+EFFORT_ESTIMATE (total ≈ 0.2h):
   easy   save_graph_yaml                     saved=6L  ~12min
 
 METRICS-TARGET:
-  dup_groups:  2 → 0
-  saved_lines: 23 lines recoverable
+  dup_groups:  1 → 0
+  saved_lines: 6 lines recoverable

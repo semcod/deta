@@ -15,7 +15,7 @@ flowchart TD
     subgraph deta__config
         deta__config__load_config["load_config"]
         deta__config___load_yaml["_load_yaml"]
-        deta__config___parse_config("_parse_config CC=8")
+        deta__config___parse_config("_parse_config CC=9")
     end
     subgraph deta__core
         deta__core__Wup____init__["__init__"]
@@ -23,17 +23,27 @@ flowchart TD
         deta__core__Wup__get_info["get_info"]
     end
     subgraph deta__formatter
-        deta__formatter__toon__generate_toon{{generate_toon CC=30}}
-        deta__formatter__toon__save_toon["save_toon"]
-        deta__formatter__graph___split_port_mapping["_split_port_mapping"]
-        deta__formatter__graph___resolve_host_port("_resolve_host_port CC=8")
-        deta__formatter__graph___parse_host_ports["_parse_host_ports"]
+        deta__formatter__graph___service_bindings["_service_bindings"]
+        deta__formatter__graph___binding_host["_binding_host"]
         deta__formatter__graph___safe_mermaid_id["_safe_mermaid_id"]
-        deta__formatter__graph__generate_graph_yaml("generate_graph_yaml CC=11")
+        deta__formatter__graph__generate_graph_yaml("generate_graph_yaml CC=12")
         deta__formatter__graph__save_graph_yaml["save_graph_yaml"]
-        deta__formatter__graph__generate_mermaid("generate_mermaid CC=10")
+        deta__formatter__graph__generate_mermaid("generate_mermaid CC=12")
         deta__formatter__graph__save_mermaid["save_mermaid"]
         deta__formatter__graph__save_png("save_png CC=12")
+        deta__formatter__toon___format_header["_format_header"]
+        deta__formatter__toon___format_health["_format_health"]
+        deta__formatter__toon___format_alert_line["_format_alert_line"]
+        deta__formatter__toon___format_alerts["_format_alerts"]
+        deta__formatter__toon___format_service_line["_format_service_line"]
+        deta__formatter__toon___format_services["_format_services"]
+        deta__formatter__toon___group_endpoints_by_service["_group_endpoints_by_service"]
+        deta__formatter__toon___format_endpoint_line["_format_endpoint_line"]
+        deta__formatter__toon___format_endpoints["_format_endpoints"]
+        deta__formatter__toon___format_cycles["_format_cycles"]
+        deta__formatter__toon___format_hubs["_format_hubs"]
+        deta__formatter__toon__generate_toon["generate_toon"]
+        deta__formatter__toon__save_toon["save_toon"]
     end
     subgraph deta__integration
         deta__integration__semcod__generate_for_sumd["generate_for_sumd"]
@@ -47,32 +57,67 @@ flowchart TD
         deta__monitor__alerter__alert_probe_failure["alert_probe_failure"]
         deta__monitor__alerter__alert_probe_success["alert_probe_success"]
         deta__monitor__alerter__print_topology_table("print_topology_table CC=8")
-        deta__monitor__watcher__watch_configs["watch_configs"]
-        deta__monitor__watcher___poll_configs{{_poll_configs CC=16}}
-        deta__monitor__watcher___is_config_file["_is_config_file"]
-        deta__monitor__prober___split_port_mapping["_split_port_mapping"]
-        deta__monitor__prober___extract_health_url{{_extract_health_url CC=16}}
+        deta__monitor__prober___first_resolved_binding["_first_resolved_binding"]
+        deta__monitor__prober___extract_health_url("_extract_health_url CC=11")
         deta__monitor__prober__probe_service["probe_service"]
         deta__monitor__prober__probe_all["probe_all"]
+        deta__monitor__watcher__watch_configs["watch_configs"]
+        deta__monitor__watcher___scan_file_mtimes["_scan_file_mtimes"]
+        deta__monitor__watcher___detect_change_type("_detect_change_type CC=8")
+        deta__monitor__watcher___emit_changes["_emit_changes"]
+        deta__monitor__watcher___poll_configs["_poll_configs"]
+        deta__monitor__watcher___is_config_file["_is_config_file"]
     end
     subgraph deta__scanner
         deta__scanner__python__scan_python("scan_python CC=11")
         deta__scanner__python___load_toml["_load_toml"]
         deta__scanner__python___parse_requirements["_parse_requirements"]
+        deta__scanner__ports___split_top_level["_split_top_level"]
+        deta__scanner__ports__parse_port("parse_port CC=10")
+        deta__scanner__ports__parse_ports["parse_ports"]
+        deta__scanner__ports__published_url["published_url"]
         deta__scanner__npm__scan_npm["scan_npm"]
         deta__scanner__openapi__scan_openapi("scan_openapi CC=12")
         deta__scanner__openapi___load["_load"]
-        deta__scanner__compose__scan_compose("scan_compose CC=11")
+        deta__scanner__env__load_env_file("load_env_file CC=12")
+        deta__scanner__env__discover_env["discover_env"]
+        deta__scanner__env__merge_env_files["merge_env_files"]
+        deta__scanner__env__interpolate["interpolate"]
+        deta__scanner__env__interpolate_recursive["interpolate_recursive"]
+        deta__scanner__compose___deep_merge["_deep_merge"]
+        deta__scanner__compose___get_yaml_loader["_get_yaml_loader"]
+        deta__scanner__compose___load_yaml_file["_load_yaml_file"]
+        deta__scanner__compose___collect_compose_files["_collect_compose_files"]
+        deta__scanner__compose___merge_services["_merge_services"]
+        deta__scanner__compose___find_primary_source["_find_primary_source"]
+        deta__scanner__compose___build_service_def["_build_service_def"]
+        deta__scanner__compose__scan_compose["scan_compose"]
+        deta__scanner__compose___resolve_env_files["_resolve_env_files"]
         deta__scanner__compose___parse_ports["_parse_ports"]
         deta__scanner__compose___parse_depends_on["_parse_depends_on"]
         deta__scanner__compose___parse_env["_parse_env"]
         deta__scanner__compose___parse_labels["_parse_labels"]
+    end
+    subgraph deta__web
+        deta__web__app__ConnectionManager____init__["__init__"]
+        deta__web__app__ConnectionManager__connect["connect"]
+        deta__web__app__ConnectionManager__disconnect["disconnect"]
+        deta__web__app__ConnectionManager__broadcast["broadcast"]
+        deta__web__app___probe_status["_probe_status"]
+        deta__web__app___topology_summary["_topology_summary"]
+        deta__web__app___topology_json_with_status["_topology_json_with_status"]
+        deta__web__app___compute_events{{_compute_events CC=18}}
+        deta__web__app__create_app["create_app"]
+        deta__web__app__run_dashboard["run_dashboard"]
     end
     subgraph project__map
         project__map__toon__build_topology["build_topology"]
         project__map__toon___get_topology["_get_topology"]
         project__map__toon___filter_anomalies["_filter_anomalies"]
         project__map__toon___print_summary["_print_summary"]
+        project__map__toon___resolve_formats["_resolve_formats"]
+        project__map__toon___probe_once["_probe_once"]
+        project__map__toon___write_outputs["_write_outputs"]
         project__map__toon__scan["scan"]
         project__map__toon__monitor["monitor"]
         project__map__toon___monitor_loop["_monitor_loop"]
@@ -81,6 +126,14 @@ flowchart TD
         project__map__toon__load_config["load_config"]
         project__map__toon___load_yaml["_load_yaml"]
         project__map__toon___parse_config["_parse_config"]
+        project__map__toon___service_bindings["_service_bindings"]
+        project__map__toon___binding_host["_binding_host"]
+        project__map__toon___safe_mermaid_id["_safe_mermaid_id"]
+        project__map__toon__generate_graph_yaml["generate_graph_yaml"]
+        project__map__toon__save_graph_yaml["save_graph_yaml"]
+        project__map__toon__generate_mermaid["generate_mermaid"]
+        project__map__toon__save_mermaid["save_mermaid"]
+        project__map__toon__save_png["save_png"]
         project__map__toon__generate_toon["generate_toon"]
         project__map__toon__save_toon["save_toon"]
         project__map__toon__generate_for_sumd["generate_for_sumd"]
@@ -92,6 +145,7 @@ flowchart TD
         project__map__toon__alert_probe_failure["alert_probe_failure"]
         project__map__toon__alert_probe_success["alert_probe_success"]
         project__map__toon__print_topology_table["print_topology_table"]
+        project__map__toon___first_resolved_binding["_first_resolved_binding"]
         project__map__toon___extract_health_url["_extract_health_url"]
         project__map__toon__probe_service["probe_service"]
         project__map__toon__probe_all["probe_all"]
@@ -99,51 +153,34 @@ flowchart TD
         project__map__toon___poll_configs["_poll_configs"]
         project__map__toon___is_config_file["_is_config_file"]
         project__map__toon__scan_compose["scan_compose"]
+        project__map__toon___resolve_env_files["_resolve_env_files"]
         project__map__toon___parse_ports["_parse_ports"]
         project__map__toon___parse_depends_on["_parse_depends_on"]
         project__map__toon___parse_env["_parse_env"]
         project__map__toon___parse_labels["_parse_labels"]
+        project__map__toon__load_env_file["load_env_file"]
+        project__map__toon__discover_env["discover_env"]
+        project__map__toon__merge_env_files["merge_env_files"]
+        project__map__toon__interpolate["interpolate"]
+        project__map__toon__interpolate_recursive["interpolate_recursive"]
         project__map__toon__scan_npm["scan_npm"]
         project__map__toon__scan_openapi["scan_openapi"]
         project__map__toon___load["_load"]
+        project__map__toon___split_top_level["_split_top_level"]
+        project__map__toon__parse_port["parse_port"]
+        project__map__toon__parse_ports["parse_ports"]
+        project__map__toon__published_url["published_url"]
         project__map__toon__scan_python["scan_python"]
-        project__map__toon___load_toml["_load_toml"]
-        project__map__toon___parse_requirements["_parse_requirements"]
-        project__map__toon__test_placeholder["test_placeholder"]
-        project__map__toon__test_import["test_import"]
     end
-    deta__monitor__alerter__alert_anomaly --> deta__monitor__alerter___get_console
-    deta__monitor__alerter__alert_probe_failure --> deta__monitor__alerter___get_console
-    deta__monitor__alerter__alert_probe_success --> deta__monitor__alerter___get_console
-    deta__monitor__alerter__print_topology_table --> deta__monitor__alerter___get_console
-    deta__scanner__python__scan_python --> deta__scanner__python___load_toml
-    deta__scanner__python__scan_python --> deta__scanner__python___parse_requirements
-    deta__scanner__openapi__scan_openapi --> deta__scanner__openapi___load
-    deta__scanner__compose__scan_compose --> deta__scanner__compose___parse_ports
-    deta__scanner__compose__scan_compose --> deta__scanner__compose___parse_depends_on
-    deta__integration__semcod__generate_for_sumd --> project__map__toon__build_topology
-    deta__integration__semcod__generate_for_sumd --> deta__formatter__toon__save_toon
-    deta__integration__semcod__generate_for_pyqual --> deta__scanner__python__scan_python
-    deta__integration__semcod__generate_for_vallm --> project__map__toon__build_topology
-    deta__integration__semcod__pre_deploy_check --> project__map__toon__build_topology
-    deta__formatter__toon__save_toon --> deta__formatter__toon__generate_toon
-    deta__monitor__watcher__watch_configs --> deta__monitor__watcher___is_config_file
-    deta__monitor__watcher__watch_configs --> deta__monitor__watcher___poll_configs
-    deta__formatter__graph___parse_host_ports --> deta__formatter__graph___split_port_mapping
-    deta__formatter__graph___parse_host_ports --> deta__formatter__graph___resolve_host_port
-    deta__formatter__graph__generate_graph_yaml --> deta__formatter__graph___parse_host_ports
-    deta__formatter__graph__save_graph_yaml --> deta__formatter__graph__generate_graph_yaml
-    deta__formatter__graph__generate_mermaid --> deta__formatter__graph___safe_mermaid_id
-    deta__formatter__graph__generate_mermaid --> deta__formatter__graph___parse_host_ports
-    deta__formatter__graph__save_mermaid --> deta__formatter__graph__generate_mermaid
-    deta__formatter__graph__save_png --> deta__formatter__graph___parse_host_ports
+    deta__config__load_config --> deta__config___load_yaml
+    deta__config__load_config --> deta__config___parse_config
     deta__cli___get_topology --> project__map__toon__build_topology
     deta__cli___print_summary --> deta__monitor__alerter__print_topology_table
     deta__cli___print_summary --> deta__monitor__alerter__alert_anomaly
-    deta__cli___probe_once --> project__map__toon__probe_all
+    deta__cli___probe_once --> deta__monitor__prober__probe_all
     deta__cli___probe_once --> deta__monitor__alerter__alert_probe_success
     deta__cli___probe_once --> deta__monitor__alerter__alert_probe_failure
-    deta__cli___write_outputs --> deta__formatter__toon__save_toon
+    deta__cli___write_outputs --> project__map__toon__save_toon
     deta__cli___write_outputs --> deta__formatter__graph__save_graph_yaml
     deta__cli___write_outputs --> deta__formatter__graph__save_mermaid
     deta__cli___write_outputs --> deta__formatter__graph__save_png
@@ -151,7 +188,7 @@ flowchart TD
     deta__cli__scan --> deta__cli___get_topology
     deta__cli__scan --> deta__cli___write_outputs
     deta__cli__scan --> deta__cli___print_summary
-    deta__cli__scan --> project__map__toon__load_config
+    deta__cli__scan --> deta__config__load_config
     deta__cli__scan --> deta__cli___filter_anomalies
     deta__cli__scan --> deta__cli___probe_once
     deta__cli__monitor --> deta__cli___monitor_loop
@@ -160,18 +197,77 @@ flowchart TD
     deta__cli___monitor_loop --> deta__cli___filter_anomalies
     deta__cli___monitor_loop --> deta__cli___write_outputs
     deta__cli___monitor_loop --> deta__cli___print_summary
-    deta__cli___monitor_loop --> project__map__toon__load_config
-    deta__cli__diff --> project__map__toon__load_config
+    deta__cli___monitor_loop --> deta__config__load_config
+    deta__cli__diff --> deta__config__load_config
     deta__cli__diff --> deta__cli___get_topology
-    deta__cli__main --> project__map__toon__load_config
-    deta__cli__main --> deta__cli__scan
-    deta__config__load_config --> deta__config___load_yaml
-    deta__config__load_config --> deta__config___parse_config
-    deta__monitor__prober___extract_health_url --> deta__monitor__prober___split_port_mapping
+    deta__cli__main --> deta__config__load_config
+    deta__web__app___topology_json_with_status --> deta__web__app___probe_status
+    deta__web__app__create_app --> project__map__toon__build_topology
+    deta__web__app__create_app --> deta__web__app___compute_events
+    deta__web__app__run_dashboard --> deta__config__load_config
+    deta__web__app__run_dashboard --> deta__web__app__create_app
+    deta__monitor__alerter__alert_anomaly --> deta__monitor__alerter___get_console
+    deta__monitor__alerter__alert_probe_failure --> deta__monitor__alerter___get_console
+    deta__monitor__alerter__alert_probe_success --> deta__monitor__alerter___get_console
+    deta__monitor__alerter__print_topology_table --> deta__monitor__alerter___get_console
+    deta__monitor__prober___first_resolved_binding --> deta__scanner__ports__parse_port
+    deta__monitor__prober___extract_health_url --> deta__monitor__prober___first_resolved_binding
+    deta__monitor__prober___extract_health_url --> deta__scanner__ports__published_url
     deta__monitor__prober__probe_service --> deta__monitor__prober___extract_health_url
     deta__monitor__prober__probe_all --> deta__monitor__prober__probe_service
+    deta__scanner__python__scan_python --> deta__scanner__python___load_toml
+    deta__scanner__python__scan_python --> deta__scanner__python___parse_requirements
+    deta__scanner__ports__parse_port --> deta__scanner__env__interpolate
+    deta__scanner__ports__parse_port --> deta__scanner__ports___split_top_level
+    deta__scanner__ports__parse_ports --> deta__scanner__ports__parse_port
+    deta__scanner__openapi__scan_openapi --> deta__scanner__openapi___load
+    deta__scanner__env__discover_env --> deta__scanner__env__load_env_file
+    deta__scanner__env__merge_env_files --> deta__scanner__env__load_env_file
+    deta__scanner__env__interpolate_recursive --> deta__scanner__env__interpolate
+    deta__integration__semcod__generate_for_sumd --> project__map__toon__build_topology
+    deta__integration__semcod__generate_for_sumd --> project__map__toon__save_toon
+    deta__integration__semcod__generate_for_pyqual --> deta__scanner__python__scan_python
+    deta__integration__semcod__generate_for_vallm --> project__map__toon__build_topology
+    deta__integration__semcod__pre_deploy_check --> project__map__toon__build_topology
+    deta__formatter__graph___service_bindings --> deta__scanner__ports__parse_ports
+    deta__formatter__graph__generate_graph_yaml --> deta__formatter__graph___service_bindings
+    deta__formatter__graph__save_graph_yaml --> deta__formatter__graph__generate_graph_yaml
+    deta__formatter__graph__generate_mermaid --> deta__formatter__graph___safe_mermaid_id
+    deta__formatter__graph__generate_mermaid --> deta__formatter__graph___service_bindings
+    deta__formatter__graph__save_mermaid --> deta__formatter__graph__generate_mermaid
+    deta__formatter__graph__save_png --> deta__formatter__graph___service_bindings
+    deta__monitor__watcher__watch_configs --> deta__monitor__watcher___is_config_file
+    deta__monitor__watcher__watch_configs --> deta__monitor__watcher___poll_configs
+    deta__monitor__watcher___emit_changes --> deta__monitor__watcher___detect_change_type
+    deta__monitor__watcher___poll_configs --> deta__monitor__watcher___scan_file_mtimes
+    deta__monitor__watcher___poll_configs --> deta__monitor__watcher___emit_changes
+    deta__formatter__toon___format_alerts --> deta__formatter__toon___format_alert_line
+    deta__formatter__toon___format_services --> deta__formatter__toon___format_service_line
+    deta__formatter__toon___format_endpoints --> deta__formatter__toon___group_endpoints_by_service
+    deta__formatter__toon___format_endpoints --> deta__formatter__toon___format_endpoint_line
+    deta__formatter__toon__generate_toon --> deta__formatter__toon___format_header
+    deta__formatter__toon__generate_toon --> deta__formatter__toon___format_health
+    deta__formatter__toon__generate_toon --> deta__formatter__toon___format_alerts
+    deta__formatter__toon__generate_toon --> deta__formatter__toon___format_services
+    deta__formatter__toon__save_toon --> deta__formatter__toon__generate_toon
+    deta__scanner__compose___merge_services --> deta__scanner__compose___load_yaml_file
+    deta__scanner__compose___merge_services --> deta__scanner__compose___deep_merge
+    deta__scanner__compose___find_primary_source --> deta__scanner__compose___load_yaml_file
+    deta__scanner__compose___build_service_def --> deta__scanner__env__discover_env
+    deta__scanner__compose___build_service_def --> deta__scanner__compose___resolve_env_files
+    deta__scanner__compose___build_service_def --> deta__scanner__env__merge_env_files
+    deta__scanner__compose___build_service_def --> deta__scanner__compose___parse_env
+    deta__scanner__compose___build_service_def --> deta__scanner__compose___parse_ports
+    deta__scanner__compose___build_service_def --> deta__scanner__ports__parse_ports
+    deta__scanner__compose___build_service_def --> deta__scanner__env__interpolate_recursive
+    deta__scanner__compose___build_service_def --> deta__scanner__compose___find_primary_source
+    deta__scanner__compose___build_service_def --> deta__scanner__env__interpolate
+    deta__scanner__compose__scan_compose --> deta__scanner__compose___get_yaml_loader
+    deta__scanner__compose__scan_compose --> deta__scanner__compose___collect_compose_files
+    deta__scanner__compose__scan_compose --> deta__scanner__compose___merge_services
+    deta__scanner__compose__scan_compose --> deta__scanner__compose___build_service_def
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class deta__formatter__toon__generate_toon,deta__monitor__watcher___poll_configs,deta__cli___filter_anomalies,deta__monitor__prober___extract_health_url highCC
-    class deta__monitor__alerter__print_topology_table,deta__scanner__python__scan_python,deta__scanner__openapi__scan_openapi,deta__scanner__compose__scan_compose,deta__formatter__graph___resolve_host_port,deta__formatter__graph__generate_graph_yaml,deta__formatter__graph__generate_mermaid,deta__formatter__graph__save_png,deta__cli___write_outputs,deta__cli___monitor_loop,deta__cli__diff,deta__config___parse_config medCC
+    class deta__cli___filter_anomalies,deta__web__app___compute_events highCC
+    class deta__config___parse_config,deta__cli___write_outputs,deta__cli___monitor_loop,deta__cli__diff,deta__monitor__alerter__print_topology_table,deta__monitor__prober___extract_health_url,deta__scanner__python__scan_python,deta__scanner__ports__parse_port,deta__scanner__openapi__scan_openapi,deta__scanner__env__load_env_file,deta__formatter__graph__generate_graph_yaml,deta__formatter__graph__generate_mermaid,deta__formatter__graph__save_png,deta__monitor__watcher___detect_change_type medCC

@@ -1,13 +1,22 @@
 flowchart TD
     deta__cli["deta.cli<br/>11 funcs"]
-    deta__formatter["deta.formatter<br/>11 funcs"]
+    deta__config["deta.config<br/>3 funcs"]
+    deta__formatter["deta.formatter<br/>21 funcs"]
     deta__integration["deta.integration<br/>4 funcs"]
-    deta__monitor["deta.monitor<br/>12 funcs"]
-    deta__scanner["deta.scanner<br/>11 funcs"]
-    project__map["project.map<br/>42 funcs"]
-    deta__cli ==>|11| project__map
-    deta__cli ==>|9| deta__monitor
-    deta__cli ==>|4| deta__formatter
-    deta__integration -->|3| project__map
-    deta__integration -->|1| deta__formatter
+    deta__monitor["deta.monitor<br/>15 funcs"]
+    deta__scanner["deta.scanner<br/>28 funcs"]
+    deta__web["deta.web<br/>10 funcs"]
+    project__map["project.map<br/>92 funcs"]
+    deta__cli ==>|12| deta__monitor
+    deta__cli ==>|7| deta__config
+    deta__integration ==>|4| project__map
+    deta__cli -->|3| project__map
+    deta__cli -->|3| deta__formatter
+    deta__web -->|2| project__map
+    deta__web -->|2| deta__formatter
+    deta__monitor -->|2| deta__scanner
+    deta__cli -->|1| deta__web
+    deta__web -->|1| deta__monitor
+    deta__web -->|1| deta__config
     deta__integration -->|1| deta__scanner
+    deta__formatter -->|1| deta__scanner

@@ -32,24 +32,44 @@ class ServiceDef:
     env_resolved: dict[str, str] = field(default_factory=dict)
 
 
-def scan_compose(root: Path, max_depth: int = 3) -> list[ServiceDef]:
-    """
-    Scan for docker-compose files and extract service definitions.
-    
-    Args:
-        root: Root directory to scan
-        max_depth: Maximum directory depth to scan
-        
-    Returns:
-        List of ServiceDef objects
-    """
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Deep merge two dictionaries. Lists are replaced, dicts are merged."""
+    result = dict(base)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def _get_yaml_loader():
+    """Get YAML loader (ruamel.yaml or fallback to pyyaml)."""
     try:
         from ruamel.yaml import YAML
+        return YAML()
     except ImportError:
-        from yaml import safe_load as yaml_load
-        YAML = None
-    
-    services: list[ServiceDef] = []
+        return None
+
+
+def _load_yaml_file(file_path: Path, yaml_loader) -> dict:
+    """Load a YAML file and return parsed data."""
+    try:
+        with open(file_path) as f:
+            if yaml_loader is not None:
+                return yaml_loader.load(f) or {}
+            else:
+                import yaml
+                return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+
+def _collect_compose_files(root: Path, max_depth: int) -> dict[Path, list[Path]]:
+    """
+    Group compose files by their directory (project).
+    Files in the same directory are merged (Docker Compose behavior).
+    """
     patterns = [
         "docker-compose*.yml",
         "docker-compose*.yaml",
@@ -57,7 +77,9 @@ def scan_compose(root: Path, max_depth: int = 3) -> list[ServiceDef]:
         "compose.yaml",
     ]
 
+    project_files: dict[Path, list[Path]] = {}
     seen: set[Path] = set()
+
     for pattern in patterns:
         for compose_file in root.rglob(pattern):
             if compose_file in seen:
@@ -67,55 +89,117 @@ def scan_compose(root: Path, max_depth: int = 3) -> list[ServiceDef]:
             if depth > max_depth:
                 continue
 
-            try:
-                with open(compose_file) as f:
-                    if YAML is not None:
-                        yaml = YAML()
-                        data = yaml.load(f) or {}
-                    else:
-                        import yaml
-                        data = yaml.safe_load(f) or {}
+            project_dir = compose_file.parent
+            project_files.setdefault(project_dir, []).append(compose_file)
 
-                base_env = discover_env(compose_file, root)
+    # Sort files in each project for consistent ordering
+    # Base files first, then overrides
+    for files in project_files.values():
+        files.sort(key=lambda p: (not p.name.startswith("docker-compose"), p.name))
 
-                for svc_name, svc in (data.get("services") or {}).items():
-                    service_env_files = _resolve_env_files(
-                        svc.get("env_file"), compose_file.parent
-                    )
-                    layered_env = merge_env_files(base_env, service_env_files)
-                    raw_environment = _parse_env(svc.get("environment", {}))
-                    interpolated_env = {
-                        k: interpolate(str(v), layered_env)
-                        for k, v in raw_environment.items()
-                    }
-                    effective_env = {**layered_env, **interpolated_env}
+    return project_files
 
-                    raw_ports = _parse_ports(svc.get("ports", []))
-                    resolved_ports = parse_ports(raw_ports, effective_env)
-                    healthcheck = interpolate_recursive(
-                        svc.get("healthcheck"), effective_env
-                    )
-                    image = interpolate(
-                        str(svc.get("image") or ""), effective_env
-                    ) or None
 
-                    services.append(ServiceDef(
-                        name=svc_name,
-                        image=image,
-                        ports=raw_ports,
-                        healthcheck=healthcheck,
-                        depends_on=_parse_depends_on(svc.get("depends_on", [])),
-                        environment=interpolated_env,
-                        labels=_parse_labels(svc.get("labels", {})),
-                        source_file=str(compose_file),
-                        resolved_ports=resolved_ports,
-                        env_resolved=effective_env,
-                    ))
-            except Exception:
-                # Skip files that can't be parsed
-                continue
+def _merge_services(compose_files: list[Path], yaml_loader) -> dict[str, dict]:
+    """Merge all compose files in a project into single service definitions."""
+    merged_services: dict[str, dict] = {}
 
-    return services
+    for compose_file in compose_files:
+        data = _load_yaml_file(compose_file, yaml_loader)
+        for svc_name, svc in (data.get("services") or {}).items():
+            if svc_name in merged_services:
+                merged_services[svc_name] = _deep_merge(merged_services[svc_name], dict(svc))
+            else:
+                merged_services[svc_name] = dict(svc)
+
+    return merged_services
+
+
+def _find_primary_source(
+    svc_name: str, compose_files: list[Path], yaml_loader, project_dir: Path
+) -> str:
+    """Find the primary source file (first one defining this service)."""
+    default = str(project_dir / "docker-compose.yml")
+    for cf in compose_files:
+        data = _load_yaml_file(cf, yaml_loader)
+        if svc_name in (data.get("services") or {}):
+            return str(cf)
+    return default
+
+
+def _build_service_def(
+    svc_name: str,
+    svc: dict,
+    project_dir: Path,
+    compose_files: list[Path],
+    yaml_loader,
+    root: Path,
+) -> ServiceDef | None:
+    """Build ServiceDef from service dictionary."""
+    try:
+        base_env = discover_env(project_dir, root)
+        service_env_files = _resolve_env_files(svc.get("env_file"), project_dir)
+        layered_env = merge_env_files(base_env, service_env_files)
+        raw_environment = _parse_env(svc.get("environment", {}))
+        interpolated_env = {
+            k: interpolate(str(v), layered_env)
+            for k, v in raw_environment.items()
+        }
+        effective_env = {**layered_env, **interpolated_env}
+
+        raw_ports = _parse_ports(svc.get("ports", []))
+        resolved_ports = parse_ports(raw_ports, effective_env)
+        healthcheck = interpolate_recursive(
+            svc.get("healthcheck"), effective_env
+        )
+        image = interpolate(
+            str(svc.get("image") or ""), effective_env
+        ) or None
+
+        primary_source = _find_primary_source(svc_name, compose_files, yaml_loader, project_dir)
+
+        return ServiceDef(
+            name=svc_name,
+            image=image,
+            ports=raw_ports,
+            healthcheck=healthcheck,
+            depends_on=_parse_depends_on(svc.get("depends_on", [])),
+            environment=interpolated_env,
+            labels=_parse_labels(svc.get("labels", {})),
+            source_file=primary_source,
+            resolved_ports=resolved_ports,
+            env_resolved=effective_env,
+        )
+    except Exception:
+        return None
+
+
+def scan_compose(root: Path, max_depth: int = 3) -> list[ServiceDef]:
+    """
+    Scan for docker-compose files and extract service definitions.
+
+    Args:
+        root: Root directory to scan
+        max_depth: Maximum directory depth to scan
+
+    Returns:
+        List of ServiceDef objects
+    """
+    yaml_loader = _get_yaml_loader()
+    project_files = _collect_compose_files(root, max_depth)
+    all_services: list[ServiceDef] = []
+
+    for project_dir, compose_files in project_files.items():
+        merged_services = _merge_services(compose_files, yaml_loader)
+
+        for svc_name, svc in merged_services.items():
+            service_def = _build_service_def(
+                svc_name, svc, project_dir, compose_files, yaml_loader, root
+            )
+            if service_def:
+                all_services.append(service_def)
+
+    return all_services
 
 
 def _resolve_env_files(value: Any, base_dir: Path) -> list[Path]:

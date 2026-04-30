@@ -46,58 +46,64 @@ async def watch_configs(root: Path, on_change: Callable[[dict], Awaitable[None]]
                 })
 
 
+def _scan_file_mtimes(root: Path) -> dict[str, float]:
+    """Scan for config files and return dict of path -> mtime."""
+    mtimes: dict[str, float] = {}
+    for pattern in WATCHED_PATTERNS:
+        for file_path in root.rglob(pattern):
+            try:
+                mtimes[str(file_path)] = file_path.stat().st_mtime
+            except OSError:
+                pass
+    return mtimes
+
+
+def _detect_change_type(
+    file_path: str, old_mtime: float | None, new_mtime: float | None
+) -> str | None:
+    """Detect the type of change for a file."""
+    if old_mtime is None and new_mtime is not None:
+        return "added"
+    if old_mtime is not None and new_mtime is None:
+        return "deleted"
+    if old_mtime is not None and new_mtime is not None and old_mtime != new_mtime:
+        return "modified"
+    return None
+
+
+async def _emit_changes(
+    old_mtimes: dict[str, float],
+    new_mtimes: dict[str, float],
+    on_change: Callable[[dict], Awaitable[None]],
+):
+    """Emit change events for files that have changed."""
+    all_files = set(old_mtimes.keys()) | set(new_mtimes.keys())
+    for file_path in all_files:
+        change_type = _detect_change_type(
+            file_path,
+            old_mtimes.get(file_path),
+            new_mtimes.get(file_path),
+        )
+        if change_type:
+            await on_change({
+                "type": change_type,
+                "path": file_path,
+                "timestamp": datetime.utcnow().isoformat(),
+            })
+
+
 async def _poll_configs(root: Path, on_change: Callable[[dict], Awaitable[None]], interval: int = 5):
     """
     Fallback polling implementation when watchfiles is not available.
     """
     import asyncio
     
-    file_mtimes: dict[str, float] = {}
-    
-    # Initial scan
-    for pattern in WATCHED_PATTERNS:
-        for file_path in root.rglob(pattern):
-            try:
-                file_mtimes[str(file_path)] = file_path.stat().st_mtime
-            except OSError:
-                pass
+    file_mtimes = _scan_file_mtimes(root)
     
     while True:
         await asyncio.sleep(interval)
-        
-        current_mtimes: dict[str, float] = {}
-        for pattern in WATCHED_PATTERNS:
-            for file_path in root.rglob(pattern):
-                try:
-                    current_mtimes[str(file_path)] = file_path.stat().st_mtime
-                except OSError:
-                    pass
-        
-        # Check for changes
-        all_files = set(file_mtimes.keys()) | set(current_mtimes.keys())
-        for file_path in all_files:
-            old_mtime = file_mtimes.get(file_path)
-            new_mtime = current_mtimes.get(file_path)
-            
-            if old_mtime is None and new_mtime is not None:
-                await on_change({
-                    "type": "added",
-                    "path": file_path,
-                    "timestamp": datetime.utcnow().isoformat(),
-                })
-            elif old_mtime is not None and new_mtime is None:
-                await on_change({
-                    "type": "deleted",
-                    "path": file_path,
-                    "timestamp": datetime.utcnow().isoformat(),
-                })
-            elif old_mtime is not None and new_mtime is not None and old_mtime != new_mtime:
-                await on_change({
-                    "type": "modified",
-                    "path": file_path,
-                    "timestamp": datetime.utcnow().isoformat(),
-                })
-        
+        current_mtimes = _scan_file_mtimes(root)
+        await _emit_changes(file_mtimes, current_mtimes, on_change)
         file_mtimes = current_mtimes
 
 
