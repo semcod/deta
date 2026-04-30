@@ -267,6 +267,8 @@ def _parse_config(data: dict) -> DetaConfig:
                 "push_events",
                 ["service_added", "service_removed", "service_up", "service_down"],
             ),
+            cache_ttl_seconds=web_data.get("cache_ttl_seconds", 30.0),
+            debounce_seconds=web_data.get("debounce_seconds", 0.5),
         )
     
     return config

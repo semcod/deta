@@ -81,6 +81,7 @@ monitor:
   probe_timeout_seconds: 5
   probe_retries: 3
   probe_online: true
+  max_concurrency: 20  # Max concurrent health checks (default: 20)
 
 # Output configuration
 output:
@@ -115,3 +116,5 @@ web:
     - service_removed
     - service_up
     - service_down
+  cache_ttl_seconds: 30.0  # Topology cache TTL in seconds (default: 30)
+  debounce_seconds: 0.5    # Debounce file change events (default: 0.5)

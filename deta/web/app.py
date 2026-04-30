@@ -24,6 +24,7 @@ HTML = """
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>deta dashboard</title>
+  <link rel="icon" href="data:,">
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0b1020; color: #e5e7eb; }
@@ -244,7 +245,7 @@ HTML = """
       const rows = monitorRowsToSortedArray();
       const header = 'service,status,latency_ms,updated_at';
       const lines = rows.map(r => `${r.service},${r.status || ''},${r.latency_ms ?? ''},${r.updated_at || ''}`);
-      return [header, ...lines].join('\n');
+      return [header, ...lines].join(String.fromCharCode(10));
     }
 
     function renderMonitorTable() {
@@ -769,6 +770,8 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         "topology_dirty": True,
         "pending_change_events": [],
         "debounce_task": None,
+        "probes_cache": None,
+        "probes_cache_ts": 0,
         "telemetry": {
             "full_count": 0,
             "delta_count": 0,
@@ -873,7 +876,16 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         graph_changed = False
         probes = None
         if config.monitor.probe_online:
-            probes = await probe_all(list(topology.services.values()), max_concurrency=config.monitor.max_concurrency)
+            # Use cached probes if still valid (half of refresh_interval)
+            cache_ttl = config.web.refresh_seconds / 2
+            now = datetime.utcnow().timestamp()
+            if state["probes_cache"] and (now - state["probes_cache_ts"]) < cache_ttl:
+                probes = state["probes_cache"]
+            else:
+                probes = await probe_all(list(topology.services.values()), max_concurrency=config.monitor.max_concurrency)
+                state["probes_cache"] = probes
+                state["probes_cache_ts"] = now
+
             if probes and state["topology_dirty"] is False:
                 mermaid_code = generate_mermaid(topology, probes)
                 graph_hash = hashlib.md5(mermaid_code.encode()).hexdigest()[:8]
