@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-04-30
+
+### Docs
+- Update README.md
+
+### Other
+- Update deta/web/app.py
+- Update examples/anomalies/port-conflict/docker-compose.yml
+- Update examples/basic/api-stack/docker-compose.yml
+
 ## [0.2.8] - 2026-04-30
 
 ### Docs

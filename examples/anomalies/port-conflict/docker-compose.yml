@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  service-a:
+    image: nginx:alpine
+    ports:
+      - "9000:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  service-b:
+    image: httpd:alpine
+    ports:
+      - "9000:80"
