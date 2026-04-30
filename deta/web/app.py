@@ -489,35 +489,49 @@ HTML = """
       const clone = svg.cloneNode(true);
       clone.setAttribute('width',  width);
       clone.setAttribute('height', height);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       clone.style.maxWidth = 'none';
+
+      clone.querySelectorAll('style').forEach(styleEl => {
+        styleEl.textContent = styleEl.textContent.replace(/@import\s+url\([^)]*\)[^;]*;?/gi, '');
+      });
+      clone.querySelectorAll('a[href]').forEach(a => a.removeAttribute('href'));
 
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       bg.setAttribute('width',  '100%');
       bg.setAttribute('height', '100%');
-      bg.setAttribute('fill', '#0f1526');
+      bg.setAttribute('fill', '#ffffff');
       clone.insertBefore(bg, clone.firstChild);
 
       const serialized = new XMLSerializer().serializeToString(clone);
-      const svgBlob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
+      console.log('[PNG] serialized SVG length:', serialized.length);
+
+      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(serialized);
 
       const img = new Image();
       await new Promise((resolve, reject) => {
-        img.onload = () => { console.log('[PNG] img loaded'); resolve(); };
+        img.onload = () => { console.log('[PNG] img loaded ok'); resolve(); };
         img.onerror = (e) => { console.error('[PNG] img load error', e); reject(new Error('SVG img load failed')); };
-        img.src = url;
+        img.src = dataUrl;
       });
 
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) { URL.revokeObjectURL(url); return null; }
+      if (!ctx) { return null; }
 
       ctx.drawImage(img, 0, 0, width, height);
-      URL.revokeObjectURL(url);
       console.log('[PNG] canvas drawn, toBlob…');
-      return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      let blob = null;
+      try {
+        blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+        console.log('[PNG] toBlob result:', blob ? blob.size + ' bytes' : 'null');
+      } catch (taintErr) {
+        console.error('[PNG] canvas tainted:', taintErr);
+        throw new Error('Canvas tainted — SVG contains external resources');
+      }
+      return blob;
     }
 
     async function copyPng() {
