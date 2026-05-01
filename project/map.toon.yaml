@@ -1,6 +1,6 @@
-# deta | 37f 5514L | python:34,shell:2,less:1 | 2026-05-01
-# stats: 169 func | 18 cls | 37 mod | CC̄=4.4 | critical:15 | cycles:0
-# alerts[5]: CC _diff_service_ports=15; CC probe_port=13; CC format_probe_change=12; CC load_env_file=12; CC scan_openapi=12
+# deta | 37f 5524L | python:34,shell:2,less:1 | 2026-05-01
+# stats: 171 func | 18 cls | 37 mod | CC̄=4.3 | critical:14 | cycles:0
+# alerts[5]: CC probe_port=13; CC format_probe_change=12; CC load_env_file=12; CC scan_openapi=12; CC _print_status_summary=11
 # hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; generate_toon fan=15
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
@@ -10,11 +10,11 @@ M[37]:
   deta/builder/__init__.py,8
   deta/builder/cache.py,84
   deta/builder/topology.py,163
-  deta/cli.py,547
+  deta/cli.py,545
   deta/config.py,275
   deta/core.py,27
   deta/dsl/__init__.py,41
-  deta/dsl/commands.py,246
+  deta/dsl/commands.py,258
   deta/formatter/__init__.py,23
   deta/formatter/graph.py,183
   deta/formatter/toon.py,183
@@ -92,7 +92,7 @@ D:
     Wup: __init__(2),__repr__(0),get_info(0)  # Base class for wup operations.
   deta/dsl/__init__.py:
   deta/dsl/commands.py:
-    e: _escape_value,service_up,service_down,port_added,port_removed,service_added,service_removed,status_summary,format_probe_change,_port_key,_diff_service_ports,format_port_changes,format_service_changes,ChangeDSL
+    e: _escape_value,service_up,service_down,port_added,port_removed,service_added,service_removed,status_summary,format_probe_change,_port_key,_ports_added,_ports_removed,_diff_service_ports,format_port_changes,format_service_changes,ChangeDSL
     ChangeDSL: __str__(0)  # Represents a DSL command.
     _escape_value(value)
     service_up(service;port;latency_ms;url)
@@ -104,6 +104,8 @@ D:
     status_summary(up;down;unknown;total)
     format_probe_change(prev_probes;current_probes)
     _port_key(p)
+    _ports_added(svc_name;ports;exclude_keys)
+    _ports_removed(svc_name;ports;exclude_keys)
     _diff_service_ports(svc_name;old_svc;new_svc)
     format_port_changes(old_topology;new_topology)
     format_service_changes(old_topology;new_topology)

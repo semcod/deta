@@ -23,13 +23,6 @@ from deta.monitor.alerter import (
 )
 from deta.monitor.prober import probe_all
 from deta.monitor.watcher import watch_configs
-from deta.web import run_dashboard
-from deta.dsl import (
-    format_probe_change,
-    format_port_changes,
-    format_service_changes,
-    status_summary,
-)
 
 
 def _port_in_use(host: str, port: int) -> bool:
@@ -313,12 +306,14 @@ async def _monitor_loop(
 
         # DSL: Service changes (added/removed)
         if prev_topology:
+            from deta.dsl import format_service_changes
             svc_changes = format_service_changes(prev_topology, topology)
             for cmd in svc_changes:
                 print(f"  DSL> {cmd}")
 
         # DSL: Port changes
         if prev_topology:
+            from deta.dsl import format_port_changes
             port_changes = format_port_changes(prev_topology, topology)
             for cmd in port_changes:
                 print(f"  DSL> {cmd}")
@@ -342,6 +337,7 @@ async def _monitor_loop(
 
             # DSL: Probe status changes
             if prev_probes:
+                from deta.dsl import format_probe_change
                 probe_changes = format_probe_change(prev_probes, probe_results)
                 for cmd in probe_changes:
                     print(f"  DSL> {cmd}")
@@ -355,6 +351,7 @@ async def _monitor_loop(
                 up = sum(1 for p in probe_results if p.ok)
                 down = len(probe_results) - up
                 unknown = len(topology.services) - len(probe_results)
+                from deta.dsl import status_summary
                 sum_cmd = status_summary(up, down, unknown, len(topology.services))
                 print(f"  DSL> {sum_cmd}")
             last_status_time = now
@@ -532,6 +529,7 @@ def main():
                 print("Start aborted by user.")
                 raise typer.Exit(code=1)
 
+        from deta.web import run_dashboard
         run_dashboard(
             root=root,
             depth=depth,

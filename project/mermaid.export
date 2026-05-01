@@ -42,7 +42,9 @@ flowchart TD
         deta__dsl__commands__status_summary["status_summary"]
         deta__dsl__commands__format_probe_change("format_probe_change CC=12")
         deta__dsl__commands___port_key["_port_key"]
-        deta__dsl__commands___diff_service_ports{{_diff_service_ports CC=15}}
+        deta__dsl__commands___ports_added["_ports_added"]
+        deta__dsl__commands___ports_removed["_ports_removed"]
+        deta__dsl__commands___diff_service_ports("_diff_service_ports CC=9")
         deta__dsl__commands__format_port_changes["format_port_changes"]
         deta__dsl__commands__format_service_changes["format_service_changes"]
     end
@@ -217,36 +219,6 @@ flowchart TD
     end
     deta__config__load_config --> deta__config___load_yaml
     deta__config__load_config --> deta__config___parse_config
-    deta__cli___get_topology --> project__map__toon__build_topology
-    deta__cli___filter_anomalies --> deta__cli___meets_severity_threshold
-    deta__cli___filter_anomalies --> deta__cli___is_anomaly_enabled
-    deta__cli___print_summary --> deta__monitor__alerter__print_topology_table
-    deta__cli___print_summary --> deta__monitor__alerter__alert_anomaly
-    deta__cli___probe_once --> deta__monitor__prober__probe_all
-    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_success
-    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_failure
-    deta__cli___write_outputs --> deta__formatter__toon__save_toon
-    deta__cli___write_outputs --> deta__formatter__graph__save_graph_yaml
-    deta__cli___write_outputs --> deta__formatter__graph__save_mermaid
-    deta__cli___write_outputs --> deta__formatter__graph__save_png
-    deta__cli__scan --> deta__cli___resolve_formats
-    deta__cli__scan --> deta__cli___get_topology
-    deta__cli__scan --> deta__cli___write_outputs
-    deta__cli__scan --> deta__cli___print_summary
-    deta__cli__scan --> deta__config__load_config
-    deta__cli__scan --> deta__cli___filter_anomalies
-    deta__cli__scan --> deta__cli___probe_once
-    deta__cli__monitor --> deta__cli___monitor_loop
-    deta__cli___monitor_loop --> deta__cli___resolve_formats
-    deta__cli___monitor_loop --> deta__cli___get_topology
-    deta__cli___monitor_loop --> deta__cli___filter_anomalies
-    deta__cli___monitor_loop --> deta__cli___write_outputs
-    deta__cli___monitor_loop --> deta__cli___print_summary
-    deta__cli___monitor_loop --> deta__cli___extract_ports_snapshot
-    deta__cli___monitor_loop --> deta__config__load_config
-    deta__cli__diff --> deta__config__load_config
-    deta__cli__diff --> deta__cli___get_topology
-    deta__cli__main --> deta__config__load_config
     deta__web__app___probe_status --> deta__monitor__prober__resolve_service_status
     deta__web__app___service_payload --> deta__monitor__prober__resolve_service_status
     deta__web__app___topology_json_with_status --> deta__monitor__prober__group_probes_by_service
@@ -319,16 +291,6 @@ flowchart TD
     deta__integration__semcod__generate_for_pyqual --> deta__scanner__python__scan_python
     deta__integration__semcod__generate_for_vallm --> project__map__toon__build_topology
     deta__integration__semcod__pre_deploy_check --> project__map__toon__build_topology
-    deta__dsl__commands__service_down --> deta__dsl__commands___escape_value
-    deta__dsl__commands__format_probe_change --> deta__monitor__prober__group_probes_by_service
-    deta__dsl__commands__format_probe_change --> deta__dsl__commands__service_up
-    deta__dsl__commands__format_probe_change --> deta__dsl__commands__service_down
-    deta__dsl__commands___diff_service_ports --> deta__dsl__commands___port_key
-    deta__dsl__commands___diff_service_ports --> deta__dsl__commands__port_added
-    deta__dsl__commands___diff_service_ports --> deta__dsl__commands__port_removed
-    deta__dsl__commands__format_port_changes --> deta__dsl__commands___diff_service_ports
-    deta__dsl__commands__format_service_changes --> deta__dsl__commands__service_added
-    deta__dsl__commands__format_service_changes --> deta__dsl__commands__service_removed
     deta__formatter__toon___format_alerts --> deta__formatter__toon___format_alert_line
     deta__formatter__toon___format_services --> deta__formatter__toon___format_service_line
     deta__formatter__toon___format_endpoints --> deta__formatter__toon___group_endpoints_by_service
@@ -355,8 +317,51 @@ flowchart TD
     deta__formatter__graph__save_mermaid --> deta__formatter__graph__generate_mermaid
     deta__formatter__graph__save_png --> deta__monitor__prober__group_probes_by_service
     deta__formatter__graph__save_png --> deta__formatter__graph___service_bindings
+    deta__cli___get_topology --> project__map__toon__build_topology
+    deta__cli___filter_anomalies --> deta__cli___meets_severity_threshold
+    deta__cli___filter_anomalies --> deta__cli___is_anomaly_enabled
+    deta__cli___print_summary --> deta__monitor__alerter__print_topology_table
+    deta__cli___print_summary --> deta__monitor__alerter__alert_anomaly
+    deta__cli___probe_once --> deta__monitor__prober__probe_all
+    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_success
+    deta__cli___probe_once --> deta__monitor__alerter__alert_probe_failure
+    deta__cli___write_outputs --> deta__formatter__toon__save_toon
+    deta__cli___write_outputs --> deta__formatter__graph__save_graph_yaml
+    deta__cli___write_outputs --> deta__formatter__graph__save_mermaid
+    deta__cli___write_outputs --> deta__formatter__graph__save_png
+    deta__cli__scan --> deta__cli___resolve_formats
+    deta__cli__scan --> deta__cli___get_topology
+    deta__cli__scan --> deta__cli___write_outputs
+    deta__cli__scan --> deta__cli___print_summary
+    deta__cli__scan --> deta__config__load_config
+    deta__cli__scan --> deta__cli___filter_anomalies
+    deta__cli__scan --> deta__cli___probe_once
+    deta__cli__monitor --> deta__cli___monitor_loop
+    deta__cli___monitor_loop --> deta__cli___resolve_formats
+    deta__cli___monitor_loop --> deta__cli___get_topology
+    deta__cli___monitor_loop --> deta__cli___filter_anomalies
+    deta__cli___monitor_loop --> deta__cli___write_outputs
+    deta__cli___monitor_loop --> deta__cli___print_summary
+    deta__cli___monitor_loop --> deta__cli___extract_ports_snapshot
+    deta__cli___monitor_loop --> deta__config__load_config
+    deta__cli__diff --> deta__config__load_config
+    deta__cli__diff --> deta__cli___get_topology
+    deta__cli__main --> deta__config__load_config
+    deta__dsl__commands__service_down --> deta__dsl__commands___escape_value
+    deta__dsl__commands__format_probe_change --> deta__monitor__prober__group_probes_by_service
+    deta__dsl__commands__format_probe_change --> deta__dsl__commands__service_up
+    deta__dsl__commands__format_probe_change --> deta__dsl__commands__service_down
+    deta__dsl__commands___ports_added --> deta__dsl__commands__port_added
+    deta__dsl__commands___ports_added --> deta__dsl__commands___port_key
+    deta__dsl__commands___ports_removed --> deta__dsl__commands__port_removed
+    deta__dsl__commands___ports_removed --> deta__dsl__commands___port_key
+    deta__dsl__commands___diff_service_ports --> deta__dsl__commands___ports_added
+    deta__dsl__commands___diff_service_ports --> deta__dsl__commands___ports_removed
+    deta__dsl__commands___diff_service_ports --> deta__dsl__commands___port_key
+    deta__dsl__commands__format_port_changes --> deta__dsl__commands___diff_service_ports
+    deta__dsl__commands__format_service_changes --> deta__dsl__commands__service_added
+    deta__dsl__commands__format_service_changes --> deta__dsl__commands__service_removed
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class deta__dsl__commands___diff_service_ports highCC
-    class deta__config___parse_config,deta__cli___pid_on_port,deta__cli___filter_anomalies,deta__cli___write_outputs,deta__cli___print_status_summary,deta__cli__diff,deta__web__app___probe_status_events,deta__monitor__alerter__print_topology_table,deta__monitor__prober___extract_health_url,deta__monitor__prober___has_explicit_healthcheck_url,deta__monitor__prober___service_probe_targets,deta__monitor__prober__probe_service,deta__monitor__prober__probe_port,deta__monitor__prober__probe_all,deta__monitor__watcher___detect_change_type,deta__scanner__python__scan_python,deta__scanner__ports__parse_port,deta__scanner__openapi__scan_openapi,deta__scanner__env__load_env_file,deta__dsl__commands__format_probe_change,deta__formatter__graph___graph_yaml_node,deta__formatter__graph__generate_mermaid,deta__formatter__graph__save_png medCC
+    class deta__config___parse_config,deta__web__app___probe_status_events,deta__monitor__alerter__print_topology_table,deta__monitor__prober___extract_health_url,deta__monitor__prober___has_explicit_healthcheck_url,deta__monitor__prober___service_probe_targets,deta__monitor__prober__probe_service,deta__monitor__prober__probe_port,deta__monitor__prober__probe_all,deta__monitor__watcher___detect_change_type,deta__scanner__python__scan_python,deta__scanner__ports__parse_port,deta__scanner__openapi__scan_openapi,deta__scanner__env__load_env_file,deta__formatter__graph___graph_yaml_node,deta__formatter__graph__generate_mermaid,deta__formatter__graph__save_png,deta__cli___pid_on_port,deta__cli___filter_anomalies,deta__cli___write_outputs,deta__cli___print_status_summary,deta__cli__diff,deta__dsl__commands__format_probe_change,deta__dsl__commands___diff_service_ports medCC

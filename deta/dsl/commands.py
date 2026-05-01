@@ -172,6 +172,24 @@ def _port_key(p) -> tuple[str, str, str]:
     return (p.host, p.host_port, p.container_port)
 
 
+def _ports_added(svc_name: str, ports, exclude_keys: set | None = None) -> list[ChangeDSL]:
+    """Generate PORT_ADDED commands for ports not in exclude_keys."""
+    return [
+        port_added(svc_name, p.host_port, p.container_port, p.host)
+        for p in ports
+        if exclude_keys is None or _port_key(p) not in exclude_keys
+    ]
+
+
+def _ports_removed(svc_name: str, ports, exclude_keys: set | None = None) -> list[ChangeDSL]:
+    """Generate PORT_REMOVED commands for ports not in exclude_keys."""
+    return [
+        port_removed(svc_name, p.host_port, p.container_port, p.host)
+        for p in ports
+        if exclude_keys is None or _port_key(p) not in exclude_keys
+    ]
+
+
 def _diff_service_ports(
     svc_name: str,
     old_svc: ServiceDef | None,
@@ -179,23 +197,17 @@ def _diff_service_ports(
 ) -> list[ChangeDSL]:
     """Generate PORT_ADDED/PORT_REMOVED commands for a single service."""
     if not old_svc and new_svc:
-        return [port_added(svc_name, p.host_port, p.container_port, p.host) for p in new_svc.resolved_ports]
+        return _ports_added(svc_name, new_svc.resolved_ports)
     if old_svc and not new_svc:
-        return [port_removed(svc_name, p.host_port, p.container_port, p.host) for p in old_svc.resolved_ports]
+        return _ports_removed(svc_name, old_svc.resolved_ports)
     if not old_svc or not new_svc:
         return []
 
     old_keys = {_port_key(p) for p in old_svc.resolved_ports}
     new_keys = {_port_key(p) for p in new_svc.resolved_ports}
 
-    cmds: list[ChangeDSL] = []
-    for p in new_svc.resolved_ports:
-        if _port_key(p) not in old_keys:
-            cmds.append(port_added(svc_name, p.host_port, p.container_port, p.host))
-    for p in old_svc.resolved_ports:
-        if _port_key(p) not in new_keys:
-            cmds.append(port_removed(svc_name, p.host_port, p.container_port, p.host))
-    return cmds
+    return _ports_added(svc_name, new_svc.resolved_ports, old_keys) + \
+           _ports_removed(svc_name, old_svc.resolved_ports, new_keys)
 
 
 def format_port_changes(
