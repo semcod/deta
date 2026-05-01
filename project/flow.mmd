@@ -8,6 +8,8 @@ flowchart TD
         deta__cli___pid_on_port["_pid_on_port"]
         deta__cli___terminate_pid["_terminate_pid"]
         deta__cli___get_topology["_get_topology"]
+        deta__cli___is_anomaly_enabled["_is_anomaly_enabled"]
+        deta__cli___meets_severity_threshold["_meets_severity_threshold"]
         deta__cli___filter_anomalies["_filter_anomalies"]
         deta__cli___print_summary["_print_summary"]
         deta__cli___resolve_formats["_resolve_formats"]
@@ -17,9 +19,7 @@ flowchart TD
         deta__cli__monitor["monitor"]
         deta__cli___extract_ports_snapshot["_extract_ports_snapshot"]
         deta__cli___log_port_changes["_log_port_changes"]
-        deta__cli___print_status_summary["_print_status_summary"]
-        deta__cli___monitor_loop["_monitor_loop"]
-        ...["+2 more"]
+        ...["+4 more"]
     end
 
     subgraph Core
@@ -30,15 +30,15 @@ flowchart TD
         deta__web__app__ConnectionManager__disconnect["disconnect"]
         deta__web__app__ConnectionManager__broadcast["broadcast"]
         deta__web__app___probe_status["_probe_status"]
-        deta__web__app___topology_json_with_status{{_topology_json_with_status CC=17}}
-        deta__web__app___compute_events{{_compute_events CC=22}}
+        deta__monitor__prober___get_client["_get_client"]
+        deta__monitor__prober__close_client["close_client"]
         deta__scanner__ports__parse_port("parse_port CC=10")
         deta__scanner__ports__parse_ports["parse_ports"]
         deta__scanner__npm__scan_npm["scan_npm"]
         deta__scanner__openapi__scan_openapi["scan_openapi"]
         deta__scanner__compose__scan_compose["scan_compose"]
         deta__scanner__env__interpolate["interpolate"]
-        ...["+161 more"]
+        ...["+178 more"]
     end
 
-    class deta__cli___port_in_use,deta__cli___pid_on_port,deta__cli___terminate_pid,deta__cli___get_topology,deta__cli___filter_anomalies,deta__cli___print_summary,deta__cli___resolve_formats,deta__cli___probe_once,deta__cli___write_outputs,deta__cli__scan entry
+    class deta__cli___port_in_use,deta__cli___pid_on_port,deta__cli___terminate_pid,deta__cli___get_topology,deta__cli___is_anomaly_enabled,deta__cli___meets_severity_threshold,deta__cli___filter_anomalies,deta__cli___print_summary,deta__cli___resolve_formats,deta__cli___probe_once entry

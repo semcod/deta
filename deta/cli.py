@@ -84,29 +84,38 @@ def _get_topology(root: Path, depth: int, config: DetaConfig = None) -> InfraTop
     return build_topology(root, depth)
 
 
+_ANOMALY_CHECK_MAP = {
+    "missing_healthcheck": "check_missing_healthcheck",
+    "port_conflict": "check_port_conflicts",
+    "dependency_cycle": "check_dependency_cycles",
+    "hardcoded_secret": "check_hardcoded_secrets",
+}
+
+_SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2, "critical": 3}
+
+
+def _is_anomaly_enabled(anomaly_type: str, anomaly_config) -> bool:
+    attr = _ANOMALY_CHECK_MAP.get(anomaly_type)
+    return getattr(anomaly_config, attr, True) if attr else True
+
+
+def _meets_severity_threshold(severity: str, min_severity: str) -> bool:
+    return _SEVERITY_ORDER.get(severity, 0) >= _SEVERITY_ORDER.get(min_severity, 0)
+
+
 def _filter_anomalies(anomalies: list, config: DetaConfig) -> list:
     if not config.anomaly:
         return anomalies
     
+    min_severity = config.alert.min_severity if config.alert else "info"
     filtered = []
     for anomaly in anomalies:
         anomaly_type = anomaly.get("type")
-        
-        if anomaly_type == "missing_healthcheck" and not config.anomaly.check_missing_healthcheck:
+        if not _is_anomaly_enabled(anomaly_type, config.anomaly):
             continue
-        if anomaly_type == "port_conflict" and not config.anomaly.check_port_conflicts:
-            continue
-        if anomaly_type == "dependency_cycle" and not config.anomaly.check_dependency_cycles:
-            continue
-        if anomaly_type == "hardcoded_secret" and not config.anomaly.check_hardcoded_secrets:
-            continue
-        
         if config.anomaly.severity_levels and anomaly_type in config.anomaly.severity_levels:
             anomaly["severity"] = config.anomaly.severity_levels[anomaly_type]
-        
-        min_severity = config.alert.min_severity if config.alert else "info"
-        severity_order = {"info": 0, "warning": 1, "error": 2, "critical": 3}
-        if severity_order.get(anomaly.get("severity", "info"), 0) >= severity_order.get(min_severity, 0):
+        if _meets_severity_threshold(anomaly.get("severity", "info"), min_severity):
             filtered.append(anomaly)
     
     return filtered

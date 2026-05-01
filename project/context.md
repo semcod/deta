@@ -6,20 +6,35 @@
 - **Primary Language**: python
 - **Languages**: python: 24, yaml: 11, yml: 3, shell: 2, json: 1
 - **Analysis Mode**: static
-- **Total Functions**: 269
+- **Total Functions**: 305
 - **Total Classes**: 15
 - **Modules**: 43
-- **Entry Points**: 165
+- **Entry Points**: 186
 
 ## Architecture by Module
 
 ### project.map.toon
-- **Functions**: 148
+- **Functions**: 169
 - **File**: `map.toon.yaml`
 
 ### deta.cli
-- **Functions**: 17
+- **Functions**: 19
 - **File**: `cli.py`
+
+### deta.monitor.prober
+- **Functions**: 16
+- **Classes**: 1
+- **File**: `prober.py`
+
+### deta.web.app
+- **Functions**: 14
+- **Classes**: 1
+- **File**: `app.py`
+
+### deta.dsl.commands
+- **Functions**: 14
+- **Classes**: 1
+- **File**: `commands.py`
 
 ### deta.scanner.compose
 - **Functions**: 13
@@ -30,24 +45,9 @@
 - **Functions**: 13
 - **File**: `toon.py`
 
-### deta.web.app
-- **Functions**: 12
-- **Classes**: 1
-- **File**: `app.py`
-
-### deta.dsl.commands
-- **Functions**: 12
-- **Classes**: 1
-- **File**: `commands.py`
-
 ### deta.formatter.graph
-- **Functions**: 9
+- **Functions**: 11
 - **File**: `graph.py`
-
-### deta.monitor.prober
-- **Functions**: 9
-- **Classes**: 1
-- **File**: `prober.py`
 
 ### deta.monitor.watcher
 - **Functions**: 6
@@ -119,16 +119,6 @@ Args:
 R
 - **Calls**: root.rglob, len, deta.scanner.openapi._load, None.get, data.get, None.items, api_file.relative_to, data.get
 
-### deta.monitor.prober.probe_all
-> Probe all services concurrently.
-
-Args:
-    services: List of ServiceDef objects to probe
-
-Returns:
-    List of ProbeResult objects (one per resolved 
-- **Calls**: asyncio.Semaphore, max, deta.monitor.prober._extract_health_url, asyncio.create_task, asyncio.gather, probe_factories.append, _run_limited, probe_factory
-
 ### deta.web.app.ConnectionManager.broadcast
 - **Calls**: json.dumps, len, list, zip, message.encode, asyncio.gather, isinstance, self.disconnect
 
@@ -192,9 +182,8 @@ Returns:
 ### deta.web.app.ConnectionManager.disconnect
 - **Calls**: self._connections.discard
 
-### deta.monitor.prober.close_client
-> Close the shared HTTP client.
-- **Calls**: _shared_client.aclose
+### deta.web.app._probe_status
+- **Calls**: deta.monitor.prober.resolve_service_status
 
 ### deta.core.Wup.__init__
 > Initialize a Wup instance.
@@ -208,8 +197,6 @@ Args:
 ### deta.core.Wup.get_info
 > Return wup information.
 
-### deta.web.app._probe_status
-
 ### project.map.toon._port_in_use
 
 ### project.map.toon._pid_on_port
@@ -217,6 +204,10 @@ Args:
 ### project.map.toon._terminate_pid
 
 ### project.map.toon._get_topology
+
+### project.map.toon._is_anomaly_enabled
+
+### project.map.toon._meets_severity_threshold
 
 ### project.map.toon._filter_anomalies
 
@@ -250,41 +241,32 @@ scan_openapi [deta.scanner.openapi]
   └─> _load
 ```
 
-### Flow 4: probe_all
-```
-probe_all [deta.monitor.prober]
-  └─> _extract_health_url
-      └─> _first_resolved_binding
-          └─ →> parse_port
-      └─ →> published_url
-```
-
-### Flow 5: broadcast
+### Flow 4: broadcast
 ```
 broadcast [deta.web.app.ConnectionManager]
 ```
 
-### Flow 6: pre_deploy_check
+### Flow 5: pre_deploy_check
 ```
 pre_deploy_check [deta.integration.semcod]
   └─ →> build_topology
 ```
 
-### Flow 7: scan_compose
+### Flow 6: scan_compose
 ```
 scan_compose [deta.scanner.compose]
   └─> _get_yaml_loader
   └─> _collect_compose_files
 ```
 
-### Flow 8: generate_for_pyqual
+### Flow 7: generate_for_pyqual
 ```
 generate_for_pyqual [deta.integration.semcod]
   └─ →> scan_python
       └─> _load_toml
 ```
 
-### Flow 9: generate_for_sumd
+### Flow 8: generate_for_sumd
 ```
 generate_for_sumd [deta.integration.semcod]
   └─ →> build_topology
@@ -292,10 +274,15 @@ generate_for_sumd [deta.integration.semcod]
       └─> generate_toon
 ```
 
-### Flow 10: generate_for_vallm
+### Flow 9: generate_for_vallm
 ```
 generate_for_vallm [deta.integration.semcod]
   └─ →> build_topology
+```
+
+### Flow 10: __str__
+```
+__str__ [deta.dsl.commands.ChangeDSL]
 ```
 
 ## Key Classes
@@ -351,16 +338,16 @@ generate_for_vallm [deta.integration.semcod]
 > Main deta configuration.
 - **Methods**: 0
 
+### deta.monitor.prober.ProbeResult
+> Result of a health check probe.
+- **Methods**: 0
+
 ### deta.scanner.openapi.EndpointDef
 > Definition of an OpenAPI endpoint.
 - **Methods**: 0
 
 ### deta.scanner.compose.ServiceDef
 > Definition of a Docker Compose service.
-- **Methods**: 0
-
-### deta.monitor.prober.ProbeResult
-> Result of a health check probe.
 - **Methods**: 0
 
 ## Data Transformation Functions
@@ -405,13 +392,13 @@ Key functions that process and transform data:
 > Compare probe results and generate DSL commands for status changes.
 
 Returns list of SERVICE_UP/SERV
-- **Output to**: None.append, None.append, set, set, prev_by_svc.get
+- **Output to**: deta.monitor.prober.group_probes_by_service, deta.monitor.prober.group_probes_by_service, set, set, prev_by_svc.get
 
 ### deta.dsl.commands.format_port_changes
 > Compare port bindings between topologies and generate DSL commands.
 
 Returns list of PORT_ADDED/PORT
-- **Output to**: set, set, old_topology.services.get, new_topology.services.get, commands.append
+- **Output to**: set, set, commands.extend, deta.dsl.commands._diff_service_ports, old_topology.services.get
 
 ### deta.dsl.commands.format_service_changes
 > Compare services between topologies and generate DSL commands.
@@ -486,29 +473,28 @@ Returns list of SERVICE_ADDED/SERVIC
 
 Functions exposed as public API (no underscore prefix):
 
-- `deta.web.app.create_app` - 113 calls
+- `deta.web.app.create_app` - 121 calls
 - `deta.cli.main` - 66 calls
 - `deta.cli.diff` - 27 calls
-- `deta.formatter.graph.generate_mermaid` - 23 calls
-- `deta.formatter.graph.generate_graph_yaml` - 22 calls
+- `deta.monitor.prober.probe_port` - 21 calls
 - `deta.formatter.toon.generate_toon` - 21 calls
+- `deta.formatter.graph.generate_mermaid` - 21 calls
 - `deta.scanner.python.scan_python` - 20 calls
 - `deta.monitor.alerter.print_topology_table` - 19 calls
+- `deta.monitor.prober.probe_service` - 19 calls
+- `deta.formatter.graph.save_png` - 19 calls
 - `deta.scanner.npm.scan_npm` - 18 calls
-- `deta.formatter.graph.save_png` - 17 calls
-- `deta.monitor.prober.probe_service` - 17 calls
-- `deta.monitor.prober.probe_port` - 16 calls
+- `deta.monitor.prober.probe_all` - 14 calls
 - `deta.scanner.openapi.scan_openapi` - 14 calls
 - `deta.scanner.env.load_env_file` - 14 calls
-- `deta.dsl.commands.format_probe_change` - 14 calls
-- `deta.monitor.prober.probe_all` - 14 calls
 - `deta.scanner.ports.parse_port` - 12 calls
-- `deta.dsl.commands.format_port_changes` - 12 calls
+- `deta.dsl.commands.format_probe_change` - 12 calls
 - `deta.cli.scan` - 10 calls
 - `deta.web.app.ConnectionManager.broadcast` - 10 calls
 - `deta.monitor.alerter.alert_anomaly` - 10 calls
 - `deta.monitor.watcher.watch_configs` - 10 calls
 - `deta.integration.semcod.pre_deploy_check` - 10 calls
+- `deta.formatter.graph.generate_graph_yaml` - 10 calls
 - `deta.scanner.env.discover_env` - 9 calls
 - `deta.dsl.commands.format_service_changes` - 8 calls
 - `deta.config.load_config` - 7 calls
@@ -518,6 +504,7 @@ Functions exposed as public API (no underscore prefix):
 - `deta.web.app.run_dashboard` - 6 calls
 - `deta.scanner.env.interpolate` - 6 calls
 - `deta.integration.semcod.generate_for_pyqual` - 6 calls
+- `deta.dsl.commands.format_port_changes` - 6 calls
 - `deta.dsl.commands.service_down` - 5 calls
 - `deta.cli.monitor` - 4 calls
 - `deta.scanner.env.merge_env_files` - 4 calls
@@ -544,11 +531,6 @@ graph TD
     scan_openapi --> len
     scan_openapi --> _load
     scan_openapi --> get
-    probe_all --> Semaphore
-    probe_all --> max
-    probe_all --> _extract_health_url
-    probe_all --> create_task
-    probe_all --> gather
     broadcast --> dumps
     broadcast --> len
     broadcast --> list
@@ -563,6 +545,11 @@ graph TD
     scan_compose --> items
     scan_compose --> _merge_services
     generate_for_pyqual --> Path
+    generate_for_pyqual --> scan_python
+    generate_for_pyqual --> list
+    generate_for_pyqual --> set
+    generate_for_pyqual --> append
+    generate_for_sumd --> Path
 ```
 
 ## Reverse Engineering Guidelines

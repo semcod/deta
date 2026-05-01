@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional
 
 from deta.builder.topology import InfraTopology
-from deta.monitor.prober import ProbeResult
+from deta.monitor.prober import ProbeResult, group_probes_by_service
 from deta.scanner.compose import ServiceDef
 
 
@@ -138,25 +138,15 @@ def format_probe_change(
     """
     commands: list[ChangeDSL] = []
 
-    # Group by service
-    prev_by_svc: dict[str, list[ProbeResult]] = {}
-    for p in prev_probes:
-        prev_by_svc.setdefault(p.service, []).append(p)
+    prev_by_svc = group_probes_by_service(prev_probes)
+    curr_by_svc = group_probes_by_service(current_probes)
 
-    curr_by_svc: dict[str, list[ProbeResult]] = {}
-    for p in current_probes:
-        curr_by_svc.setdefault(p.service, []).append(p)
-
-    # Check each service
     for svc in set(prev_by_svc) | set(curr_by_svc):
         prev_list = prev_by_svc.get(svc, [])
         curr_list = curr_by_svc.get(svc, [])
 
         prev_ok = any(p.ok for p in prev_list)
         curr_ok = any(p.ok for p in curr_list)
-
-        # Find probe that changed (use first available)
-        prev_probe = prev_list[0] if prev_list else None
         curr_probe = curr_list[0] if curr_list else None
 
         if not prev_ok and curr_ok and curr_probe:
@@ -178,6 +168,36 @@ def format_probe_change(
     return commands
 
 
+def _port_key(p) -> tuple[str, str, str]:
+    return (p.host, p.host_port, p.container_port)
+
+
+def _diff_service_ports(
+    svc_name: str,
+    old_svc: ServiceDef | None,
+    new_svc: ServiceDef | None,
+) -> list[ChangeDSL]:
+    """Generate PORT_ADDED/PORT_REMOVED commands for a single service."""
+    if not old_svc and new_svc:
+        return [port_added(svc_name, p.host_port, p.container_port, p.host) for p in new_svc.resolved_ports]
+    if old_svc and not new_svc:
+        return [port_removed(svc_name, p.host_port, p.container_port, p.host) for p in old_svc.resolved_ports]
+    if not old_svc or not new_svc:
+        return []
+
+    old_keys = {_port_key(p) for p in old_svc.resolved_ports}
+    new_keys = {_port_key(p) for p in new_svc.resolved_ports}
+
+    cmds: list[ChangeDSL] = []
+    for p in new_svc.resolved_ports:
+        if _port_key(p) not in old_keys:
+            cmds.append(port_added(svc_name, p.host_port, p.container_port, p.host))
+    for p in old_svc.resolved_ports:
+        if _port_key(p) not in new_keys:
+            cmds.append(port_removed(svc_name, p.host_port, p.container_port, p.host))
+    return cmds
+
+
 def format_port_changes(
     old_topology: InfraTopology,
     new_topology: InfraTopology,
@@ -188,42 +208,12 @@ def format_port_changes(
     Returns list of PORT_ADDED/PORT_REMOVED commands.
     """
     commands: list[ChangeDSL] = []
-
     for svc_name in set(old_topology.services) | set(new_topology.services):
-        old_svc = old_topology.services.get(svc_name)
-        new_svc = new_topology.services.get(svc_name)
-
-        if not old_svc and new_svc:
-            # New service - all ports are added
-            for p in new_svc.resolved_ports:
-                commands.append(port_added(
-                    svc_name, p.host_port, p.container_port, p.host
-                ))
-        elif old_svc and not new_svc:
-            # Removed service - all ports are removed
-            for p in old_svc.resolved_ports:
-                commands.append(port_removed(
-                    svc_name, p.host_port, p.container_port, p.host
-                ))
-        elif old_svc and new_svc:
-            # Compare ports
-            old_ports = {(p.host, p.host_port, p.container_port) for p in old_svc.resolved_ports}
-            new_ports = {(p.host, p.host_port, p.container_port) for p in new_svc.resolved_ports}
-
-            for p in new_svc.resolved_ports:
-                key = (p.host, p.host_port, p.container_port)
-                if key not in old_ports:
-                    commands.append(port_added(
-                        svc_name, p.host_port, p.container_port, p.host
-                    ))
-
-            for p in old_svc.resolved_ports:
-                key = (p.host, p.host_port, p.container_port)
-                if key not in new_ports:
-                    commands.append(port_removed(
-                        svc_name, p.host_port, p.container_port, p.host
-                    ))
-
+        commands.extend(_diff_service_ports(
+            svc_name,
+            old_topology.services.get(svc_name),
+            new_topology.services.get(svc_name),
+        ))
     return commands
 
 

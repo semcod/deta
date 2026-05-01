@@ -1,21 +1,14 @@
-# code2llm | 43f 7888L | python:24,yaml:11,yml:3,shell:2,json:1,toml:1,txt:1 | 2026-04-30
-# CC̄=2.3 | critical:8/269 | dups:0 | cycles:2
+# code2llm | 43f 8699L | python:24,yaml:11,yml:3,shell:2,json:1,toml:1,txt:1 | 2026-05-01
+# CC̄=2.0 | critical:1/305 | dups:0 | cycles:2
 
-HEALTH[8]:
-  🟡 CC    _filter_anomalies CC=15 (limit:15)
-  🟡 CC    _topology_json_with_status CC=17 (limit:15)
-  🟡 CC    _compute_events CC=22 (limit:15)
-  🟡 CC    format_probe_change CC=15 (limit:15)
-  🟡 CC    format_port_changes CC=16 (limit:15)
-  🟡 CC    generate_graph_yaml CC=23 (limit:15)
-  🟡 CC    generate_mermaid CC=17 (limit:15)
-  🟡 CC    save_png CC=15 (limit:15)
+HEALTH[1]:
+  🟡 CC    _diff_service_ports CC=15 (limit:15)
 
 REFACTOR[2]:
-  1. split 8 high-CC methods  (CC>15)
+  1. split 1 high-CC methods  (CC>15)
   2. break 2 circular dependencies
 
-PIPELINES[16]:
+PIPELINES[15]:
   [1] Src [main]: main → load_config → _load_yaml
       PURITY: 100% pure
   [2] Src [__init__]: __init__
@@ -28,15 +21,15 @@ PIPELINES[16]:
       PURITY: 100% pure
 
 LAYERS:
-  deta/                           CC̄=5.2    ←in:1  →out:23  !! split
-  │ !! app                       1004L  1C   12m  CC=22     ←1
-  │ !! cli                        533L  0C   17m  CC=15     ←0
-  │ prober                     298L  1C    9m  CC=11     ←0
+  deta/                           CC̄=4.5    ←in:1  →out:23  !! split
+  │ !! app                       1466L  1C   14m  CC=11     ←1
+  │ !! cli                        547L  0C   19m  CC=11     ←0
+  │ prober                     443L  1C   16m  CC=13     ←4
   │ compose                    278L  1C   13m  CC=7      ←0
-  │ config                     272L  8C    3m  CC=9      ←2
-  │ !! commands                   255L  1C   12m  CC=16     ←1
-  │ !! graph                      199L  0C    9m  CC=23     ←2
+  │ config                     274L  8C    3m  CC=9      ←2
+  │ !! commands                   245L  1C   14m  CC=15     ←1
   │ toon                       182L  0C   13m  CC=5      ←2
+  │ graph                      182L  0C   11m  CC=11     ←2
   │ env                        140L  0C    5m  CC=12     ←2
   │ semcod                     129L  0C    4m  CC=7      ←0
   │ watcher                    116L  0C    6m  CC=8      ←2
@@ -49,18 +42,18 @@ LAYERS:
   │ core                        26L  1C    3m  CC=2      ←0
   │ __init__                    23L  0C    0m  CC=0.0    ←0
   │ __init__                    22L  0C    0m  CC=0.0    ←0
-  │ __init__                    18L  0C    0m  CC=0.0    ←0
+  │ __init__                    20L  0C    0m  CC=0.0    ←0
   │ __init__                    17L  0C    0m  CC=0.0    ←0
   │ __init__                    17L  0C    0m  CC=0.0    ←0
   │ __init__                     5L  0C    0m  CC=0.0    ←0
   │
   project/                        CC̄=0.0    ←in:0  →out:0
-  │ !! calls.yaml                1216L  0C    0m  CC=0.0    ←0
-  │ map.toon.yaml              265L  0C  148m  CC=0.0    ←3
-  │ calls.toon.yaml            207L  0C    0m  CC=0.0    ←0
-  │ analysis.toon.yaml         104L  0C    0m  CC=0.0    ←0
-  │ evolution.toon.yaml         77L  0C    0m  CC=0.0    ←0
-  │ project.toon.yaml           54L  0C    0m  CC=0.0    ←0
+  │ !! calls.yaml                1431L  0C    0m  CC=0.0    ←0
+  │ map.toon.yaml              292L  0C  169m  CC=0.0    ←2
+  │ calls.toon.yaml            215L  0C    0m  CC=0.0    ←0
+  │ analysis.toon.yaml          98L  0C    0m  CC=0.0    ←0
+  │ project.toon.yaml           51L  0C    0m  CC=0.0    ←0
+  │ evolution.toon.yaml         49L  0C    0m  CC=0.0    ←0
   │ prompt.txt                  47L  0C    0m  CC=0.0    ←0
   │ duplication.toon.yaml       43L  0C    0m  CC=0.0    ←0
   │
@@ -83,22 +76,22 @@ LAYERS:
   │
 
 COUPLING:
-                                deta      deta.monitor    deta.formatter          deta.web       project.map      deta.scanner  deta.integration          deta.dsl
-              deta                ──                10                 4                 1                 4                                                     4  !! fan-out
-      deta.monitor               ←10                ──                                  ←1                                   6                                      hub
-    deta.formatter                ←4                                  ──                ←4                                   1                ←1                    hub
-          deta.web                 1                 1                 4                ──                 2                                                        !! fan-out
-       project.map                ←4                                                    ←2                ──                                  ←3                    hub
-      deta.scanner                                  ←6                ←1                                                    ──                ←1                    hub
-  deta.integration                                                     1                                   3                 1                ──                  
-          deta.dsl                ←4                                                                                                                            ──
+                        deta.monitor              deta          deta.web    deta.formatter      deta.scanner          deta.dsl  deta.integration       project.map
+      deta.monitor                ──               ←13               ←12                ←7                 7                ←2                                      hub
+              deta                13                ──                 1                 4                                   4                                   1  !! fan-out
+          deta.web                12                 1                ──                 4                                                                          !! fan-out
+    deta.formatter                 7                ←4                ←4                ──                 1                                  ←1                    hub
+      deta.scanner                ←7                                                    ←1                ──                                  ←1                    hub
+          deta.dsl                 2                ←4                                                                      ──                                    
+  deta.integration                                                                       1                 1                                  ──                 3
+       project.map                                  ←1                                                                                        ←3                ──
   CYCLES: 2
-  HUB: deta.scanner/ (fan-in=8)
-  HUB: deta.monitor/ (fan-in=11)
   HUB: deta.formatter/ (fan-in=9)
-  HUB: project.map/ (fan-in=9)
+  HUB: deta.monitor/ (fan-in=34)
+  HUB: deta.scanner/ (fan-in=9)
+  SMELL: deta.web/ fan-out=17 → split needed
+  SMELL: deta.formatter/ fan-out=8 → split needed
   SMELL: deta/ fan-out=23 → split needed
-  SMELL: deta.web/ fan-out=8 → split needed
 
 EXTERNAL:
   validation: run `vallm batch .` → validation.toon

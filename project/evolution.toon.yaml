@@ -1,52 +1,24 @@
-# code2llm/evolution | 269 func | 18f | 2026-04-30
+# code2llm/evolution | 305 func | 18f | 2026-05-01
 
-NEXT[9] (ranked by impact):
+NEXT[2] (ranked by impact):
   [1] !! SPLIT           deta/web/app.py
-      WHY: 1004L, 1 classes, max CC=22
-      EFFORT: ~4h  IMPACT: 22088
+      WHY: 1466L, 1 classes, max CC=11
+      EFFORT: ~4h  IMPACT: 16126
 
   [2] !! SPLIT           deta/cli.py
-      WHY: 533L, 0 classes, max CC=15
-      EFFORT: ~4h  IMPACT: 7995
-
-  [3] !  SPLIT-FUNC      _compute_events  CC=22  fan=12
-      WHY: CC=22 exceeds 15
-      EFFORT: ~1h  IMPACT: 264
-
-  [4] !  SPLIT-FUNC      save_png  CC=15  fan=15
-      WHY: CC=15 exceeds 15
-      EFFORT: ~1h  IMPACT: 225
-
-  [5] !  SPLIT-FUNC      generate_mermaid  CC=17  fan=12
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 204
-
-  [6] !  SPLIT-FUNC      _topology_json_with_status  CC=17  fan=10
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 170
-
-  [7] !  SPLIT-FUNC      generate_graph_yaml  CC=23  fan=7
-      WHY: CC=23 exceeds 15
-      EFFORT: ~1h  IMPACT: 161
-
-  [8] !  SPLIT-FUNC      format_probe_change  CC=15  fan=10
-      WHY: CC=15 exceeds 15
-      EFFORT: ~1h  IMPACT: 150
-
-  [9] !  SPLIT-FUNC      format_port_changes  CC=16  fan=6
-      WHY: CC=16 exceeds 15
-      EFFORT: ~1h  IMPACT: 96
+      WHY: 547L, 0 classes, max CC=11
+      EFFORT: ~4h  IMPACT: 6017
 
 
 RISKS[2]:
-  ⚠ Splitting deta/web/app.py may break 12 import paths
-  ⚠ Splitting deta/cli.py may break 17 import paths
+  ⚠ Splitting deta/web/app.py may break 14 import paths
+  ⚠ Splitting deta/cli.py may break 19 import paths
 
 METRICS-TARGET:
-  CC̄:          2.3 → ≤1.6
-  max-CC:      23 → ≤11
+  CC̄:          2.0 → ≤1.4
+  max-CC:      15 → ≤7
   god-modules: 2 → 0
-  high-CC(≥15): 8 → ≤4
+  high-CC(≥15): 1 → ≤0
   hub-types:   0 → ≤0
 
 PATTERNS (language parser shared logic):
@@ -74,4 +46,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=2.4 → now CC̄=2.3
+  prev CC̄=2.0 → now CC̄=2.0

@@ -1,12 +1,12 @@
-# redup/duplication | 2 groups | 25f 4035L | 2026-04-30
+# redup/duplication | 2 groups | 25f 4633L | 2026-05-01
 
 SUMMARY:
   files_scanned: 25
-  total_lines:   4035
+  total_lines:   4633
   dup_groups:    2
   dup_fragments: 4
   saved_lines:   15
-  scan_ms:       2880
+  scan_ms:       4479
 
 HOTSPOTS[2] (files with most duplication):
   deta/dsl/commands.py  dup=18L  groups=1  frags=2  (0.4%)
@@ -17,8 +17,8 @@ DUPLICATES[2] (ranked by impact):
       deta/dsl/commands.py:73-81  (port_added)
       deta/dsl/commands.py:84-92  (port_removed)
   [f598b8d9e9aef7bb]   STRU  save_graph_yaml  L=6 N=2 saved=6 sim=1.00
-      deta/formatter/graph.py:90-95  (save_graph_yaml)
-      deta/formatter/graph.py:151-156  (save_mermaid)
+      deta/formatter/graph.py:88-93  (save_graph_yaml)
+      deta/formatter/graph.py:135-140  (save_mermaid)
 
 REFACTOR[2] (ranked by priority):
   [1] ○ extract_function   → deta/dsl/utils/port_added.py

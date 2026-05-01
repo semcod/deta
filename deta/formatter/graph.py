@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from deta.builder.topology import InfraTopology
-from deta.monitor.prober import ProbeResult
+from deta.monitor.prober import ProbeResult, resolve_service_status, group_probes_by_service
 from deta.scanner.compose import ServiceDef
 from deta.scanner.ports import PortBinding, parse_ports
 
@@ -24,54 +24,52 @@ def _safe_mermaid_id(name: str) -> str:
     return "n_" + "".join(ch if ch.isalnum() else "_" for ch in name)
 
 
+def _port_probe_status(probe: ProbeResult | None) -> str | None:
+    """Resolve status for a single port probe. Returns None if no probe."""
+    if probe is None:
+        return None
+    return resolve_service_status([probe])
+
+
+def _graph_yaml_node(
+    service_name: str,
+    svc: ServiceDef,
+    service_probes: list[ProbeResult],
+) -> list[str]:
+    """Generate YAML lines for a single service node."""
+    lines: list[str] = []
+    lines.append(f"    - id: {service_name}")
+    lines.append(f"      image: {svc.image or ''}")
+    lines.append("      hosts:")
+    bindings = _service_bindings(svc)
+
+    if bindings:
+        for binding in bindings:
+            lines.append(f"        - host: {_binding_host(binding)}")
+            lines.append(f"          port: '{binding.host_port}'")
+            lines.append(f"          container_port: '{binding.container_port}'")
+            port_probe = next((p for p in service_probes if p.host_port == binding.host_port), None) if binding.host_port else None
+            port_status = _port_probe_status(port_probe)
+            if port_status:
+                lines.append(f"          status: {port_status}")
+    else:
+        lines.append("        - host: localhost")
+        lines.append("          port: ''")
+        lines.append("          container_port: ''")
+
+    lines.append(f"      status: {resolve_service_status(service_probes)}")
+    return lines
+
+
 def generate_graph_yaml(
     topology: InfraTopology,
     probe_results: list[ProbeResult] | None = None,
 ) -> str:
+    probes_by_svc = group_probes_by_service(probe_results)
     lines: list[str] = ["graph:", "  nodes:"]
 
     for service_name, svc in topology.services.items():
-        lines.append(f"    - id: {service_name}")
-        lines.append(f"      image: {svc.image or ''}")
-        lines.append("      hosts:")
-        bindings = _service_bindings(svc)
-
-        # Get probe results for this service (may have multiple, one per port)
-        service_probes = [r for r in (probe_results or []) if r.service == service_name]
-
-        if bindings:
-            for binding in bindings:
-                lines.append(f"        - host: {_binding_host(binding)}")
-                lines.append(f"          port: '{binding.host_port}'")
-                lines.append(f"          container_port: '{binding.container_port}'")
-                # Find probe result for this specific port
-                port_probe = None
-                if binding.host_port:
-                    port_probe = next((p for p in service_probes if p.host_port == binding.host_port), None)
-
-                if port_probe:
-                    if port_probe.ok:
-                        port_status = "online"
-                    elif port_probe.status is not None and port_probe.status >= 500:
-                        port_status = "restarting"
-                    else:
-                        port_status = "offline"
-                    lines.append(f"          status: {port_status}")
-        else:
-            lines.append("        - host: localhost")
-            lines.append("          port: ''")
-            lines.append("          container_port: ''")
-
-        # Overall service status (any online = online, else if any restarting = restarting)
-        if not service_probes:
-            overall_status = "unknown"
-        elif any(p.ok for p in service_probes):
-            overall_status = "online"
-        elif any(p.status is not None and p.status >= 500 for p in service_probes):
-            overall_status = "restarting"
-        else:
-            overall_status = "offline"
-        lines.append(f"      status: {overall_status}")
+        lines.extend(_graph_yaml_node(service_name, svc, probes_by_svc.get(service_name, [])))
 
     lines.append("  edges:")
     for service_name, svc in topology.services.items():
@@ -125,25 +123,11 @@ def generate_mermaid(
         lines.append("    classDef offline fill:#fee2e2,stroke:#dc2626,stroke-width:2px")
         lines.append("    classDef restarting fill:#fef3c7,stroke:#d97706,stroke-width:2px")
 
-        # Group probes by service
-        probes_by_service = {}
-        for r in probe_results:
-            probes_by_service.setdefault(r.service, []).append(r)
-
+        probes_by_svc = group_probes_by_service(probe_results)
         for service_name in topology.services.keys():
-            service_probes = probes_by_service.get(service_name, [])
-            # Overall status: online if any port is online
-            if not service_probes:
-                class_name = ""
-            elif any(p.ok for p in service_probes):
-                class_name = "online"
-            elif any(p.status is not None and p.status >= 500 for p in service_probes):
-                class_name = "restarting"
-            else:
-                class_name = "offline"
-
-            if class_name:
-                lines.append(f"    class {_safe_mermaid_id(service_name)} {class_name}")
+            status = resolve_service_status(probes_by_svc.get(service_name, []))
+            if status != "unknown":
+                lines.append(f"    class {_safe_mermaid_id(service_name)} {status}")
 
     return "\n".join(lines) + "\n"
 
@@ -169,6 +153,7 @@ def save_png(
     dot = Digraph("infra", format="png")
     dot.attr(rankdir="LR")
 
+    probes_by_svc = group_probes_by_service(probe_results)
     for service_name, svc in topology.services.items():
         hosts = []
         for binding in _service_bindings(svc):
@@ -180,13 +165,11 @@ def save_png(
             label += "\n" + "\n".join(hosts[:3])
 
         attrs = {}
-        if probe_results:
-            service_probes = [p for p in probe_results if p.service == service_name]
-            if service_probes:
-                # Overall status: online if any port is online
-                ok = any(p.ok for p in service_probes)
-                attrs["style"] = "filled"
-                attrs["fillcolor"] = "#d1fae5" if ok else "#fee2e2"
+        service_probes = probes_by_svc.get(service_name, [])
+        if service_probes:
+            ok = resolve_service_status(service_probes) == "online"
+            attrs["style"] = "filled"
+            attrs["fillcolor"] = "#d1fae5" if ok else "#fee2e2"
 
         dot.node(service_name, label, **attrs)
 

@@ -15,7 +15,7 @@ from deta.builder.cache import TopologyCache
 from deta.builder.topology import InfraTopology, build_topology
 from deta.config import DetaConfig, load_config
 from deta.formatter.graph import generate_graph_yaml, generate_mermaid
-from deta.monitor.prober import ProbeResult, close_client, probe_all
+from deta.monitor.prober import ProbeResult, close_client, probe_all, resolve_service_status, group_probes_by_service
 from deta.monitor.watcher import watch_configs
 
 HTML = """
@@ -482,13 +482,18 @@ HTML = """
       if (!svg) { console.warn('[PNG] no SVG'); return null; }
 
       const vb = svg.viewBox && svg.viewBox.baseVal;
-      const width  = Math.max(1, Math.round((vb && vb.width)  || svg.scrollWidth  || 1200));
-      const height = Math.max(1, Math.round((vb && vb.height) || svg.scrollHeight || 800));
-      console.log('[PNG] SVG dims:', width, 'x', height);
+      const vbX = (vb && vb.x) || 0;
+      const vbY = (vb && vb.y) || 0;
+      const vbW = (vb && vb.width)  || svg.scrollWidth  || 1200;
+      const vbH = (vb && vb.height) || svg.scrollHeight || 800;
+      const width  = Math.max(1, Math.round(vbW - vbX));
+      const height = Math.max(1, Math.round(vbH - vbY));
+      console.log('[PNG] SVG dims:', width, 'x', height, 'vb:', vbX, vbY, vbW, vbH);
 
       const clone = svg.cloneNode(true);
       clone.setAttribute('width',  width);
       clone.setAttribute('height', height);
+      clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
       clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       clone.style.maxWidth = 'none';
 
@@ -921,13 +926,7 @@ class ConnectionManager:
 
 
 def _probe_status(probe: ProbeResult | None) -> str:
-    if probe is None:
-        return "unknown"
-    if probe.ok:
-        return "online"
-    if probe.status is not None and probe.status >= 500:
-        return "restarting"
-    return "offline"
+    return resolve_service_status([probe]) if probe else "unknown"
 
 
 def _topology_summary(
@@ -955,49 +954,45 @@ def _topology_summary(
     }
 
 
+def _service_payload(
+    service_name: str,
+    base_payload: dict,
+    service_probes: list[ProbeResult],
+) -> dict:
+    """Build a single service payload with status and probe info."""
+    payload = dict(base_payload)
+    payload["status"] = resolve_service_status(service_probes)
+    if service_probes:
+        payload["probes"] = [
+            {
+                "url": p.url,
+                "ok": p.ok,
+                "status": p.status,
+                "latency_ms": p.latency_ms,
+                "error": p.error,
+                "host_port": p.host_port,
+            }
+            for p in service_probes
+        ]
+    return payload
+
+
 def _topology_json_with_status(
     topology: InfraTopology,
     probes: list[ProbeResult] | None,
     static_services: dict[str, dict] | None = None,
     static_meta: dict | None = None,
 ) -> str:
-    services: dict[str, dict] = {}
     source_services = static_services or {
         service_name: asdict(service)
         for service_name, service in topology.services.items()
     }
-    for service_name, base_payload in source_services.items():
-        payload = dict(base_payload)
-        # Get all probes for this service (may be multiple, one per port)
-        service_probes = [p for p in (probes or []) if p.service == service_name]
+    probes_by_svc = group_probes_by_service(probes)
 
-        # Overall status: online if any port is online
-        if not service_probes:
-            status = "unknown"
-        elif any(p.ok for p in service_probes):
-            status = "online"
-        elif any(p.status is not None and p.status >= 500 for p in service_probes):
-            status = "restarting"
-        else:
-            status = "offline"
-
-        payload["status"] = status
-
-        # Add probe info for each port
-        if service_probes:
-            payload["probes"] = [
-                {
-                    "url": p.url,
-                    "ok": p.ok,
-                    "status": p.status,
-                    "latency_ms": p.latency_ms,
-                    "error": p.error,
-                    "host_port": p.host_port,
-                }
-                for p in service_probes
-            ]
-
-        services[service_name] = payload
+    services = {
+        svc_name: _service_payload(svc_name, base, probes_by_svc.get(svc_name, []))
+        for svc_name, base in source_services.items()
+    }
 
     if static_meta is None:
         static_meta = {
@@ -1021,22 +1016,43 @@ def _service_status_map(
     topology: InfraTopology,
     probes: list[ProbeResult] | None,
 ) -> dict[str, str]:
-    probes_by_service: dict[str, list[ProbeResult]] = {}
-    for probe in probes or []:
-        probes_by_service.setdefault(probe.service, []).append(probe)
+    probes_by_svc = group_probes_by_service(probes)
+    return {
+        svc_name: resolve_service_status(probes_by_svc.get(svc_name, []))
+        for svc_name in topology.services
+    }
 
-    statuses: dict[str, str] = {}
-    for service_name in topology.services.keys():
-        service_probes = probes_by_service.get(service_name, [])
-        if not service_probes:
-            statuses[service_name] = "unknown"
-        elif any(p.ok for p in service_probes):
-            statuses[service_name] = "online"
-        elif any(p.status is not None and p.status >= 500 for p in service_probes):
-            statuses[service_name] = "restarting"
-        else:
-            statuses[service_name] = "offline"
-    return statuses
+
+def _probe_status_events(
+    prev_probes: list[ProbeResult],
+    probes: list[ProbeResult],
+    enabled: set[str],
+    ts: str,
+) -> list[dict]:
+    """Detect service status transitions from probe changes."""
+    events: list[dict] = []
+    prev_by_svc = group_probes_by_service(prev_probes)
+    curr_by_svc = group_probes_by_service(probes)
+
+    for svc in set(prev_by_svc) | set(curr_by_svc):
+        prev_status = resolve_service_status(prev_by_svc.get(svc, []))
+        curr_status = resolve_service_status(curr_by_svc.get(svc, []))
+
+        if prev_status == curr_status:
+            continue
+
+        was_online = prev_status == "online"
+        is_online = curr_status == "online"
+
+        if was_online and not is_online:
+            if curr_status == "restarting" and "service_restarting" in enabled:
+                events.append({"severity": "warning", "message": f"service restarting: {svc}", "timestamp": ts})
+            elif "service_down" in enabled:
+                events.append({"severity": "error", "message": f"service down: {svc}", "timestamp": ts})
+        elif not was_online and is_online and "service_up" in enabled:
+            events.append({"severity": "info", "message": f"service up: {svc}", "timestamp": ts})
+
+    return events
 
 
 def _compute_events(
@@ -1046,9 +1062,8 @@ def _compute_events(
     probes: list[ProbeResult] | None,
     enabled: set[str],
 ) -> list[dict]:
-    events = []
+    events: list[dict] = []
     ts = datetime.utcnow().isoformat()
-
     current_services = set(topology.services.keys())
 
     for svc in sorted(current_services - prev_services):
@@ -1060,31 +1075,7 @@ def _compute_events(
             events.append({"severity": "warning", "message": f"service removed: {svc}", "timestamp": ts})
 
     if probes and prev_probes is not None:
-        # Group probes by service
-        prev_by_service = {}
-        for p in prev_probes:
-            prev_by_service.setdefault(p.service, []).append(p)
-
-        current_by_service = {}
-        for p in probes:
-            current_by_service.setdefault(p.service, []).append(p)
-
-        # Check each service's overall status change
-        for svc in set(prev_by_service) | set(current_by_service):
-            prev_list = prev_by_service.get(svc, [])
-            curr_list = current_by_service.get(svc, [])
-
-            # Determine overall status: online if any port is online
-            prev_ok = any(p.ok for p in prev_list)
-            curr_ok = any(p.ok for p in curr_list)
-
-            if prev_ok and not curr_ok:
-                if any(p.status is not None and p.status >= 500 for p in curr_list) and "service_restarting" in enabled:
-                    events.append({"severity": "warning", "message": f"service restarting: {svc}", "timestamp": ts})
-                elif "service_down" in enabled:
-                    events.append({"severity": "error", "message": f"service down: {svc}", "timestamp": ts})
-            elif not prev_ok and curr_ok and "service_up" in enabled:
-                events.append({"severity": "info", "message": f"service up: {svc}", "timestamp": ts})
+        events.extend(_probe_status_events(prev_probes, probes, enabled, ts))
 
     return events
 

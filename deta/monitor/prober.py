@@ -100,6 +100,30 @@ class ProbeResult:
     host_port: str = ""
 
 
+def resolve_service_status(probes: list["ProbeResult"]) -> str:
+    """Determine overall service status from a list of per-port probes.
+
+    Returns one of: 'online', 'offline', 'restarting', 'unknown'.
+    """
+    if not probes:
+        return "unknown"
+    if any(p.ok for p in probes):
+        return "online"
+    if any(p.status is not None and p.status >= 500 for p in probes):
+        return "restarting"
+    return "offline"
+
+
+def group_probes_by_service(
+    probes: list["ProbeResult"] | None,
+) -> dict[str, list["ProbeResult"]]:
+    """Group probe results by service name."""
+    grouped: dict[str, list["ProbeResult"]] = {}
+    for p in probes or []:
+        grouped.setdefault(p.service, []).append(p)
+    return grouped
+
+
 def _first_resolved_binding(service: ServiceDef) -> Optional[PortBinding]:
     for binding in service.resolved_ports or []:
         if binding.is_resolved:
