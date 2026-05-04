@@ -1,5 +1,5 @@
 # code2llm call graph | /home/tom/github/semcod/deta
-# nodes: 109 | edges: 125 | modules: 16
+# nodes: 113 | edges: 125 | modules: 16
 # CC̄=2.0
 
 HUBS[20]:
@@ -11,36 +11,36 @@ HUBS[20]:
     CC=9  in:1  out:46  total:47
   deta.cli.diff
     CC=9  in:1  out:27  total:28
-  deta.formatter.graph.generate_mermaid
-    CC=10  in:3  out:21  total:24
   deta.scanner.compose._build_service_def
     CC=5  in:1  out:23  total:24
-  deta.formatter.toon.generate_toon
-    CC=2  in:1  out:21  total:22
+  deta.formatter.graph.generate_mermaid
+    CC=10  in:3  out:21  total:24
   deta.monitor.prober.probe_port
     CC=13  in:1  out:21  total:22
+  deta.formatter.toon.generate_toon
+    CC=2  in:1  out:21  total:22
   deta.scanner.python.scan_python
     CC=11  in:1  out:20  total:21
   deta.monitor.prober.probe_service
     CC=9  in:1  out:19  total:20
-  deta.monitor.alerter.print_topology_table
-    CC=8  in:1  out:19  total:20
   deta.formatter.graph.save_png
     CC=11  in:1  out:19  total:20
+  deta.monitor.alerter.print_topology_table
+    CC=8  in:0  out:19  total:19
   deta.monitor.prober.probe_all
     CC=11  in:4  out:14  total:18
   deta.formatter.graph._graph_yaml_node
     CC=8  in:1  out:16  total:17
-  deta.scanner.env.load_env_file
-    CC=12  in:2  out:14  total:16
   deta.web.app._topology_json_with_status
     CC=6  in:1  out:15  total:16
-  deta.cli._write_outputs
-    CC=8  in:3  out:12  total:15
+  deta.scanner.env.load_env_file
+    CC=12  in:2  out:14  total:16
+  deta.monitor.alerter.alert_anomaly
+    CC=6  in:0  out:16  total:16
   deta.config.load_config
     CC=4  in:8  out:7  total:15
-  deta.scanner.openapi.scan_openapi
-    CC=12  in:0  out:14  total:14
+  deta.cli._write_outputs
+    CC=8  in:3  out:12  total:15
   deta.scanner.ports.parse_port
     CC=10  in:2  out:12  total:14
 
@@ -99,8 +99,8 @@ MODULES:
     pre_deploy_check  CC=7  out:10
   deta.monitor.alerter  [5 funcs]
     _get_console  CC=3  out:1
-    alert_anomaly  CC=2  out:10
-    alert_probe_failure  CC=4  out:3
+    alert_anomaly  CC=6  out:16
+    alert_probe_failure  CC=6  out:9
     alert_probe_success  CC=2  out:3
     print_topology_table  CC=8  out:19
   deta.monitor.prober  [12 funcs]
@@ -159,8 +159,12 @@ MODULES:
     _topology_json_with_status  CC=6  out:15
     create_app  CC=5  out:121
     run_dashboard  CC=5  out:6
-  project.map.toon  [1 funcs]
+  project.map.toon  [5 funcs]
+    alert_anomaly  CC=0  out:0
+    alert_probe_failure  CC=0  out:0
+    alert_probe_success  CC=0  out:0
     build_topology  CC=0  out:0
+    print_topology_table  CC=0  out:0
 
 EDGES:
   deta.config.load_config → deta.config._load_yaml
@@ -168,11 +172,11 @@ EDGES:
   deta.cli._get_topology → project.map.toon.build_topology
   deta.cli._filter_anomalies → deta.cli._meets_severity_threshold
   deta.cli._filter_anomalies → deta.cli._is_anomaly_enabled
-  deta.cli._print_summary → deta.monitor.alerter.print_topology_table
-  deta.cli._print_summary → deta.monitor.alerter.alert_anomaly
+  deta.cli._print_summary → project.map.toon.print_topology_table
+  deta.cli._print_summary → project.map.toon.alert_anomaly
   deta.cli._probe_once → deta.monitor.prober.probe_all
-  deta.cli._probe_once → deta.monitor.alerter.alert_probe_success
-  deta.cli._probe_once → deta.monitor.alerter.alert_probe_failure
+  deta.cli._probe_once → project.map.toon.alert_probe_success
+  deta.cli._probe_once → project.map.toon.alert_probe_failure
   deta.cli._write_outputs → deta.formatter.toon.save_toon
   deta.cli._write_outputs → deta.formatter.graph.save_graph_yaml
   deta.cli._write_outputs → deta.formatter.graph.save_mermaid
@@ -203,13 +207,13 @@ EDGES:
   deta.web.app._compute_events → deta.web.app._probe_status_events
   deta.web.app.run_dashboard → deta.config.load_config
   deta.web.app.run_dashboard → deta.web.app.create_app
-  deta.monitor.alerter.alert_anomaly → deta.monitor.alerter._get_console
-  deta.monitor.alerter.alert_probe_failure → deta.monitor.alerter._get_console
-  deta.monitor.alerter.alert_probe_success → deta.monitor.alerter._get_console
-  deta.monitor.alerter.print_topology_table → deta.monitor.alerter._get_console
   deta.monitor.prober._first_resolved_binding → deta.scanner.ports.parse_port
   deta.monitor.prober._extract_health_url → deta.monitor.prober._first_resolved_binding
   deta.monitor.prober._extract_health_url → deta.scanner.ports.published_url
   deta.monitor.prober._service_probe_targets → deta.monitor.prober._first_resolved_binding
   deta.monitor.prober._service_probe_targets → deta.monitor.prober._extract_host_port_from_url
   deta.monitor.prober._service_probe_targets → deta.scanner.ports.published_url
+  deta.monitor.prober.probe_service → deta.monitor.prober._extract_health_url
+  deta.monitor.prober.probe_service → deta.monitor.prober._service_probe_targets
+  deta.monitor.prober.probe_service → deta.monitor.prober._get_client
+  deta.monitor.prober.probe_service → deta.monitor.prober._extract_host_port_from_url

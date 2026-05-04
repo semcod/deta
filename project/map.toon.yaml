@@ -1,15 +1,16 @@
-# deta | 37f 5524L | python:34,shell:2,less:1 | 2026-05-04
-# stats: 171 func | 18 cls | 37 mod | CC̄=4.3 | critical:14 | cycles:0
+# deta | 38f 5578L | python:35,shell:2,less:1 | 2026-05-04
+# stats: 171 func | 18 cls | 38 mod | CC̄=4.4 | critical:14 | cycles:0
 # alerts[5]: CC probe_port=13; CC format_probe_change=12; CC load_env_file=12; CC scan_openapi=12; CC _print_status_summary=11
 # hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; generate_toon fan=15
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[37]:
+M[38]:
   app.doql.less,33
+  debug_deta.py,15
   deta/__init__.py,24
   deta/builder/__init__.py,8
   deta/builder/cache.py,84
-  deta/builder/topology.py,163
+  deta/builder/topology.py,182
   deta/cli.py,545
   deta/config.py,275
   deta/core.py,27
@@ -21,7 +22,7 @@ M[37]:
   deta/integration/__init__.py,18
   deta/integration/semcod.py,130
   deta/monitor/__init__.py,21
-  deta/monitor/alerter.py,100
+  deta/monitor/alerter.py,120
   deta/monitor/prober.py,444
   deta/monitor/watcher.py,117
   deta/scanner/__init__.py,18
@@ -43,6 +44,7 @@ M[37]:
   tests/test_ports.py,53
   tests/test_wup.py,12
 D:
+  debug_deta.py:
   deta/__init__.py:
   deta/builder/__init__.py:
   deta/builder/cache.py:

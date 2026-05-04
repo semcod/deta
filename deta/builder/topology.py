@@ -16,6 +16,18 @@ from deta.scanner.compose import ServiceDef, scan_compose
 from deta.scanner.openapi import EndpointDef, scan_openapi
 
 
+def _is_hardcoded_secret_value(value: str) -> bool:
+    """Detect literal secret values while allowing compose env interpolation syntax."""
+    if not value:
+        return False
+    stripped = value.strip()
+    if not stripped:
+        return False
+    if stripped.startswith("${") and stripped.endswith("}"):
+        return False
+    return True
+
+
 class InfraTopology:
     """Represents the infrastructure topology with services and dependencies."""
     
@@ -134,14 +146,19 @@ class InfraTopology:
         
         # Hardcoded secrets
         for name, svc in self.services.items():
-            for key, val in svc.environment.items():
-                if "secret" in key.lower() and val and not val.startswith("${"):
+            raw_environment = svc.environment_raw or svc.environment
+            for key, val in raw_environment.items():
+                if "secret" in key.lower() and _is_hardcoded_secret_value(str(val)):
                     anomalies.append({
                         "type": "hardcoded_secret",
                         "service": name,
                         "env_key": key,
                         "severity": "critical",
                         "file": svc.source_file,
+                        "remediation_hints": [
+                            f"Move {key} in {name} to environment/.env and reference it as ${{{key}}}",
+                            "Avoid literal secrets in docker-compose files."
+                        ],
                     })
         
         return anomalies
@@ -157,7 +174,7 @@ class InfraTopology:
         }, indent=2)
 
 
-def build_topology(root: Path, max_depth: int = 3) -> InfraTopology:
+def build_topology(root: Path, max_depth: int = 3, config: Any = None) -> InfraTopology:
     """
     Build complete infrastructure topology from scanned manifests.
     
@@ -171,7 +188,18 @@ def build_topology(root: Path, max_depth: int = 3) -> InfraTopology:
     topology = InfraTopology()
     
     # Scan and add services
-    services = scan_compose(root, max_depth)
+    include_patterns = None
+    exclude_patterns = None
+    if config and getattr(config, "scan", None):
+        include_patterns = getattr(config.scan, "include_patterns", None)
+        exclude_patterns = getattr(config.scan, "exclude_patterns", None)
+
+    services = scan_compose(
+        root,
+        max_depth,
+        include_patterns=include_patterns,
+        exclude_patterns=exclude_patterns,
+    )
     topology.add_services(services)
     
     # Scan and add endpoints

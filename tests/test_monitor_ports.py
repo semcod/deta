@@ -1,6 +1,9 @@
 """Tests for monitor port extraction logic."""
 
+import asyncio
+
 from deta.scanner.compose import ServiceDef, PortBinding
+from deta.monitor.prober import probe_all
 
 
 def test_service_rows_port_fallback_to_raw():
@@ -65,3 +68,17 @@ def test_service_rows_port_no_ports():
     
     assert pub_ports == []
     assert raw_ports == []
+
+
+def test_probe_all_skips_services_without_targets():
+    """Services without explicit health URL and without ports should not emit DOWN probes."""
+    svc_def = ServiceDef(
+        name="worker",
+        image="busybox",
+        ports=[],
+        resolved_ports=[],
+        healthcheck=None,
+    )
+
+    results = asyncio.run(probe_all([svc_def]))
+    assert results == []

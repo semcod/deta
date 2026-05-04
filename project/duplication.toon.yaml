@@ -1,12 +1,12 @@
-# redup/duplication | 3 groups | 25f 4643L | 2026-05-04
+# redup/duplication | 3 groups | 26f 4696L | 2026-05-04
 
 SUMMARY:
-  files_scanned: 25
-  total_lines:   4643
+  files_scanned: 26
+  total_lines:   4696
   dup_groups:    3
   dup_fragments: 6
   saved_lines:   22
-  scan_ms:       2950
+  scan_ms:       2999
 
 HOTSPOTS[2] (files with most duplication):
   deta/dsl/commands.py  dup=32L  groups=2  frags=4  (0.7%)

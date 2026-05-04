@@ -74,7 +74,7 @@ def _terminate_pid(pid: int) -> bool:
 
 
 def _get_topology(root: Path, depth: int, config: DetaConfig = None) -> InfraTopology:
-    return build_topology(root, depth)
+    return build_topology(root, depth, config)
 
 
 _ANOMALY_CHECK_MAP = {

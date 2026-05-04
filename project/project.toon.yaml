@@ -1,4 +1,4 @@
-# deta | 309 func | 18f | 13025L | python | 2026-05-04
+# deta | 309 func | 18f | 14005L | python | 2026-05-04
 
 HEALTH:
   CC̄=2.0  critical=14 (limit:10)  dup=0  cycles=2
@@ -15,10 +15,10 @@ ALERTS[19]:
   !   high_fan_out     probe_service = 12 (limit:10)
   !   high_fan_out     probe_all = 12 (limit:10)
 
-MODULES[43] (top by size):
+MODULES[44] (top by size):
+  M[infra-map.json] 1658L C:0 F:0 CC↑0 D:0 (json)
   M[deta/web/app.py] 1466L C:1 F:14 CC↑11 D:1 (python)
-  M[project/calls.yaml] 1459L C:0 F:0 CC↑0 D:0 (yaml)
-  M[infra-map.json] 757L C:0 F:0 CC↑0 D:0 (json)
+  M[project/calls.yaml] 1461L C:0 F:0 CC↑0 D:0 (yaml)
   M[deta/cli.py] 545L C:0 F:19 CC↑11 D:0 (python)
   M[goal.yaml] 512L C:0 F:0 CC↑0 D:0 (yaml)
   M[deta/monitor/prober.py] 443L C:1 F:16 CC↑13 D:4 (python)
@@ -31,7 +31,7 @@ MODULES[43] (top by size):
   M[deta/formatter/graph.py] 182L C:0 F:11 CC↑11 D:2 (python)
   M[deta/formatter/toon.py] 182L C:0 F:13 CC↑5 D:2 (python)
   M[deta/scanner/env.py] 140L C:0 F:5 CC↑12 D:2 (python)
-  LANGS: python:24/yaml:11/yml:3/shell:2/json:1/txt:1/toml:1
+  LANGS: python:25/yaml:11/yml:3/shell:2/json:1/txt:1/toml:1
 
 HOTSPOTS[10]:
   ★ create_app fan=76  // Orchestrates 76 calls
@@ -44,8 +44,8 @@ REFACTOR[10]:
   [1] H/H Split god module deta/cli.py (545L, 0 classes)
   [2] H/H Split god module deta/web/app.py (1466L, 1 classes)
   [3] H/H Split god module goal.yaml (512L, 0 classes)
-  [4] H/H Split god module infra-map.json (757L, 0 classes)
-  [5] H/H Split god module project/calls.yaml (1459L, 0 classes)
+  [4] H/H Split god module infra-map.json (1658L, 0 classes)
+  [5] H/H Split god module project/calls.yaml (1461L, 0 classes)
 
 EVOLUTION:
-  2026-05-04 CC̄=2.0 crit=14 13025L // Automated analysis
+  2026-05-04 CC̄=2.0 crit=14 14005L // Automated analysis

@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "deta"
-version = "0.2.42"
+version = "0.2.43"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

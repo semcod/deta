@@ -54,12 +54,19 @@ def alert_anomaly(anomaly: dict):
 def alert_probe_failure(result: ProbeResult):
     """Display a failed probe result."""
     console = _get_console()
-    
+
     hints = [
         f"Inspect logs: `docker logs --tail=100 {result.service}`",
-        f"Verify the service binds to the correct host/port mapping for {result.url}",
-        "Ensure dependencies for this service are fully healthy."
     ]
+    if result.url:
+        hints.append(
+            f"Verify the service binds to the correct host/port mapping for {result.url}"
+        )
+    else:
+        hints.append(
+            "Verify the service exposes a published port or explicit HTTP healthcheck URL."
+        )
+    hints.append("Ensure dependencies for this service are fully healthy.")
 
     if console:
         from rich import print as rprint

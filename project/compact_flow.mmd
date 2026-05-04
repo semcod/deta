@@ -8,17 +8,17 @@ flowchart TD
     deta__scanner["deta.scanner<br/>28 funcs"]
     deta__web["deta.web<br/>14 funcs"]
     project__map["project.map<br/>171 funcs"]
-    deta__cli ==>|13| deta__monitor
     deta__web ==>|12| deta__monitor
+    deta__cli ==>|10| project__map
     deta__cli ==>|7| deta__config
     deta__monitor ==>|7| deta__scanner
     deta__formatter ==>|7| deta__monitor
+    deta__cli ==>|4| deta__monitor
     deta__cli ==>|4| deta__formatter
     deta__cli ==>|4| deta__dsl
     deta__web ==>|4| deta__formatter
     deta__integration -->|3| project__map
     deta__dsl -->|2| deta__monitor
-    deta__cli -->|1| project__map
     deta__cli -->|1| deta__web
     deta__web -->|1| deta__config
     deta__integration -->|1| deta__formatter

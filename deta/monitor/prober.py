@@ -435,9 +435,8 @@ async def probe_all(
                     probe_factories.append(
                         lambda service=service, binding=binding: probe_port(service, binding)
                     )
-            else:
-                # No ports to probe
-                probe_factories.append(lambda service=service: _noop_probe(service))
 
     tasks = [asyncio.create_task(_run_limited(factory)) for factory in probe_factories]
+    if not tasks:
+        return []
     return await asyncio.gather(*tasks)

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.44] - 2026-05-04
+
+### Docs
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/test_compose_env.py
+- Update tests/test_monitor_ports.py
+
+### Other
+- Update app.doql.less
+- Update deta/builder/topology.py
+- Update deta/cli.py
+- Update deta/monitor/alerter.py
+- Update deta/monitor/prober.py
+- Update deta/scanner/compose.py
+- Update infra-map.json
+- Update project/analysis.toon.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- ... and 10 more files
+
 ## [0.2.43] - 2026-05-04
 
 ### Docs

@@ -5,6 +5,7 @@ Docker-compose manifest scanner.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import fnmatch
 from pathlib import Path
 from typing import Any
 
@@ -26,10 +27,24 @@ class ServiceDef:
     healthcheck: dict | None = None
     depends_on: list[str] = field(default_factory=list)
     environment: dict = field(default_factory=dict)
+    environment_raw: dict = field(default_factory=dict)
     labels: dict = field(default_factory=dict)
     source_file: str = ""
     resolved_ports: list[PortBinding] = field(default_factory=list)
     env_resolved: dict[str, str] = field(default_factory=dict)
+
+
+def _matches_any_pattern(path: Path, root: Path, patterns: list[str] | None) -> bool:
+    """Return True when file path matches any glob pattern (name or relative path)."""
+    if not patterns:
+        return False
+
+    rel_path = path.relative_to(root).as_posix()
+    filename = path.name
+    for pattern in patterns:
+        if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(filename, pattern):
+            return True
+    return False
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -65,7 +80,12 @@ def _load_yaml_file(file_path: Path, yaml_loader) -> dict:
         return {}
 
 
-def _collect_compose_files(root: Path, max_depth: int) -> dict[Path, list[Path]]:
+def _collect_compose_files(
+    root: Path,
+    max_depth: int,
+    include_patterns: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
+) -> dict[Path, list[Path]]:
     """
     Group compose files by their directory (project).
     Files in the same directory are merged (Docker Compose behavior).
@@ -85,6 +105,12 @@ def _collect_compose_files(root: Path, max_depth: int) -> dict[Path, list[Path]]
             if compose_file in seen:
                 continue
             seen.add(compose_file)
+
+            if _matches_any_pattern(compose_file, root, exclude_patterns):
+                continue
+            if include_patterns and not _matches_any_pattern(compose_file, root, include_patterns):
+                continue
+
             depth = len(compose_file.relative_to(root).parts)
             if depth > max_depth:
                 continue
@@ -145,6 +171,10 @@ def _build_service_def(
             k: interpolate(str(v), layered_env)
             for k, v in raw_environment.items()
         }
+        raw_environment_as_str = {
+            k: str(v)
+            for k, v in raw_environment.items()
+        }
         effective_env = {**layered_env, **interpolated_env}
 
         raw_ports = _parse_ports(svc.get("ports", []))
@@ -165,6 +195,7 @@ def _build_service_def(
             healthcheck=healthcheck,
             depends_on=_parse_depends_on(svc.get("depends_on", [])),
             environment=interpolated_env,
+            environment_raw=raw_environment_as_str,
             labels=_parse_labels(svc.get("labels", {})),
             source_file=primary_source,
             resolved_ports=resolved_ports,
@@ -174,7 +205,12 @@ def _build_service_def(
         return None
 
 
-def scan_compose(root: Path, max_depth: int = 3) -> list[ServiceDef]:
+def scan_compose(
+    root: Path,
+    max_depth: int = 3,
+    include_patterns: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
+) -> list[ServiceDef]:
     """
     Scan for docker-compose files and extract service definitions.
 
@@ -186,7 +222,12 @@ def scan_compose(root: Path, max_depth: int = 3) -> list[ServiceDef]:
         List of ServiceDef objects
     """
     yaml_loader = _get_yaml_loader()
-    project_files = _collect_compose_files(root, max_depth)
+    project_files = _collect_compose_files(
+        root,
+        max_depth,
+        include_patterns=include_patterns,
+        exclude_patterns=exclude_patterns,
+    )
     all_services: list[ServiceDef] = []
 
     for project_dir, compose_files in project_files.items():

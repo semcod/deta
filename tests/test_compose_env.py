@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from deta.scanner.compose import scan_compose
-from deta.scanner.ports import parse_port
 
 
 def test_env_driven_ports(tmp_path: Path):
@@ -120,3 +119,77 @@ def test_compose_override_merging(tmp_path: Path):
     # Environment should be merged
     assert svc.environment.get("POSTGRES_DB") == "app"
     assert svc.environment.get("POSTGRES_PASSWORD") == "secret"
+
+
+def test_scan_compose_respects_include_exclude_patterns(tmp_path: Path):
+    root_compose = tmp_path / "docker-compose.yml"
+    root_compose.write_text(
+        "services:\n"
+        "  root:\n"
+        "    image: nginx\n"
+    )
+
+    sub = tmp_path / "module"
+    sub.mkdir()
+    sub_compose = sub / "docker-compose.yml"
+    sub_compose.write_text(
+        "services:\n"
+        "  sub:\n"
+        "    image: httpd\n"
+    )
+
+    services = scan_compose(
+        tmp_path,
+        max_depth=2,
+        include_patterns=["module/docker-compose*.yml"],
+    )
+    assert {svc.name for svc in services} == {"sub"}
+
+    services = scan_compose(
+        tmp_path,
+        max_depth=2,
+        exclude_patterns=["module/**"],
+    )
+    assert {svc.name for svc in services} == {"root"}
+
+
+def test_hardcoded_secret_detection_ignores_compose_interpolation(tmp_path: Path):
+    compose = tmp_path / "docker-compose.yml"
+    compose.write_text(
+        "services:\n"
+        "  app:\n"
+        "    image: nginx\n"
+        "    environment:\n"
+        "      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me}\n"
+    )
+
+    from deta.builder.topology import InfraTopology
+
+    services = scan_compose(tmp_path, max_depth=1)
+    topo = InfraTopology()
+    topo.add_services(services)
+    anomalies = topo.detect_anomalies()
+
+    assert not any(a["type"] == "hardcoded_secret" for a in anomalies)
+
+
+def test_hardcoded_secret_detection_flags_literal_value(tmp_path: Path):
+    compose = tmp_path / "docker-compose.yml"
+    compose.write_text(
+        "services:\n"
+        "  app:\n"
+        "    image: nginx\n"
+        "    environment:\n"
+        "      - SECRET_KEY=plain-text-secret\n"
+    )
+
+    from deta.builder.topology import InfraTopology
+
+    services = scan_compose(tmp_path, max_depth=1)
+    topo = InfraTopology()
+    topo.add_services(services)
+    anomalies = topo.detect_anomalies()
+
+    hardcoded = [a for a in anomalies if a["type"] == "hardcoded_secret"]
+    assert len(hardcoded) == 1
+    assert hardcoded[0]["service"] == "app"
