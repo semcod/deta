@@ -63,6 +63,13 @@ class InfraTopology:
                     "service": name,
                     "severity": "warning",
                     "file": svc.source_file,
+                    "remediation_hints": [
+                        f"Add a 'healthcheck' block to {name} in {svc.source_file}",
+                        "Ensure the service implements a /health endpoint"
+                    ],
+                    "recommended_mcp_tools": [
+                        {"tool": "view_file", "args": {"path": svc.source_file}}
+                    ]
                 })
         
         # Dependency cycles
@@ -91,6 +98,12 @@ class InfraTopology:
                             "port": raw_host_port,
                             "services": [port_map[key], name],
                             "severity": "error",
+                            "remediation_hints": [
+                                f"Change the host port mapping for {name} or {port_map[key]} to avoid collision on port {raw_host_port}"
+                            ],
+                            "recommended_mcp_tools": [
+                                {"tool": "view_file", "args": {"path": svc.source_file}}
+                            ]
                         })
                     port_map[key] = name
                 continue
@@ -110,6 +123,12 @@ class InfraTopology:
                         "host": host,
                         "services": [port_map[key], name],
                         "severity": "error",
+                        "remediation_hints": [
+                            f"Change the host port mapping for {name} or {port_map[key]} to avoid collision on port {binding.host_port}"
+                        ],
+                        "recommended_mcp_tools": [
+                            {"tool": "view_file", "args": {"path": svc.source_file}}
+                        ]
                     })
                 port_map[key] = name
         

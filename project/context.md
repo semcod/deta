@@ -6,15 +6,15 @@
 - **Primary Language**: python
 - **Languages**: python: 24, yaml: 11, yml: 3, shell: 2, json: 1
 - **Analysis Mode**: static
-- **Total Functions**: 307
+- **Total Functions**: 309
 - **Total Classes**: 15
 - **Modules**: 43
-- **Entry Points**: 186
+- **Entry Points**: 188
 
 ## Architecture by Module
 
 ### project.map.toon
-- **Functions**: 169
+- **Functions**: 171
 - **File**: `map.toon.yaml`
 
 ### deta.cli
@@ -119,12 +119,6 @@ Args:
 R
 - **Calls**: root.rglob, len, deta.scanner.openapi._load, None.get, data.get, None.items, api_file.relative_to, data.get
 
-### deta.dsl.commands.format_probe_change
-> Compare probe results and generate DSL commands for status changes.
-
-Returns list of SERVICE_UP/SERVICE_DOWN commands.
-- **Calls**: deta.monitor.prober.group_probes_by_service, deta.monitor.prober.group_probes_by_service, set, set, prev_by_svc.get, curr_by_svc.get, any, any
-
 ### deta.web.app.ConnectionManager.broadcast
 - **Calls**: json.dumps, len, list, zip, message.encode, asyncio.gather, isinstance, self.disconnect
 
@@ -135,12 +129,6 @@ This function checks for critical anomalies before deployment and returns
 a pass/fail status along with
 - **Calls**: Path, project.map.toon.build_topology, topology.detect_anomalies, issues.append, issues.append, len, a.get, a.get
 
-### deta.dsl.commands.format_service_changes
-> Compare services between topologies and generate DSL commands.
-
-Returns list of SERVICE_ADDED/SERVICE_REMOVED commands.
-- **Calls**: set, set, old_topology.services.keys, new_topology.services.keys, commands.append, commands.append, deta.dsl.commands.service_added, deta.dsl.commands.service_removed
-
 ### deta.scanner.compose.scan_compose
 > Scan for docker-compose files and extract service definitions.
 
@@ -149,10 +137,6 @@ Args:
     max_depth: Maximum directory depth to scan
 
 - **Calls**: deta.scanner.compose._get_yaml_loader, deta.scanner.compose._collect_compose_files, project_files.items, deta.scanner.compose._merge_services, merged_services.items, deta.scanner.compose._build_service_def, all_services.append
-
-### deta.dsl.commands.status_summary
-> Generate STATUS_SUMMARY command.
-- **Calls**: ChangeDSL, None.strftime, str, str, str, str, datetime.now
 
 ### deta.integration.semcod.generate_for_pyqual
 > Generate dependency data for pyqual (Python quality checker).
@@ -164,12 +148,6 @@ Args:
 Returns:
     
 - **Calls**: Path, deta.scanner.python.scan_python, list, set, None.append, None.update
-
-### deta.dsl.commands.format_port_changes
-> Compare port bindings between topologies and generate DSL commands.
-
-Returns list of PORT_ADDED/PORT_REMOVED commands.
-- **Calls**: set, set, commands.extend, deta.dsl.commands._diff_service_ports, old_topology.services.get, new_topology.services.get
 
 ### deta.integration.semcod.generate_for_sumd
 > Generate infrastructure report for sumd pipeline.
@@ -235,6 +213,14 @@ Args:
 
 ### project.map.toon._print_summary
 
+### project.map.toon._resolve_formats
+
+### project.map.toon._probe_once
+
+### project.map.toon._write_outputs
+
+### project.map.toon.scan
+
 ## Process Flows
 
 Key execution flows identified:
@@ -255,46 +241,48 @@ scan_openapi [deta.scanner.openapi]
   └─> _load
 ```
 
-### Flow 4: format_probe_change
-```
-format_probe_change [deta.dsl.commands]
-  └─ →> group_probes_by_service
-  └─ →> group_probes_by_service
-```
-
-### Flow 5: broadcast
+### Flow 4: broadcast
 ```
 broadcast [deta.web.app.ConnectionManager]
 ```
 
-### Flow 6: pre_deploy_check
+### Flow 5: pre_deploy_check
 ```
 pre_deploy_check [deta.integration.semcod]
   └─ →> build_topology
 ```
 
-### Flow 7: format_service_changes
-```
-format_service_changes [deta.dsl.commands]
-```
-
-### Flow 8: scan_compose
+### Flow 6: scan_compose
 ```
 scan_compose [deta.scanner.compose]
   └─> _get_yaml_loader
   └─> _collect_compose_files
 ```
 
-### Flow 9: status_summary
-```
-status_summary [deta.dsl.commands]
-```
-
-### Flow 10: generate_for_pyqual
+### Flow 7: generate_for_pyqual
 ```
 generate_for_pyqual [deta.integration.semcod]
   └─ →> scan_python
       └─> _load_toml
+```
+
+### Flow 8: generate_for_sumd
+```
+generate_for_sumd [deta.integration.semcod]
+  └─ →> build_topology
+  └─ →> save_toon
+      └─> generate_toon
+```
+
+### Flow 9: generate_for_vallm
+```
+generate_for_vallm [deta.integration.semcod]
+  └─ →> build_topology
+```
+
+### Flow 10: __str__
+```
+__str__ [deta.dsl.commands.ChangeDSL]
 ```
 
 ## Key Classes
@@ -370,6 +358,9 @@ Key functions that process and transform data:
 > Parse configuration dictionary into DetaConfig object.
 - **Output to**: DetaConfig, WatchConfig, ScanConfig, AnomalyConfig, MonitorConfig
 
+### deta.cli._resolve_formats
+- **Output to**: list, None.lower, normalized.append, item.strip
+
 ### deta.scanner.python._parse_requirements
 > Parse requirements.txt file and extract package names.
 - **Output to**: open, line.strip, None.strip, line.startswith, line.startswith
@@ -396,6 +387,24 @@ Key functions that process and transform data:
 ### deta.scanner.compose._parse_labels
 > Parse labels from list or dict format.
 - **Output to**: isinstance, isinstance, isinstance, item.split
+
+### deta.dsl.commands.format_probe_change
+> Compare probe results and generate DSL commands for status changes.
+
+Returns list of SERVICE_UP/SERV
+- **Output to**: deta.monitor.prober.group_probes_by_service, deta.monitor.prober.group_probes_by_service, set, set, prev_by_svc.get
+
+### deta.dsl.commands.format_port_changes
+> Compare port bindings between topologies and generate DSL commands.
+
+Returns list of PORT_ADDED/PORT
+- **Output to**: set, set, commands.extend, deta.dsl.commands._diff_service_ports, old_topology.services.get
+
+### deta.dsl.commands.format_service_changes
+> Compare services between topologies and generate DSL commands.
+
+Returns list of SERVICE_ADDED/SERVIC
+- **Output to**: set, set, old_topology.services.keys, new_topology.services.keys, commands.append
 
 ### deta.formatter.toon._format_header
 > Generate header section.
@@ -443,14 +452,6 @@ Key functions that process and transform data:
 
 ### project.map.toon.format_probe_change
 
-### project.map.toon.format_port_changes
-
-### project.map.toon.format_service_changes
-
-### project.map.toon._format_header
-
-### project.map.toon._format_health
-
 ## Behavioral Patterns
 
 ### recursion__deep_merge
@@ -488,12 +489,12 @@ Functions exposed as public API (no underscore prefix):
 - `deta.scanner.env.load_env_file` - 14 calls
 - `deta.scanner.ports.parse_port` - 12 calls
 - `deta.dsl.commands.format_probe_change` - 12 calls
+- `deta.cli.scan` - 10 calls
 - `deta.web.app.ConnectionManager.broadcast` - 10 calls
 - `deta.monitor.alerter.alert_anomaly` - 10 calls
 - `deta.monitor.watcher.watch_configs` - 10 calls
 - `deta.integration.semcod.pre_deploy_check` - 10 calls
 - `deta.formatter.graph.generate_graph_yaml` - 10 calls
-- `deta.cli.scan` - 10 calls
 - `deta.scanner.env.discover_env` - 9 calls
 - `deta.dsl.commands.format_service_changes` - 8 calls
 - `deta.config.load_config` - 7 calls
@@ -505,10 +506,10 @@ Functions exposed as public API (no underscore prefix):
 - `deta.integration.semcod.generate_for_pyqual` - 6 calls
 - `deta.dsl.commands.format_port_changes` - 6 calls
 - `deta.dsl.commands.service_down` - 5 calls
+- `deta.cli.monitor` - 4 calls
 - `deta.scanner.env.merge_env_files` - 4 calls
 - `deta.integration.semcod.generate_for_sumd` - 4 calls
 - `deta.integration.semcod.generate_for_vallm` - 4 calls
-- `deta.cli.monitor` - 4 calls
 - `deta.monitor.alerter.alert_probe_failure` - 3 calls
 - `deta.monitor.alerter.alert_probe_success` - 3 calls
 - `deta.dsl.commands.service_up` - 3 calls
@@ -530,9 +531,6 @@ graph TD
     scan_openapi --> len
     scan_openapi --> _load
     scan_openapi --> get
-    format_probe_change --> group_probes_by_serv
-    format_probe_change --> set
-    format_probe_change --> get
     broadcast --> dumps
     broadcast --> len
     broadcast --> list
@@ -542,13 +540,16 @@ graph TD
     pre_deploy_check --> build_topology
     pre_deploy_check --> detect_anomalies
     pre_deploy_check --> append
-    format_service_chang --> set
-    format_service_chang --> keys
-    format_service_chang --> append
     scan_compose --> _get_yaml_loader
     scan_compose --> _collect_compose_fil
     scan_compose --> items
     scan_compose --> _merge_services
+    generate_for_pyqual --> Path
+    generate_for_pyqual --> scan_python
+    generate_for_pyqual --> list
+    generate_for_pyqual --> set
+    generate_for_pyqual --> append
+    generate_for_sumd --> Path
 ```
 
 ## Reverse Engineering Guidelines

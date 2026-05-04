@@ -1,4 +1,4 @@
-# deta | 307 func | 18f | 12985L | python | 2026-05-01
+# deta | 309 func | 18f | 13025L | python | 2026-05-04
 
 HEALTH:
   CC̄=2.0  critical=14 (limit:10)  dup=0  cycles=2
@@ -17,15 +17,15 @@ ALERTS[19]:
 
 MODULES[43] (top by size):
   M[deta/web/app.py] 1466L C:1 F:14 CC↑11 D:1 (python)
-  M[project/calls.yaml] 1431L C:0 F:0 CC↑0 D:0 (yaml)
+  M[project/calls.yaml] 1459L C:0 F:0 CC↑0 D:0 (yaml)
   M[infra-map.json] 757L C:0 F:0 CC↑0 D:0 (json)
   M[deta/cli.py] 545L C:0 F:19 CC↑11 D:0 (python)
   M[goal.yaml] 512L C:0 F:0 CC↑0 D:0 (yaml)
   M[deta/monitor/prober.py] 443L C:1 F:16 CC↑13 D:4 (python)
-  M[project/map.toon.yaml] 292L C:0 F:169 CC↑0 D:2 (yaml)
+  M[project/map.toon.yaml] 294L C:0 F:171 CC↑0 D:2 (yaml)
   M[deta/scanner/compose.py] 278L C:1 F:13 CC↑7 D:0 (python)
   M[deta/config.py] 274L C:8 F:3 CC↑9 D:2 (python)
-  M[deta/dsl/commands.py] 257L C:1 F:16 CC↑12 D:0 (python)
+  M[deta/dsl/commands.py] 257L C:1 F:16 CC↑12 D:1 (python)
   M[infra-graph.yaml] 241L C:0 F:0 CC↑0 D:0 (yaml)
   M[project/calls.toon.yaml] 215L C:0 F:0 CC↑0 D:0 (yaml)
   M[deta/formatter/graph.py] 182L C:0 F:11 CC↑11 D:2 (python)
@@ -45,7 +45,7 @@ REFACTOR[10]:
   [2] H/H Split god module deta/web/app.py (1466L, 1 classes)
   [3] H/H Split god module goal.yaml (512L, 0 classes)
   [4] H/H Split god module infra-map.json (757L, 0 classes)
-  [5] H/H Split god module project/calls.yaml (1431L, 0 classes)
+  [5] H/H Split god module project/calls.yaml (1459L, 0 classes)
 
 EVOLUTION:
-  2026-05-01 CC̄=2.0 crit=14 12985L // Automated analysis
+  2026-05-04 CC̄=2.0 crit=14 13025L // Automated analysis

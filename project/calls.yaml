@@ -5,76 +5,6 @@ stats:
   total_edges: 125
   modules_count: 16
 nodes:
-  deta.formatter.toon.generate_toon:
-    name: generate_toon
-    module: deta.formatter.toon
-    line: 144
-    cyclomatic_complexity: 2
-    calls_out: 21
-    calls_in: 1
-  deta.formatter.toon._format_endpoints:
-    name: _format_endpoints
-    module: deta.formatter.toon
-    line: 107
-    cyclomatic_complexity: 5
-    calls_out: 9
-    calls_in: 1
-  deta.dsl.commands.format_port_changes:
-    name: format_port_changes
-    module: deta.dsl.commands
-    line: 213
-    cyclomatic_complexity: 2
-    calls_out: 6
-    calls_in: 0
-  deta.monitor.prober.group_probes_by_service:
-    name: group_probes_by_service
-    module: deta.monitor.prober
-    line: 117
-    cyclomatic_complexity: 3
-    calls_out: 2
-    calls_in: 9
-  deta.formatter.graph._save_output:
-    name: _save_output
-    module: deta.formatter.graph
-    line: 83
-    cyclomatic_complexity: 1
-    calls_out: 1
-    calls_in: 2
-  deta.dsl.commands.format_probe_change:
-    name: format_probe_change
-    module: deta.dsl.commands
-    line: 130
-    cyclomatic_complexity: 12
-    calls_out: 12
-    calls_in: 0
-  deta.scanner.ports.published_url:
-    name: published_url
-    module: deta.scanner.ports
-    line: 110
-    cyclomatic_complexity: 4
-    calls_out: 1
-    calls_in: 5
-  deta.scanner.compose._build_service_def:
-    name: _build_service_def
-    module: deta.scanner.compose
-    line: 130
-    cyclomatic_complexity: 5
-    calls_out: 23
-    calls_in: 1
-  deta.formatter.graph.generate_mermaid:
-    name: generate_mermaid
-    module: deta.formatter.graph
-    line: 96
-    cyclomatic_complexity: 10
-    calls_out: 21
-    calls_in: 3
-  deta.monitor.watcher._detect_change_type:
-    name: _detect_change_type
-    module: deta.monitor.watcher
-    line: 61
-    cyclomatic_complexity: 8
-    calls_out: 0
-    calls_in: 1
   deta.scanner.python.scan_python:
     name: scan_python
     module: deta.scanner.python
@@ -82,20 +12,55 @@ nodes:
     cyclomatic_complexity: 11
     calls_out: 20
     calls_in: 1
-  deta.scanner.ports.parse_ports:
-    name: parse_ports
-    module: deta.scanner.ports
-    line: 103
-    cyclomatic_complexity: 4
+  deta.integration.semcod.pre_deploy_check:
+    name: pre_deploy_check
+    module: deta.integration.semcod
+    line: 100
+    cyclomatic_complexity: 7
+    calls_out: 10
+    calls_in: 0
+  deta.formatter.toon._format_endpoint_line:
+    name: _format_endpoint_line
+    module: deta.formatter.toon
+    line: 101
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 1
+  deta.formatter.graph._service_bindings:
+    name: _service_bindings
+    module: deta.formatter.graph
+    line: 13
+    cyclomatic_complexity: 2
     calls_out: 1
     calls_in: 3
-  deta.scanner.compose._load_yaml_file:
-    name: _load_yaml_file
-    module: deta.scanner.compose
-    line: 55
-    cyclomatic_complexity: 5
+  deta.monitor.alerter.alert_probe_success:
+    name: alert_probe_success
+    module: deta.monitor.alerter
+    line: 59
+    cyclomatic_complexity: 2
     calls_out: 3
-    calls_in: 2
+    calls_in: 3
+  deta.scanner.env.interpolate:
+    name: interpolate
+    module: deta.scanner.env
+    line: 99
+    cyclomatic_complexity: 3
+    calls_out: 6
+    calls_in: 4
+  deta.monitor.watcher._detect_change_type:
+    name: _detect_change_type
+    module: deta.monitor.watcher
+    line: 61
+    cyclomatic_complexity: 8
+    calls_out: 0
+    calls_in: 1
+  deta.monitor.watcher._poll_configs:
+    name: _poll_configs
+    module: deta.monitor.watcher
+    line: 95
+    cyclomatic_complexity: 2
+    calls_out: 4
+    calls_in: 1
   deta.scanner.compose._parse_ports:
     name: _parse_ports
     module: deta.scanner.compose
@@ -103,19 +68,180 @@ nodes:
     cyclomatic_complexity: 7
     calls_out: 7
     calls_in: 1
-  deta.integration.semcod.generate_for_pyqual:
-    name: generate_for_pyqual
-    module: deta.integration.semcod
-    line: 31
-    cyclomatic_complexity: 2
+  deta.dsl.commands.service_up:
+    name: service_up
+    module: deta.dsl.commands
+    line: 38
+    cyclomatic_complexity: 1
+    calls_out: 3
+    calls_in: 1
+  deta.formatter.toon._format_alerts:
+    name: _format_alerts
+    module: deta.formatter.toon
+    line: 57
+    cyclomatic_complexity: 3
     calls_out: 6
-    calls_in: 0
-  deta.scanner.compose._parse_env:
-    name: _parse_env
-    module: deta.scanner.compose
-    line: 250
-    cyclomatic_complexity: 6
+    calls_in: 1
+  deta.cli.monitor:
+    name: monitor
+    module: deta.cli
+    line: 214
+    cyclomatic_complexity: 1
     calls_out: 4
+    calls_in: 2
+  deta.integration.semcod.generate_for_sumd:
+    name: generate_for_sumd
+    module: deta.integration.semcod
+    line: 12
+    cyclomatic_complexity: 1
+    calls_out: 4
+    calls_in: 0
+  deta.monitor.prober._service_probe_targets:
+    name: _service_probe_targets
+    module: deta.monitor.prober
+    line: 186
+    cyclomatic_complexity: 8
+    calls_out: 10
+    calls_in: 1
+  deta.formatter.graph._save_output:
+    name: _save_output
+    module: deta.formatter.graph
+    line: 83
+    cyclomatic_complexity: 1
+    calls_out: 1
+    calls_in: 2
+  deta.scanner.compose._collect_compose_files:
+    name: _collect_compose_files
+    module: deta.scanner.compose
+    line: 68
+    cyclomatic_complexity: 6
+    calls_out: 10
+    calls_in: 1
+  deta.scanner.openapi._load:
+    name: _load
+    module: deta.scanner.openapi
+    line: 68
+    cyclomatic_complexity: 6
+    calls_out: 8
+    calls_in: 1
+  deta.config._parse_config:
+    name: _parse_config
+    module: deta.config
+    line: 191
+    cyclomatic_complexity: 9
+    calls_out: 46
+    calls_in: 1
+  deta.dsl.commands._ports_removed:
+    name: _ports_removed
+    module: deta.dsl.commands
+    line: 184
+    cyclomatic_complexity: 4
+    calls_out: 2
+    calls_in: 2
+  deta.cli._filter_anomalies:
+    name: _filter_anomalies
+    module: deta.cli
+    line: 99
+    cyclomatic_complexity: 8
+    calls_out: 5
+    calls_in: 3
+  deta.monitor.prober._first_resolved_binding:
+    name: _first_resolved_binding
+    module: deta.monitor.prober
+    line: 127
+    cyclomatic_complexity: 6
+    calls_out: 1
+    calls_in: 2
+  deta.cli._monitor_loop:
+    name: _monitor_loop
+    module: deta.cli
+    line: 272
+    cyclomatic_complexity: 7
+    calls_out: 48
+    calls_in: 1
+  deta.scanner.env.load_env_file:
+    name: load_env_file
+    module: deta.scanner.env
+    line: 37
+    cyclomatic_complexity: 12
+    calls_out: 14
+    calls_in: 2
+  deta.monitor.prober._extract_health_url:
+    name: _extract_health_url
+    module: deta.monitor.prober
+    line: 137
+    cyclomatic_complexity: 11
+    calls_out: 9
+    calls_in: 1
+  deta.dsl.commands._ports_added:
+    name: _ports_added
+    module: deta.dsl.commands
+    line: 175
+    cyclomatic_complexity: 4
+    calls_out: 2
+    calls_in: 2
+  deta.dsl.commands.format_service_changes:
+    name: format_service_changes
+    module: deta.dsl.commands
+    line: 232
+    cyclomatic_complexity: 4
+    calls_out: 8
+    calls_in: 1
+  deta.scanner.ports.published_url:
+    name: published_url
+    module: deta.scanner.ports
+    line: 110
+    cyclomatic_complexity: 4
+    calls_out: 1
+    calls_in: 5
+  deta.cli._probe_once:
+    name: _probe_once
+    module: deta.cli
+    line: 147
+    cyclomatic_complexity: 5
+    calls_out: 6
+    calls_in: 1
+  deta.integration.semcod.generate_for_vallm:
+    name: generate_for_vallm
+    module: deta.integration.semcod
+    line: 64
+    cyclomatic_complexity: 3
+    calls_out: 4
+    calls_in: 0
+  deta.web.app._topology_json_with_status:
+    name: _topology_json_with_status
+    module: deta.web.app
+    line: 980
+    cyclomatic_complexity: 6
+    calls_out: 15
+    calls_in: 1
+  deta.formatter.graph._safe_mermaid_id:
+    name: _safe_mermaid_id
+    module: deta.formatter.graph
+    line: 23
+    cyclomatic_complexity: 3
+    calls_out: 2
+    calls_in: 4
+  deta.monitor.prober.group_probes_by_service:
+    name: group_probes_by_service
+    module: deta.monitor.prober
+    line: 117
+    cyclomatic_complexity: 3
+    calls_out: 2
+    calls_in: 9
+  deta.scanner.compose._merge_services:
+    name: _merge_services
+    module: deta.scanner.compose
+    line: 103
+    cyclomatic_complexity: 5
+    calls_out: 6
+    calls_in: 1
+  deta.scanner.python._parse_requirements:
+    name: _parse_requirements
+    module: deta.scanner.python
+    line: 89
+    cyclomatic_complexity: 6
+    calls_out: 11
     calls_in: 1
   deta.monitor.alerter.alert_anomaly:
     name: alert_anomaly
@@ -124,34 +250,13 @@ nodes:
     cyclomatic_complexity: 2
     calls_out: 10
     calls_in: 2
-  deta.scanner.env.interpolate:
-    name: interpolate
-    module: deta.scanner.env
-    line: 99
-    cyclomatic_complexity: 3
+  deta.integration.semcod.generate_for_pyqual:
+    name: generate_for_pyqual
+    module: deta.integration.semcod
+    line: 31
+    cyclomatic_complexity: 2
     calls_out: 6
-    calls_in: 4
-  deta.scanner.python._parse_requirements:
-    name: _parse_requirements
-    module: deta.scanner.python
-    line: 89
-    cyclomatic_complexity: 6
-    calls_out: 11
-    calls_in: 1
-  deta.scanner.openapi.scan_openapi:
-    name: scan_openapi
-    module: deta.scanner.openapi
-    line: 18
-    cyclomatic_complexity: 12
-    calls_out: 14
     calls_in: 0
-  deta.formatter.toon._group_endpoints_by_service:
-    name: _group_endpoints_by_service
-    module: deta.formatter.toon
-    line: 91
-    cyclomatic_complexity: 3
-    calls_out: 1
-    calls_in: 1
   deta.dsl.commands.service_down:
     name: service_down
     module: deta.dsl.commands
@@ -159,31 +264,185 @@ nodes:
     cyclomatic_complexity: 3
     calls_out: 5
     calls_in: 1
-  deta.cli._monitor_loop:
-    name: _monitor_loop
-    module: deta.cli
-    line: 272
-    cyclomatic_complexity: 7
-    calls_out: 48
+  deta.formatter.toon._format_service_line:
+    name: _format_service_line
+    module: deta.formatter.toon
+    line: 75
+    cyclomatic_complexity: 4
+    calls_out: 2
     calls_in: 1
-  deta.scanner.compose._collect_compose_files:
-    name: _collect_compose_files
-    module: deta.scanner.compose
-    line: 68
-    cyclomatic_complexity: 6
+  deta.scanner.env.merge_env_files:
+    name: merge_env_files
+    module: deta.scanner.env
+    line: 88
+    cyclomatic_complexity: 2
+    calls_out: 4
+    calls_in: 1
+  deta.cli._is_anomaly_enabled:
+    name: _is_anomaly_enabled
+    module: deta.cli
+    line: 90
+    cyclomatic_complexity: 2
+    calls_out: 2
+    calls_in: 1
+  deta.formatter.toon.generate_toon:
+    name: generate_toon
+    module: deta.formatter.toon
+    line: 144
+    cyclomatic_complexity: 2
+    calls_out: 21
+    calls_in: 1
+  deta.formatter.graph.save_graph_yaml:
+    name: save_graph_yaml
+    module: deta.formatter.graph
+    line: 88
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 1
+  deta.config._load_yaml:
+    name: _load_yaml
+    module: deta.config
+    line: 157
+    cyclomatic_complexity: 7
+    calls_out: 11
+    calls_in: 1
+  deta.monitor.prober.probe_service:
+    name: probe_service
+    module: deta.monitor.prober
+    line: 229
+    cyclomatic_complexity: 9
+    calls_out: 19
+    calls_in: 1
+  deta.monitor.watcher._emit_changes:
+    name: _emit_changes
+    module: deta.monitor.watcher
+    line: 74
+    cyclomatic_complexity: 3
     calls_out: 10
     calls_in: 1
-  deta.cli.diff:
-    name: diff
+  deta.cli._write_outputs:
+    name: _write_outputs
     module: deta.cli
-    line: 389
-    cyclomatic_complexity: 9
-    calls_out: 27
-    calls_in: 1
-  deta.dsl.commands._ports_removed:
-    name: _ports_removed
+    line: 161
+    cyclomatic_complexity: 8
+    calls_out: 12
+    calls_in: 3
+  deta.dsl.commands.format_probe_change:
+    name: format_probe_change
     module: deta.dsl.commands
-    line: 184
+    line: 130
+    cyclomatic_complexity: 12
+    calls_out: 12
+    calls_in: 1
+  deta.monitor.alerter.print_topology_table:
+    name: print_topology_table
+    module: deta.monitor.alerter
+    line: 71
+    cyclomatic_complexity: 8
+    calls_out: 19
+    calls_in: 1
+  deta.monitor.alerter.alert_probe_failure:
+    name: alert_probe_failure
+    module: deta.monitor.alerter
+    line: 46
+    cyclomatic_complexity: 4
+    calls_out: 3
+    calls_in: 3
+  deta.formatter.graph.generate_mermaid:
+    name: generate_mermaid
+    module: deta.formatter.graph
+    line: 96
+    cyclomatic_complexity: 10
+    calls_out: 21
+    calls_in: 3
+  deta.scanner.compose._build_service_def:
+    name: _build_service_def
+    module: deta.scanner.compose
+    line: 130
+    cyclomatic_complexity: 5
+    calls_out: 23
+    calls_in: 1
+  project.map.toon.build_topology:
+    name: build_topology
+    module: project.map.toon
+    line: 55
+    cyclomatic_complexity: 0
+    calls_out: 0
+    calls_in: 4
+  deta.monitor.prober._has_explicit_healthcheck_url:
+    name: _has_explicit_healthcheck_url
+    module: deta.monitor.prober
+    line: 163
+    cyclomatic_complexity: 10
+    calls_out: 6
+    calls_in: 1
+  deta.scanner.compose._resolve_env_files:
+    name: _resolve_env_files
+    module: deta.scanner.compose
+    line: 205
+    cyclomatic_complexity: 7
+    calls_out: 6
+    calls_in: 1
+  deta.formatter.graph.generate_graph_yaml:
+    name: generate_graph_yaml
+    module: deta.formatter.graph
+    line: 64
+    cyclomatic_complexity: 4
+    calls_out: 10
+    calls_in: 3
+  deta.cli._get_topology:
+    name: _get_topology
+    module: deta.cli
+    line: 76
+    cyclomatic_complexity: 1
+    calls_out: 1
+    calls_in: 4
+  deta.monitor.prober.probe_port:
+    name: probe_port
+    module: deta.monitor.prober
+    line: 305
+    cyclomatic_complexity: 13
+    calls_out: 21
+    calls_in: 1
+  deta.formatter.toon._format_alert_line:
+    name: _format_alert_line
+    module: deta.formatter.toon
+    line: 37
+    cyclomatic_complexity: 5
+    calls_out: 6
+    calls_in: 1
+  deta.formatter.toon._format_services:
+    name: _format_services
+    module: deta.formatter.toon
+    line: 83
+    cyclomatic_complexity: 2
+    calls_out: 4
+    calls_in: 1
+  deta.monitor.prober.probe_all:
+    name: probe_all
+    module: deta.monitor.prober
+    line: 398
+    cyclomatic_complexity: 11
+    calls_out: 14
+    calls_in: 4
+  deta.scanner.ports.parse_ports:
+    name: parse_ports
+    module: deta.scanner.ports
+    line: 103
+    cyclomatic_complexity: 4
+    calls_out: 1
+    calls_in: 3
+  deta.scanner.compose._get_yaml_loader:
+    name: _get_yaml_loader
+    module: deta.scanner.compose
+    line: 46
+    cyclomatic_complexity: 2
+    calls_out: 1
+    calls_in: 1
+  deta.monitor.prober._get_client:
+    name: _get_client
+    module: deta.monitor.prober
+    line: 17
     cyclomatic_complexity: 4
     calls_out: 2
     calls_in: 2
@@ -194,178 +453,73 @@ nodes:
     cyclomatic_complexity: 5
     calls_out: 6
     calls_in: 1
-  deta.formatter.toon.save_toon:
-    name: save_toon
-    module: deta.formatter.toon
-    line: 172
-    cyclomatic_complexity: 1
-    calls_out: 2
-    calls_in: 2
-  deta.scanner.compose._deep_merge:
-    name: _deep_merge
-    module: deta.scanner.compose
-    line: 35
-    cyclomatic_complexity: 5
-    calls_out: 5
-    calls_in: 2
-  deta.formatter.toon._format_endpoint_line:
-    name: _format_endpoint_line
-    module: deta.formatter.toon
-    line: 101
-    cyclomatic_complexity: 1
-    calls_out: 2
-    calls_in: 1
-  deta.formatter.toon._format_service_line:
-    name: _format_service_line
-    module: deta.formatter.toon
-    line: 75
-    cyclomatic_complexity: 4
-    calls_out: 2
-    calls_in: 1
-  deta.dsl.commands._escape_value:
-    name: _escape_value
-    module: deta.dsl.commands
-    line: 29
-    cyclomatic_complexity: 4
-    calls_out: 2
-    calls_in: 1
-  deta.monitor.watcher._emit_changes:
-    name: _emit_changes
-    module: deta.monitor.watcher
-    line: 74
-    cyclomatic_complexity: 3
-    calls_out: 10
-    calls_in: 1
-  deta.scanner.openapi._load:
-    name: _load
-    module: deta.scanner.openapi
-    line: 68
-    cyclomatic_complexity: 6
-    calls_out: 8
-    calls_in: 1
-  deta.scanner.compose._merge_services:
-    name: _merge_services
-    module: deta.scanner.compose
-    line: 103
-    cyclomatic_complexity: 5
-    calls_out: 6
-    calls_in: 1
-  deta.monitor.alerter.print_topology_table:
-    name: print_topology_table
-    module: deta.monitor.alerter
-    line: 71
-    cyclomatic_complexity: 8
-    calls_out: 19
-    calls_in: 1
-  deta.formatter.graph._service_bindings:
-    name: _service_bindings
-    module: deta.formatter.graph
-    line: 13
-    cyclomatic_complexity: 2
-    calls_out: 1
-    calls_in: 3
-  deta.formatter.graph.save_png:
-    name: save_png
-    module: deta.formatter.graph
-    line: 143
-    cyclomatic_complexity: 11
-    calls_out: 19
-    calls_in: 1
-  deta.monitor.alerter.alert_probe_failure:
-    name: alert_probe_failure
-    module: deta.monitor.alerter
-    line: 46
-    cyclomatic_complexity: 4
-    calls_out: 3
-    calls_in: 3
-  deta.dsl.commands._diff_service_ports:
-    name: _diff_service_ports
-    module: deta.dsl.commands
-    line: 193
-    cyclomatic_complexity: 9
-    calls_out: 6
-    calls_in: 1
-  deta.dsl.commands.format_service_changes:
-    name: format_service_changes
-    module: deta.dsl.commands
-    line: 232
-    cyclomatic_complexity: 4
-    calls_out: 8
-    calls_in: 0
-  deta.integration.semcod.pre_deploy_check:
-    name: pre_deploy_check
-    module: deta.integration.semcod
-    line: 100
-    cyclomatic_complexity: 7
-    calls_out: 10
-    calls_in: 0
-  deta.monitor.alerter.alert_probe_success:
-    name: alert_probe_success
-    module: deta.monitor.alerter
-    line: 59
-    cyclomatic_complexity: 2
-    calls_out: 3
-    calls_in: 3
-  deta.config._parse_config:
-    name: _parse_config
-    module: deta.config
-    line: 191
-    cyclomatic_complexity: 9
-    calls_out: 46
-    calls_in: 1
-  deta.dsl.commands._port_key:
-    name: _port_key
-    module: deta.dsl.commands
-    line: 171
-    cyclomatic_complexity: 1
-    calls_out: 0
-    calls_in: 4
-  deta.scanner.env.load_env_file:
-    name: load_env_file
-    module: deta.scanner.env
-    line: 37
-    cyclomatic_complexity: 12
-    calls_out: 14
-    calls_in: 2
-  deta.formatter.graph.save_graph_yaml:
-    name: save_graph_yaml
-    module: deta.formatter.graph
-    line: 88
-    cyclomatic_complexity: 1
-    calls_out: 2
-    calls_in: 1
-  deta.cli._meets_severity_threshold:
-    name: _meets_severity_threshold
+  deta.cli.diff:
+    name: diff
     module: deta.cli
+    line: 389
+    cyclomatic_complexity: 9
+    calls_out: 27
+    calls_in: 1
+  deta.monitor.alerter._get_console:
+    name: _get_console
+    module: deta.monitor.alerter
+    line: 12
+    cyclomatic_complexity: 3
+    calls_out: 1
+    calls_in: 4
+  deta.scanner.compose._parse_env:
+    name: _parse_env
+    module: deta.scanner.compose
+    line: 250
+    cyclomatic_complexity: 6
+    calls_out: 4
+    calls_in: 1
+  deta.scanner.compose._find_primary_source:
+    name: _find_primary_source
+    module: deta.scanner.compose
+    line: 118
+    cyclomatic_complexity: 4
+    calls_out: 4
+    calls_in: 1
+  deta.dsl.commands.service_added:
+    name: service_added
+    module: deta.dsl.commands
     line: 95
     cyclomatic_complexity: 1
-    calls_out: 2
-    calls_in: 1
-  deta.monitor.watcher.watch_configs:
-    name: watch_configs
-    module: deta.monitor.watcher
-    line: 22
-    cyclomatic_complexity: 6
-    calls_out: 10
-    calls_in: 2
-  deta.web.app.create_app:
-    name: create_app
-    module: deta.web.app
-    line: 1092
-    cyclomatic_complexity: 5
-    calls_out: 121
-    calls_in: 1
-  deta.monitor.watcher._scan_file_mtimes:
-    name: _scan_file_mtimes
-    module: deta.monitor.watcher
-    line: 49
-    cyclomatic_complexity: 4
     calls_out: 3
-    calls_in: 2
-  deta.monitor.prober._get_client:
-    name: _get_client
+    calls_in: 1
+  deta.scanner.openapi.scan_openapi:
+    name: scan_openapi
+    module: deta.scanner.openapi
+    line: 18
+    cyclomatic_complexity: 12
+    calls_out: 14
+    calls_in: 0
+  deta.scanner.python._load_toml:
+    name: _load_toml
+    module: deta.scanner.python
+    line: 68
+    cyclomatic_complexity: 4
+    calls_out: 6
+    calls_in: 1
+  deta.formatter.graph._graph_yaml_node:
+    name: _graph_yaml_node
+    module: deta.formatter.graph
+    line: 34
+    cyclomatic_complexity: 8
+    calls_out: 16
+    calls_in: 1
+  deta.config.load_config:
+    name: load_config
+    module: deta.config
+    line: 133
+    cyclomatic_complexity: 4
+    calls_out: 7
+    calls_in: 8
+  deta.monitor.prober._extract_host_port_from_url:
+    name: _extract_host_port_from_url
     module: deta.monitor.prober
-    line: 17
+    line: 218
     cyclomatic_complexity: 4
     calls_out: 2
     calls_in: 2
@@ -376,61 +530,47 @@ nodes:
     cyclomatic_complexity: 2
     calls_out: 3
     calls_in: 1
-  deta.monitor.watcher._poll_configs:
-    name: _poll_configs
-    module: deta.monitor.watcher
-    line: 95
-    cyclomatic_complexity: 2
-    calls_out: 4
+  deta.scanner.ports._split_top_level:
+    name: _split_top_level
+    module: deta.scanner.ports
+    line: 43
+    cyclomatic_complexity: 6
+    calls_out: 8
     calls_in: 1
-  deta.scanner.python._load_toml:
-    name: _load_toml
-    module: deta.scanner.python
-    line: 68
-    cyclomatic_complexity: 4
-    calls_out: 6
-    calls_in: 1
-  deta.config.load_config:
-    name: load_config
-    module: deta.config
-    line: 133
-    cyclomatic_complexity: 4
-    calls_out: 7
-    calls_in: 8
-  deta.formatter.toon._format_alert_line:
-    name: _format_alert_line
-    module: deta.formatter.toon
-    line: 37
-    cyclomatic_complexity: 5
-    calls_out: 6
-    calls_in: 1
-  deta.web.app._probe_status_events:
-    name: _probe_status_events
-    module: deta.web.app
-    line: 1026
-    cyclomatic_complexity: 11
-    calls_out: 11
-    calls_in: 1
-  deta.formatter.graph.save_mermaid:
-    name: save_mermaid
-    module: deta.formatter.graph
-    line: 135
-    cyclomatic_complexity: 1
-    calls_out: 2
-    calls_in: 1
-  deta.scanner.compose._find_primary_source:
-    name: _find_primary_source
-    module: deta.scanner.compose
-    line: 118
-    cyclomatic_complexity: 4
-    calls_out: 4
-    calls_in: 1
-  deta.monitor.prober._is_database_port:
-    name: _is_database_port
-    module: deta.monitor.prober
-    line: 59
+  deta.dsl.commands._port_key:
+    name: _port_key
+    module: deta.dsl.commands
+    line: 171
     cyclomatic_complexity: 1
     calls_out: 0
+    calls_in: 4
+  deta.scanner.env.discover_env:
+    name: discover_env
+    module: deta.scanner.env
+    line: 67
+    cyclomatic_complexity: 4
+    calls_out: 9
+    calls_in: 1
+  deta.scanner.ports.parse_port:
+    name: parse_port
+    module: deta.scanner.ports
+    line: 63
+    cyclomatic_complexity: 10
+    calls_out: 12
+    calls_in: 2
+  deta.monitor.watcher.watch_configs:
+    name: watch_configs
+    module: deta.monitor.watcher
+    line: 22
+    cyclomatic_complexity: 6
+    calls_out: 10
+    calls_in: 2
+  deta.formatter.toon._group_endpoints_by_service:
+    name: _group_endpoints_by_service
+    module: deta.formatter.toon
+    line: 91
+    cyclomatic_complexity: 3
+    calls_out: 1
     calls_in: 1
   deta.cli._print_summary:
     name: _print_summary
@@ -439,277 +579,18 @@ nodes:
     cyclomatic_complexity: 4
     calls_out: 11
     calls_in: 2
-  deta.scanner.ports._split_top_level:
-    name: _split_top_level
-    module: deta.scanner.ports
-    line: 43
-    cyclomatic_complexity: 6
-    calls_out: 8
-    calls_in: 1
-  deta.formatter.toon._format_alerts:
-    name: _format_alerts
+  deta.formatter.toon.save_toon:
+    name: save_toon
     module: deta.formatter.toon
-    line: 57
-    cyclomatic_complexity: 3
-    calls_out: 6
-    calls_in: 1
-  deta.dsl.commands.port_removed:
-    name: port_removed
-    module: deta.dsl.commands
-    line: 84
-    cyclomatic_complexity: 2
-    calls_out: 3
-    calls_in: 1
-  deta.web.app._service_payload:
-    name: _service_payload
-    module: deta.web.app
-    line: 957
-    cyclomatic_complexity: 3
-    calls_out: 2
-    calls_in: 1
-  deta.web.app._compute_events:
-    name: _compute_events
-    module: deta.web.app
-    line: 1058
-    cyclomatic_complexity: 7
-    calls_out: 10
-    calls_in: 1
-  deta.cli._get_topology:
-    name: _get_topology
-    module: deta.cli
-    line: 76
+    line: 172
     cyclomatic_complexity: 1
-    calls_out: 1
-    calls_in: 4
-  deta.monitor.prober._service_probe_targets:
-    name: _service_probe_targets
-    module: deta.monitor.prober
-    line: 186
-    cyclomatic_complexity: 8
-    calls_out: 10
-    calls_in: 1
-  deta.cli._is_anomaly_enabled:
-    name: _is_anomaly_enabled
-    module: deta.cli
-    line: 90
-    cyclomatic_complexity: 2
-    calls_out: 2
-    calls_in: 1
-  deta.cli._filter_anomalies:
-    name: _filter_anomalies
-    module: deta.cli
-    line: 99
-    cyclomatic_complexity: 8
-    calls_out: 5
-    calls_in: 3
-  deta.dsl.commands._ports_added:
-    name: _ports_added
-    module: deta.dsl.commands
-    line: 175
-    cyclomatic_complexity: 4
     calls_out: 2
     calls_in: 2
-  deta.scanner.env.interpolate_recursive:
-    name: interpolate_recursive
-    module: deta.scanner.env
-    line: 132
-    cyclomatic_complexity: 6
-    calls_out: 7
-    calls_in: 3
-  project.map.toon.build_topology:
-    name: build_topology
-    module: project.map.toon
-    line: 55
-    cyclomatic_complexity: 0
-    calls_out: 0
-    calls_in: 4
-  deta.scanner.compose.scan_compose:
-    name: scan_compose
-    module: deta.scanner.compose
-    line: 177
-    cyclomatic_complexity: 4
-    calls_out: 7
-    calls_in: 0
-  deta.monitor.prober._extract_host_port_from_url:
-    name: _extract_host_port_from_url
-    module: deta.monitor.prober
-    line: 218
-    cyclomatic_complexity: 4
-    calls_out: 2
-    calls_in: 2
-  deta.scanner.ports.parse_port:
-    name: parse_port
-    module: deta.scanner.ports
-    line: 63
-    cyclomatic_complexity: 10
-    calls_out: 12
-    calls_in: 2
-  deta.integration.semcod.generate_for_sumd:
-    name: generate_for_sumd
-    module: deta.integration.semcod
-    line: 12
-    cyclomatic_complexity: 1
-    calls_out: 4
-    calls_in: 0
-  deta.integration.semcod.generate_for_vallm:
-    name: generate_for_vallm
-    module: deta.integration.semcod
-    line: 64
-    cyclomatic_complexity: 3
-    calls_out: 4
-    calls_in: 0
-  deta.monitor.prober.probe_service:
-    name: probe_service
-    module: deta.monitor.prober
-    line: 229
-    cyclomatic_complexity: 9
-    calls_out: 19
-    calls_in: 1
-  deta.scanner.env.merge_env_files:
-    name: merge_env_files
-    module: deta.scanner.env
-    line: 88
-    cyclomatic_complexity: 2
-    calls_out: 4
-    calls_in: 1
-  deta.formatter.graph._graph_yaml_node:
-    name: _graph_yaml_node
-    module: deta.formatter.graph
-    line: 34
-    cyclomatic_complexity: 8
-    calls_out: 16
-    calls_in: 1
-  deta.monitor.prober._has_explicit_healthcheck_url:
-    name: _has_explicit_healthcheck_url
-    module: deta.monitor.prober
-    line: 163
-    cyclomatic_complexity: 10
-    calls_out: 6
-    calls_in: 1
-  deta.monitor.prober.probe_port:
-    name: probe_port
-    module: deta.monitor.prober
-    line: 305
-    cyclomatic_complexity: 13
-    calls_out: 21
-    calls_in: 1
-  deta.monitor.prober.probe_all:
-    name: probe_all
-    module: deta.monitor.prober
-    line: 398
-    cyclomatic_complexity: 11
-    calls_out: 14
-    calls_in: 4
-  deta.cli._probe_once:
-    name: _probe_once
-    module: deta.cli
-    line: 147
-    cyclomatic_complexity: 5
-    calls_out: 6
-    calls_in: 1
   deta.web.app._service_status_map:
     name: _service_status_map
     module: deta.web.app
     line: 1015
     cyclomatic_complexity: 2
-    calls_out: 3
-    calls_in: 1
-  deta.scanner.env.discover_env:
-    name: discover_env
-    module: deta.scanner.env
-    line: 67
-    cyclomatic_complexity: 4
-    calls_out: 9
-    calls_in: 1
-  deta.cli._resolve_formats:
-    name: _resolve_formats
-    module: deta.cli
-    line: 136
-    cyclomatic_complexity: 4
-    calls_out: 4
-    calls_in: 2
-  deta.cli.monitor:
-    name: monitor
-    module: deta.cli
-    line: 214
-    cyclomatic_complexity: 1
-    calls_out: 4
-    calls_in: 2
-  deta.dsl.commands.service_removed:
-    name: service_removed
-    module: deta.dsl.commands
-    line: 105
-    cyclomatic_complexity: 1
-    calls_out: 3
-    calls_in: 1
-  deta.formatter.graph._port_probe_status:
-    name: _port_probe_status
-    module: deta.formatter.graph
-    line: 27
-    cyclomatic_complexity: 2
-    calls_out: 1
-    calls_in: 1
-  deta.formatter.graph.generate_graph_yaml:
-    name: generate_graph_yaml
-    module: deta.formatter.graph
-    line: 64
-    cyclomatic_complexity: 4
-    calls_out: 10
-    calls_in: 3
-  deta.dsl.commands.service_added:
-    name: service_added
-    module: deta.dsl.commands
-    line: 95
-    cyclomatic_complexity: 1
-    calls_out: 3
-    calls_in: 1
-  deta.web.app._topology_json_with_status:
-    name: _topology_json_with_status
-    module: deta.web.app
-    line: 980
-    cyclomatic_complexity: 6
-    calls_out: 15
-    calls_in: 1
-  deta.cli.scan:
-    name: scan
-    module: deta.cli
-    line: 187
-    cyclomatic_complexity: 5
-    calls_out: 10
-    calls_in: 1
-  deta.web.app._probe_status:
-    name: _probe_status
-    module: deta.web.app
-    line: 928
-    cyclomatic_complexity: 2
-    calls_out: 1
-    calls_in: 0
-  deta.monitor.watcher._is_config_file:
-    name: _is_config_file
-    module: deta.monitor.watcher
-    line: 110
-    cyclomatic_complexity: 2
-    calls_out: 4
-    calls_in: 1
-  deta.cli._write_outputs:
-    name: _write_outputs
-    module: deta.cli
-    line: 161
-    cyclomatic_complexity: 8
-    calls_out: 12
-    calls_in: 3
-  deta.scanner.compose._resolve_env_files:
-    name: _resolve_env_files
-    module: deta.scanner.compose
-    line: 205
-    cyclomatic_complexity: 7
-    calls_out: 6
-    calls_in: 1
-  deta.dsl.commands.service_up:
-    name: service_up
-    module: deta.dsl.commands
-    line: 38
-    cyclomatic_complexity: 1
     calls_out: 3
     calls_in: 1
   deta.monitor.prober.resolve_service_status:
@@ -719,61 +600,261 @@ nodes:
     cyclomatic_complexity: 7
     calls_out: 2
     calls_in: 9
-  deta.formatter.toon._format_services:
-    name: _format_services
-    module: deta.formatter.toon
-    line: 83
+  deta.formatter.graph.save_png:
+    name: save_png
+    module: deta.formatter.graph
+    line: 143
+    cyclomatic_complexity: 11
+    calls_out: 19
+    calls_in: 1
+  deta.monitor.watcher._scan_file_mtimes:
+    name: _scan_file_mtimes
+    module: deta.monitor.watcher
+    line: 49
+    cyclomatic_complexity: 4
+    calls_out: 3
+    calls_in: 2
+  deta.monitor.prober._is_database_port:
+    name: _is_database_port
+    module: deta.monitor.prober
+    line: 59
+    cyclomatic_complexity: 1
+    calls_out: 0
+    calls_in: 1
+  deta.scanner.env.interpolate_recursive:
+    name: interpolate_recursive
+    module: deta.scanner.env
+    line: 132
+    cyclomatic_complexity: 6
+    calls_out: 7
+    calls_in: 3
+  deta.web.app.create_app:
+    name: create_app
+    module: deta.web.app
+    line: 1092
+    cyclomatic_complexity: 5
+    calls_out: 121
+    calls_in: 1
+  deta.dsl.commands._diff_service_ports:
+    name: _diff_service_ports
+    module: deta.dsl.commands
+    line: 193
+    cyclomatic_complexity: 9
+    calls_out: 6
+    calls_in: 1
+  deta.web.app._compute_events:
+    name: _compute_events
+    module: deta.web.app
+    line: 1058
+    cyclomatic_complexity: 7
+    calls_out: 10
+    calls_in: 1
+  deta.formatter.graph._port_probe_status:
+    name: _port_probe_status
+    module: deta.formatter.graph
+    line: 27
+    cyclomatic_complexity: 2
+    calls_out: 1
+    calls_in: 1
+  deta.dsl.commands.port_removed:
+    name: port_removed
+    module: deta.dsl.commands
+    line: 84
+    cyclomatic_complexity: 2
+    calls_out: 3
+    calls_in: 1
+  deta.formatter.graph.save_mermaid:
+    name: save_mermaid
+    module: deta.formatter.graph
+    line: 135
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 1
+  deta.monitor.watcher._is_config_file:
+    name: _is_config_file
+    module: deta.monitor.watcher
+    line: 110
     cyclomatic_complexity: 2
     calls_out: 4
     calls_in: 1
-  deta.config._load_yaml:
-    name: _load_yaml
-    module: deta.config
-    line: 157
-    cyclomatic_complexity: 7
-    calls_out: 11
-    calls_in: 1
-  deta.scanner.compose._get_yaml_loader:
-    name: _get_yaml_loader
-    module: deta.scanner.compose
-    line: 46
+  deta.web.app._probe_status:
+    name: _probe_status
+    module: deta.web.app
+    line: 928
     cyclomatic_complexity: 2
     calls_out: 1
-    calls_in: 1
-  deta.monitor.prober._extract_health_url:
-    name: _extract_health_url
-    module: deta.monitor.prober
-    line: 137
-    cyclomatic_complexity: 11
-    calls_out: 9
-    calls_in: 1
-  deta.monitor.prober._first_resolved_binding:
-    name: _first_resolved_binding
-    module: deta.monitor.prober
-    line: 127
-    cyclomatic_complexity: 6
-    calls_out: 1
+    calls_in: 0
+  deta.cli._resolve_formats:
+    name: _resolve_formats
+    module: deta.cli
+    line: 136
+    cyclomatic_complexity: 4
+    calls_out: 4
     calls_in: 2
-  deta.monitor.alerter._get_console:
-    name: _get_console
-    module: deta.monitor.alerter
-    line: 12
-    cyclomatic_complexity: 3
-    calls_out: 1
-    calls_in: 4
-  deta.formatter.graph._safe_mermaid_id:
-    name: _safe_mermaid_id
-    module: deta.formatter.graph
-    line: 23
+  deta.web.app._probe_status_events:
+    name: _probe_status_events
+    module: deta.web.app
+    line: 1026
+    cyclomatic_complexity: 11
+    calls_out: 11
+    calls_in: 1
+  deta.dsl.commands.format_port_changes:
+    name: format_port_changes
+    module: deta.dsl.commands
+    line: 213
+    cyclomatic_complexity: 2
+    calls_out: 6
+    calls_in: 1
+  deta.dsl.commands._escape_value:
+    name: _escape_value
+    module: deta.dsl.commands
+    line: 29
+    cyclomatic_complexity: 4
+    calls_out: 2
+    calls_in: 1
+  deta.web.app._service_payload:
+    name: _service_payload
+    module: deta.web.app
+    line: 957
     cyclomatic_complexity: 3
     calls_out: 2
-    calls_in: 4
+    calls_in: 1
+  deta.formatter.toon._format_endpoints:
+    name: _format_endpoints
+    module: deta.formatter.toon
+    line: 107
+    cyclomatic_complexity: 5
+    calls_out: 9
+    calls_in: 1
+  deta.cli._meets_severity_threshold:
+    name: _meets_severity_threshold
+    module: deta.cli
+    line: 95
+    cyclomatic_complexity: 1
+    calls_out: 2
+    calls_in: 1
+  deta.scanner.compose._load_yaml_file:
+    name: _load_yaml_file
+    module: deta.scanner.compose
+    line: 55
+    cyclomatic_complexity: 5
+    calls_out: 3
+    calls_in: 2
+  deta.dsl.commands.service_removed:
+    name: service_removed
+    module: deta.dsl.commands
+    line: 105
+    cyclomatic_complexity: 1
+    calls_out: 3
+    calls_in: 1
+  deta.cli.scan:
+    name: scan
+    module: deta.cli
+    line: 187
+    cyclomatic_complexity: 5
+    calls_out: 10
+    calls_in: 1
+  deta.scanner.compose._deep_merge:
+    name: _deep_merge
+    module: deta.scanner.compose
+    line: 35
+    cyclomatic_complexity: 5
+    calls_out: 5
+    calls_in: 2
+  deta.scanner.compose.scan_compose:
+    name: scan_compose
+    module: deta.scanner.compose
+    line: 177
+    cyclomatic_complexity: 4
+    calls_out: 7
+    calls_in: 0
 edges:
 - caller: deta.config.load_config
   callee: deta.config._load_yaml
   call_type: resolved
 - caller: deta.config.load_config
   callee: deta.config._parse_config
+  call_type: resolved
+- caller: deta.cli._get_topology
+  callee: project.map.toon.build_topology
+  call_type: resolved
+- caller: deta.cli._filter_anomalies
+  callee: deta.cli._meets_severity_threshold
+  call_type: resolved
+- caller: deta.cli._filter_anomalies
+  callee: deta.cli._is_anomaly_enabled
+  call_type: resolved
+- caller: deta.cli._print_summary
+  callee: deta.monitor.alerter.print_topology_table
+  call_type: resolved
+- caller: deta.cli._print_summary
+  callee: deta.monitor.alerter.alert_anomaly
+  call_type: resolved
+- caller: deta.cli._probe_once
+  callee: deta.monitor.prober.probe_all
+  call_type: resolved
+- caller: deta.cli._probe_once
+  callee: deta.monitor.alerter.alert_probe_success
+  call_type: resolved
+- caller: deta.cli._probe_once
+  callee: deta.monitor.alerter.alert_probe_failure
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.toon.save_toon
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.graph.save_graph_yaml
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.graph.save_mermaid
+  call_type: resolved
+- caller: deta.cli._write_outputs
+  callee: deta.formatter.graph.save_png
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._resolve_formats
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._get_topology
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._write_outputs
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._print_summary
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.config.load_config
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._filter_anomalies
+  call_type: resolved
+- caller: deta.cli.scan
+  callee: deta.cli._probe_once
+  call_type: resolved
+- caller: deta.cli.monitor
+  callee: deta.cli._monitor_loop
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._resolve_formats
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._get_topology
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._filter_anomalies
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._write_outputs
+  call_type: resolved
+- caller: deta.cli._monitor_loop
+  callee: deta.cli._print_summary
+  call_type: resolved
+- caller: deta.cli.diff
+  callee: deta.config.load_config
+  call_type: resolved
+- caller: deta.cli.diff
+  callee: deta.cli._get_topology
   call_type: resolved
 - caller: deta.web.app._probe_status
   callee: deta.monitor.prober.resolve_service_status
@@ -967,6 +1048,45 @@ edges:
 - caller: deta.integration.semcod.pre_deploy_check
   callee: project.map.toon.build_topology
   call_type: resolved
+- caller: deta.dsl.commands.service_down
+  callee: deta.dsl.commands._escape_value
+  call_type: resolved
+- caller: deta.dsl.commands.format_probe_change
+  callee: deta.monitor.prober.group_probes_by_service
+  call_type: resolved
+- caller: deta.dsl.commands.format_probe_change
+  callee: deta.dsl.commands.service_up
+  call_type: resolved
+- caller: deta.dsl.commands._ports_added
+  callee: deta.dsl.commands.port_added
+  call_type: resolved
+- caller: deta.dsl.commands._ports_added
+  callee: deta.dsl.commands._port_key
+  call_type: resolved
+- caller: deta.dsl.commands._ports_removed
+  callee: deta.dsl.commands.port_removed
+  call_type: resolved
+- caller: deta.dsl.commands._ports_removed
+  callee: deta.dsl.commands._port_key
+  call_type: resolved
+- caller: deta.dsl.commands._diff_service_ports
+  callee: deta.dsl.commands._ports_added
+  call_type: resolved
+- caller: deta.dsl.commands._diff_service_ports
+  callee: deta.dsl.commands._ports_removed
+  call_type: resolved
+- caller: deta.dsl.commands._diff_service_ports
+  callee: deta.dsl.commands._port_key
+  call_type: resolved
+- caller: deta.dsl.commands.format_port_changes
+  callee: deta.dsl.commands._diff_service_ports
+  call_type: resolved
+- caller: deta.dsl.commands.format_service_changes
+  callee: deta.dsl.commands.service_added
+  call_type: resolved
+- caller: deta.dsl.commands.format_service_changes
+  callee: deta.dsl.commands.service_removed
+  call_type: resolved
 - caller: deta.formatter.toon._format_alerts
   callee: deta.formatter.toon._format_alert_line
   call_type: resolved
@@ -1023,126 +1143,6 @@ edges:
   call_type: resolved
 - caller: deta.formatter.graph.save_png
   callee: deta.formatter.graph._service_bindings
-  call_type: resolved
-- caller: deta.cli._get_topology
-  callee: project.map.toon.build_topology
-  call_type: resolved
-- caller: deta.cli._filter_anomalies
-  callee: deta.cli._meets_severity_threshold
-  call_type: resolved
-- caller: deta.cli._filter_anomalies
-  callee: deta.cli._is_anomaly_enabled
-  call_type: resolved
-- caller: deta.cli._print_summary
-  callee: deta.monitor.alerter.print_topology_table
-  call_type: resolved
-- caller: deta.cli._print_summary
-  callee: deta.monitor.alerter.alert_anomaly
-  call_type: resolved
-- caller: deta.cli._probe_once
-  callee: deta.monitor.prober.probe_all
-  call_type: resolved
-- caller: deta.cli._probe_once
-  callee: deta.monitor.alerter.alert_probe_success
-  call_type: resolved
-- caller: deta.cli._probe_once
-  callee: deta.monitor.alerter.alert_probe_failure
-  call_type: resolved
-- caller: deta.cli._write_outputs
-  callee: deta.formatter.toon.save_toon
-  call_type: resolved
-- caller: deta.cli._write_outputs
-  callee: deta.formatter.graph.save_graph_yaml
-  call_type: resolved
-- caller: deta.cli._write_outputs
-  callee: deta.formatter.graph.save_mermaid
-  call_type: resolved
-- caller: deta.cli._write_outputs
-  callee: deta.formatter.graph.save_png
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.cli._resolve_formats
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.cli._get_topology
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.cli._write_outputs
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.cli._print_summary
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.config.load_config
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.cli._filter_anomalies
-  call_type: resolved
-- caller: deta.cli.scan
-  callee: deta.cli._probe_once
-  call_type: resolved
-- caller: deta.cli.monitor
-  callee: deta.cli._monitor_loop
-  call_type: resolved
-- caller: deta.cli._monitor_loop
-  callee: deta.cli._resolve_formats
-  call_type: resolved
-- caller: deta.cli._monitor_loop
-  callee: deta.cli._get_topology
-  call_type: resolved
-- caller: deta.cli._monitor_loop
-  callee: deta.cli._filter_anomalies
-  call_type: resolved
-- caller: deta.cli._monitor_loop
-  callee: deta.cli._write_outputs
-  call_type: resolved
-- caller: deta.cli._monitor_loop
-  callee: deta.cli._print_summary
-  call_type: resolved
-- caller: deta.cli.diff
-  callee: deta.config.load_config
-  call_type: resolved
-- caller: deta.cli.diff
-  callee: deta.cli._get_topology
-  call_type: resolved
-- caller: deta.dsl.commands.service_down
-  callee: deta.dsl.commands._escape_value
-  call_type: resolved
-- caller: deta.dsl.commands.format_probe_change
-  callee: deta.monitor.prober.group_probes_by_service
-  call_type: resolved
-- caller: deta.dsl.commands.format_probe_change
-  callee: deta.dsl.commands.service_up
-  call_type: resolved
-- caller: deta.dsl.commands._ports_added
-  callee: deta.dsl.commands.port_added
-  call_type: resolved
-- caller: deta.dsl.commands._ports_added
-  callee: deta.dsl.commands._port_key
-  call_type: resolved
-- caller: deta.dsl.commands._ports_removed
-  callee: deta.dsl.commands.port_removed
-  call_type: resolved
-- caller: deta.dsl.commands._ports_removed
-  callee: deta.dsl.commands._port_key
-  call_type: resolved
-- caller: deta.dsl.commands._diff_service_ports
-  callee: deta.dsl.commands._ports_added
-  call_type: resolved
-- caller: deta.dsl.commands._diff_service_ports
-  callee: deta.dsl.commands._ports_removed
-  call_type: resolved
-- caller: deta.dsl.commands._diff_service_ports
-  callee: deta.dsl.commands._port_key
-  call_type: resolved
-- caller: deta.dsl.commands.format_port_changes
-  callee: deta.dsl.commands._diff_service_ports
-  call_type: resolved
-- caller: deta.dsl.commands.format_service_changes
-  callee: deta.dsl.commands.service_added
-  call_type: resolved
-- caller: deta.dsl.commands.format_service_changes
-  callee: deta.dsl.commands.service_removed
   call_type: resolved
 modules:
   deta.cli:
@@ -1276,10 +1276,6 @@ entry_points:
 - deta.core.Wup.__repr__
 - deta.core.Wup.get_info
 - deta.dsl.commands.ChangeDSL.__str__
-- deta.dsl.commands.format_port_changes
-- deta.dsl.commands.format_probe_change
-- deta.dsl.commands.format_service_changes
-- deta.dsl.commands.status_summary
 - deta.integration.semcod.generate_for_pyqual
 - deta.integration.semcod.generate_for_sumd
 - deta.integration.semcod.generate_for_vallm
@@ -1349,6 +1345,8 @@ entry_points:
 - project.map.toon._port_in_use
 - project.map.toon._port_key
 - project.map.toon._port_probe_status
+- project.map.toon._ports_added
+- project.map.toon._ports_removed
 - project.map.toon._print_status_summary
 - project.map.toon._print_summary
 - project.map.toon._probe_once
@@ -1376,6 +1374,9 @@ entry_points:
 - project.map.toon.create_app
 - project.map.toon.diff
 - project.map.toon.discover_env
+- project.map.toon.format_port_changes
+- project.map.toon.format_probe_change
+- project.map.toon.format_service_changes
 - project.map.toon.generate_for_pyqual
 - project.map.toon.generate_for_sumd
 - project.map.toon.generate_for_vallm
@@ -1415,6 +1416,7 @@ entry_points:
 - project.map.toon.service_down
 - project.map.toon.service_removed
 - project.map.toon.service_up
+- project.map.toon.status_summary
 - project.map.toon.test_cache_basic
 - project.map.toon.test_cache_mtime_invalidation
 - project.map.toon.test_cache_ttl_expiration

@@ -1,4 +1,4 @@
-# deta | 37f 5524L | python:34,shell:2,less:1 | 2026-05-01
+# deta | 37f 5524L | python:34,shell:2,less:1 | 2026-05-04
 # stats: 171 func | 18 cls | 37 mod | CC̄=4.3 | critical:14 | cycles:0
 # alerts[5]: CC probe_port=13; CC format_probe_change=12; CC load_env_file=12; CC scan_openapi=12; CC _print_status_summary=11
 # hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; generate_toon fan=15

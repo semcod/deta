@@ -38,22 +38,42 @@ def alert_anomaly(anomaly: dict):
         color = SEVERITY_COLORS.get(anomaly["severity"], "white")
         rprint(f"[{color}][{anomaly['severity'].upper()}][/{color}] "
                f"{anomaly['type']} → {anomaly.get('service', anomaly.get('services'))}")
+        if "remediation_hints" in anomaly:
+            rprint("   [cyan]➜ 🤖 Actionable for LLM (MCP hints):[/cyan]")
+            for i, hint in enumerate(anomaly["remediation_hints"], 1):
+                rprint(f"      {i}. {hint}")
     else:
         print(f"[{anomaly['severity'].upper()}] {anomaly['type']} → "
               f"{anomaly.get('service', anomaly.get('services'))}")
+        if "remediation_hints" in anomaly:
+            print("   ➜ 🤖 Actionable for LLM (MCP hints):")
+            for i, hint in enumerate(anomaly["remediation_hints"], 1):
+                print(f"      {i}. {hint}")
 
 
 def alert_probe_failure(result: ProbeResult):
     """Display a failed probe result."""
     console = _get_console()
     
+    hints = [
+        f"Inspect logs: `docker logs --tail=100 {result.service}`",
+        f"Verify the service binds to the correct host/port mapping for {result.url}",
+        "Ensure dependencies for this service are fully healthy."
+    ]
+
     if console:
         from rich import print as rprint
         rprint(f"[bold red][DOWN][/bold red] {result.service} "
                f"({result.url}) — {result.error or f'HTTP {result.status}'}")
+        rprint("   [cyan]➜ 🤖 Actionable for LLM (MCP hints):[/cyan]")
+        for i, hint in enumerate(hints, 1):
+            rprint(f"      {i}. {hint}")
     else:
         print(f"[DOWN] {result.service} ({result.url}) — "
               f"{result.error or f'HTTP {result.status}'}")
+        print("   ➜ 🤖 Actionable for LLM (MCP hints):")
+        for i, hint in enumerate(hints, 1):
+            print(f"      {i}. {hint}")
 
 
 def alert_probe_success(result: ProbeResult):
