@@ -114,23 +114,26 @@ def _filter_anomalies(anomalies: list, config: DetaConfig) -> list:
     return filtered
 
 
-def _print_summary(topology: InfraTopology, output: Path, config: DetaConfig = None):
+def _print_summary(topology: InfraTopology, output: Path, config: DetaConfig = None, probe_results: dict | None = None):
+    import json
+    import yaml
     anomalies = getattr(topology, "_filtered_anomalies", None)
     if anomalies is None:
         anomalies = topology.detect_anomalies()
     
-    print_topology_table(topology)
+    data = json.loads(topology.to_json())
+    data["anomalies"] = anomalies
     
-    if anomalies:
-        print(f"\n=== Anomalies Detected ({len(anomalies)}) ===")
-        for a in anomalies:
-            alert_anomaly(a)
-    else:
-        print("\n✓ No anomalies detected")
-    
-    print(f"\n✓ Found {len(topology.services)} services, "
-          f"{len(topology.endpoints)} endpoints, "
-          f"{len(anomalies)} anomalies → {output}")
+    if probe_results:
+        # inject probe results into services
+        for svc_name, r in probe_results.items():
+            if svc_name in data["services"]:
+                data["services"][svc_name]["probe_status"] = "online" if r.ok else "offline"
+                data["services"][svc_name]["probe_latency_ms"] = r.latency_ms
+                if r.error:
+                    data["services"][svc_name]["probe_error"] = r.error
+
+    print(yaml.dump(data, sort_keys=False, default_flow_style=False))
 
 
 def _resolve_formats(formats: list[str] | None, config: DetaConfig) -> list[str]:
@@ -150,11 +153,6 @@ def _probe_once(topology: InfraTopology) -> dict:
         return {}
     results = asyncio.run(probe_all(services))
     by_service = {r.service: r for r in results}
-    for result in results:
-        if result.ok:
-            alert_probe_success(result)
-        else:
-            alert_probe_failure(result)
     return by_service
 
 
@@ -208,7 +206,7 @@ def scan(
     probe_results = _probe_once(topology) if online_enabled else None
     _write_outputs(topology, config, output, selected_formats, probe_results)
     
-    _print_summary(topology, output, config)
+    _print_summary(topology, output, config, probe_results)
 
 
 def monitor(

@@ -6,7 +6,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import fnmatch
+import json
 from pathlib import Path
+import subprocess
 from typing import Any
 
 from deta.scanner.env import (
@@ -16,6 +18,25 @@ from deta.scanner.env import (
     merge_env_files,
 )
 from deta.scanner.ports import PortBinding, parse_ports
+
+
+_ACTIVE_COMPOSE_FILENAMES = {
+    "compose.yml",
+    "compose.yaml",
+    "compose.override.yml",
+    "compose.override.yaml",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "docker-compose.override.yml",
+    "docker-compose.override.yaml",
+}
+
+_DISCOVERY_GLOBS = [
+    "docker-compose*.yml",
+    "docker-compose*.yaml",
+    "compose*.yml",
+    "compose*.yaml",
+]
 
 
 @dataclass
@@ -90,40 +111,91 @@ def _collect_compose_files(
     Group compose files by their directory (project).
     Files in the same directory are merged (Docker Compose behavior).
     """
-    patterns = [
-        "docker-compose*.yml",
-        "docker-compose*.yaml",
-        "compose.yml",
-        "compose.yaml",
-    ]
-
     project_files: dict[Path, list[Path]] = {}
-    seen: set[Path] = set()
+    include_mode, root_only_mode, active_only_mode = _compose_discovery_modes(root, include_patterns)
 
-    for pattern in patterns:
+    for compose_file in _iter_discovered_compose_files(root):
+        if not _should_collect_compose_file(
+            compose_file,
+            root,
+            max_depth,
+            include_patterns,
+            exclude_patterns,
+            include_mode,
+            root_only_mode,
+            active_only_mode,
+        ):
+            continue
+        project_dir = compose_file.parent
+        project_files.setdefault(project_dir, []).append(compose_file)
+
+    # Sort files in each project for consistent ordering.
+    # Base files first, then overrides, then any explicitly-included variants.
+    for files in project_files.values():
+        files.sort(
+            key=lambda p: (
+                p.name.endswith(".override.yml") or p.name.endswith(".override.yaml"),
+                p.name,
+            )
+        )
+
+    return project_files
+
+
+def _compose_discovery_modes(
+    root: Path,
+    include_patterns: list[str] | None,
+) -> tuple[bool, bool, bool]:
+    include_mode = bool(include_patterns)
+    has_root_active_compose = any((root / filename).exists() for filename in _ACTIVE_COMPOSE_FILENAMES)
+    root_only_mode = not include_mode and has_root_active_compose
+    active_only_mode = not include_mode
+    return include_mode, root_only_mode, active_only_mode
+
+
+def _iter_discovered_compose_files(root: Path):
+    seen: set[Path] = set()
+    for pattern in _DISCOVERY_GLOBS:
         for compose_file in root.rglob(pattern):
             if compose_file in seen:
                 continue
             seen.add(compose_file)
+            yield compose_file
 
-            if _matches_any_pattern(compose_file, root, exclude_patterns):
-                continue
-            if include_patterns and not _matches_any_pattern(compose_file, root, include_patterns):
-                continue
 
-            depth = len(compose_file.relative_to(root).parts)
-            if depth > max_depth:
-                continue
+def _should_collect_compose_file(
+    compose_file: Path,
+    root: Path,
+    max_depth: int,
+    include_patterns: list[str] | None,
+    exclude_patterns: list[str] | None,
+    include_mode: bool,
+    root_only_mode: bool,
+    active_only_mode: bool,
+) -> bool:
+    if root_only_mode and compose_file.parent != root:
+        return False
+    if active_only_mode and compose_file.name not in _ACTIVE_COMPOSE_FILENAMES:
+        return False
+    if _matches_any_pattern(compose_file, root, exclude_patterns):
+        return False
+    if include_mode and not _matches_any_pattern(compose_file, root, include_patterns):
+        return False
+    depth = len(compose_file.relative_to(root).parts)
+    if depth > max_depth:
+        return False
+    return True
 
-            project_dir = compose_file.parent
-            project_files.setdefault(project_dir, []).append(compose_file)
 
-    # Sort files in each project for consistent ordering
-    # Base files first, then overrides
-    for files in project_files.values():
-        files.sort(key=lambda p: (not p.name.startswith("docker-compose"), p.name))
-
-    return project_files
+def _source_priority(service: ServiceDef, root: Path) -> tuple[int, int, int, str]:
+    source_path = Path(service.source_file)
+    try:
+        depth = len(source_path.relative_to(root).parts)
+    except ValueError:
+        depth = 10_000
+    has_healthcheck = 1 if service.healthcheck else 0
+    resolved_bindings = sum(1 for binding in service.resolved_ports if binding.is_resolved)
+    return (depth, -has_healthcheck, -resolved_bindings, service.source_file)
 
 
 def _merge_services(compose_files: list[Path], yaml_loader) -> dict[str, dict]:
@@ -139,6 +211,98 @@ def _merge_services(compose_files: list[Path], yaml_loader) -> dict[str, dict]:
                 merged_services[svc_name] = dict(svc)
 
     return merged_services
+
+
+def _load_services_from_docker_compose_config(
+    project_dir: Path,
+    compose_files: list[Path],
+    yaml_loader,
+) -> dict[str, dict] | None:
+    """Load resolved services from `docker compose config` output.
+
+    Returns None when docker compose is unavailable or config cannot be resolved.
+    """
+    if not compose_files:
+        return None
+
+    for cmd in _docker_compose_config_commands(project_dir, compose_files):
+        payload = _run_compose_config_command(cmd, project_dir)
+        if payload is None:
+            continue
+        data = _parse_compose_config_payload(payload, yaml_loader)
+        if not data:
+            continue
+        resolved = _extract_compose_services(data)
+        if resolved is not None:
+            return resolved
+
+    return None
+
+
+def _docker_compose_config_commands(project_dir: Path, compose_files: list[Path]) -> list[list[str]]:
+    base_cmd = ["docker", "compose"]
+    for compose_file in compose_files:
+        base_cmd.extend(["-f", str(compose_file)])
+    base_cmd.extend(["--project-directory", str(project_dir), "config"])
+    return [
+        [*base_cmd, "--format", "json"],
+        base_cmd,
+    ]
+
+
+def _run_compose_config_command(cmd: list[str], project_dir: Path) -> str | None:
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(project_dir),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return None
+
+    if proc.returncode != 0:
+        return None
+    payload = proc.stdout.strip()
+    if not payload:
+        return None
+    return payload
+
+
+def _parse_compose_config_payload(payload: str, yaml_loader) -> dict[str, Any] | None:
+    try:
+        loaded = json.loads(payload)
+        if isinstance(loaded, dict):
+            return loaded
+    except json.JSONDecodeError:
+        pass
+
+    try:
+        if yaml_loader is not None:
+            loaded = yaml_loader.load(payload) or {}
+        else:
+            import yaml
+
+            loaded = yaml.safe_load(payload) or {}
+    except Exception:
+        return None
+
+    if isinstance(loaded, dict):
+        return loaded
+    return None
+
+
+def _extract_compose_services(data: dict[str, Any]) -> dict[str, dict] | None:
+    services = data.get("services")
+    if not isinstance(services, dict):
+        return None
+
+    resolved: dict[str, dict] = {}
+    for name, definition in services.items():
+        if isinstance(definition, dict):
+            resolved[str(name)] = dict(definition)
+    return resolved
 
 
 def _find_primary_source(
@@ -163,7 +327,8 @@ def _build_service_def(
 ) -> ServiceDef | None:
     """Build ServiceDef from service dictionary."""
     try:
-        base_env = discover_env(project_dir, root)
+        compose_env_source = compose_files[0] if compose_files else (project_dir / "docker-compose.yml")
+        base_env = discover_env(compose_env_source, root)
         service_env_files = _resolve_env_files(svc.get("env_file"), project_dir)
         layered_env = merge_env_files(base_env, service_env_files)
         raw_environment = _parse_env(svc.get("environment", {}))
@@ -210,6 +375,7 @@ def scan_compose(
     max_depth: int = 3,
     include_patterns: list[str] | None = None,
     exclude_patterns: list[str] | None = None,
+    use_dc_config: bool = True,
 ) -> list[ServiceDef]:
     """
     Scan for docker-compose files and extract service definitions.
@@ -228,19 +394,48 @@ def scan_compose(
         include_patterns=include_patterns,
         exclude_patterns=exclude_patterns,
     )
-    all_services: list[ServiceDef] = []
+    deduplicated_services: dict[str, ServiceDef] = {}
 
-    for project_dir, compose_files in project_files.items():
+    for project_dir in sorted(
+        project_files.keys(), key=lambda p: (len(p.relative_to(root).parts), p.as_posix())
+    ):
+        compose_files = project_files[project_dir]
         merged_services = _merge_services(compose_files, yaml_loader)
+        resolved_services = {}
+        if use_dc_config:
+            resolved_services = _load_services_from_docker_compose_config(
+                project_dir,
+                compose_files,
+                yaml_loader,
+            ) or {}
 
-        for svc_name, svc in merged_services.items():
+        all_names = list(dict.fromkeys([*merged_services.keys(), *resolved_services.keys()]))
+
+        for svc_name in all_names:
+            merged = merged_services.get(svc_name)
+            resolved = resolved_services.get(svc_name)
+
+            svc: dict[str, Any] = dict(merged) if isinstance(merged, dict) else {}
+            if isinstance(resolved, dict):
+                for key in ("ports", "healthcheck", "depends_on", "image"):
+                    if key in resolved:
+                        svc[key] = resolved[key]
+            if not svc:
+                continue
+
             service_def = _build_service_def(
                 svc_name, svc, project_dir, compose_files, yaml_loader, root
             )
             if service_def:
-                all_services.append(service_def)
+                existing = deduplicated_services.get(service_def.name)
+                if existing is None:
+                    deduplicated_services[service_def.name] = service_def
+                    continue
 
-    return all_services
+                if _source_priority(service_def, root) < _source_priority(existing, root):
+                    deduplicated_services[service_def.name] = service_def
+
+    return list(deduplicated_services.values())
 
 
 def _resolve_env_files(value: Any, base_dir: Path) -> list[Path]:
@@ -273,7 +468,7 @@ def _parse_ports(ports: Any) -> list[str]:
                 # Handle published: target format
                 published = port.get("published")
                 target = port.get("target")
-                if published and target:
+                if published is not None and target is not None:
                     result.append(f"{published}:{target}")
         return result
     return []

@@ -31,6 +31,7 @@ class ScanConfig:
     enabled: bool = True
     max_depth: int = 3
     include_patterns: list[str] = field(default_factory=list)
+    use_dc_config: bool = True
     exclude_patterns: list[str] = field(default_factory=lambda: [
         "node_modules/**",
         ".git/**",
@@ -210,6 +211,7 @@ def _parse_config(data: dict) -> DetaConfig:
             enabled=scan_data.get("enabled", True),
             max_depth=scan_data.get("max_depth", 3),
             include_patterns=scan_data.get("include_patterns", []),
+            use_dc_config=scan_data.get("use_dc_config", True),
             exclude_patterns=scan_data.get("exclude_patterns", config.scan.exclude_patterns),
         )
     

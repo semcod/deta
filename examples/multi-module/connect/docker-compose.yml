@@ -1,0 +1,30 @@
+version: "3.9"
+
+# Sub-module: connect
+# Discovered automatically by deta scan (recursive depth >= 2)
+
+services:
+  connect-backend:
+    image: myapp/connect:latest
+    ports:
+      - "8101:8000"
+    environment:
+      DATABASE_URL: postgresql://app:${DB_PASSWORD:-dev}@localhost:5432/app
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  connect-frontend:
+    image: myapp/connect-ui:latest
+    ports:
+      - "8200:80"
+    depends_on:
+      - connect-backend
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.45] - 2026-05-04
+
+### Docs
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/test_compose_env.py
+- Update tests/test_e2e_scan.py
+
+### Other
+- Update app.doql.less
+- Update deta.yaml.example
+- Update deta/__init__.py
+- Update deta/builder/topology.py
+- Update deta/cli.py
+- Update deta/config.py
+- Update deta/scanner/compose.py
+- Update examples/anomalies/hardcoded-secrets/docker-compose.yml
+- Update examples/anomalies/missing-healthcheck/docker-compose.yml
+- Update examples/microservices/docker-compose.yml
+- ... and 22 more files
+
 ## [0.2.44] - 2026-05-04
 
 ### Docs

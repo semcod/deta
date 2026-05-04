@@ -1,30 +1,30 @@
-# deta | 309 func | 18f | 14005L | python | 2026-05-04
+# deta | 331 func | 19f | 13980L | python | 2026-05-04
 
 HEALTH:
-  CC̄=2.0  critical=14 (limit:10)  dup=0  cycles=2
+  CC̄=2.1  critical=15 (limit:10)  dup=0  cycles=2
 
 ALERTS[19]:
   !!! high_fan_out     create_app = 76 (limit:10)
   !!! high_fan_out     _monitor_loop = 27 (limit:10)
+  !!! high_fan_out     scan_compose = 21 (limit:10)
   !!! high_fan_out     main = 20 (limit:10)
   !!  high_fan_out     save_png = 17 (limit:10)
   !!  high_fan_out     _parse_config = 15 (limit:10)
-  !!  high_fan_out     _build_service_def = 15 (limit:10)
   !!  high_fan_out     generate_toon = 15 (limit:10)
+  !!  high_fan_out     _build_service_def = 15 (limit:10)
   !   high_fan_out     diff = 14 (limit:10)
   !   high_fan_out     probe_service = 12 (limit:10)
-  !   high_fan_out     probe_all = 12 (limit:10)
 
 MODULES[44] (top by size):
-  M[infra-map.json] 1658L C:0 F:0 CC↑0 D:0 (json)
+  M[project/calls.yaml] 1480L C:0 F:0 CC↑0 D:0 (yaml)
   M[deta/web/app.py] 1466L C:1 F:14 CC↑11 D:1 (python)
-  M[project/calls.yaml] 1461L C:0 F:0 CC↑0 D:0 (yaml)
+  M[infra-map.json] 1043L C:0 F:0 CC↑0 D:0 (json)
   M[deta/cli.py] 545L C:0 F:19 CC↑11 D:0 (python)
+  M[deta/scanner/compose.py] 514L C:1 F:23 CC↑13 D:0 (python)
   M[goal.yaml] 512L C:0 F:0 CC↑0 D:0 (yaml)
-  M[deta/monitor/prober.py] 443L C:1 F:16 CC↑13 D:4 (python)
-  M[project/map.toon.yaml] 294L C:0 F:171 CC↑0 D:2 (yaml)
-  M[deta/scanner/compose.py] 278L C:1 F:13 CC↑7 D:0 (python)
-  M[deta/config.py] 274L C:8 F:3 CC↑9 D:2 (python)
+  M[deta/monitor/prober.py] 442L C:1 F:16 CC↑13 D:4 (python)
+  M[project/map.toon.yaml] 306L C:0 F:181 CC↑0 D:2 (yaml)
+  M[deta/config.py] 276L C:8 F:3 CC↑9 D:2 (python)
   M[deta/dsl/commands.py] 257L C:1 F:16 CC↑12 D:1 (python)
   M[infra-graph.yaml] 241L C:0 F:0 CC↑0 D:0 (yaml)
   M[project/calls.toon.yaml] 215L C:0 F:0 CC↑0 D:0 (yaml)
@@ -36,16 +36,19 @@ MODULES[44] (top by size):
 HOTSPOTS[10]:
   ★ create_app fan=76  // Orchestrates 76 calls
   ★ _monitor_loop fan=27  // Orchestrates 27 calls
+  ★ scan_compose fan=21  // Scan for docker-compose files and extract service definitions.
+
+Args:
+    root: 
   ★ main fan=20  // Orchestrates 20 calls
   ★ save_png fan=17  // Orchestrates 17 calls
-  ★ _parse_config fan=15  // Parse configuration dictionary into DetaConfig object.
 
-REFACTOR[10]:
-  [1] H/H Split god module deta/cli.py (545L, 0 classes)
-  [2] H/H Split god module deta/web/app.py (1466L, 1 classes)
-  [3] H/H Split god module goal.yaml (512L, 0 classes)
-  [4] H/H Split god module infra-map.json (1658L, 0 classes)
-  [5] H/H Split god module project/calls.yaml (1461L, 0 classes)
+REFACTOR[11]:
+  [1] H/H Split god module deta/scanner/compose.py (514L, 1 classes)
+  [2] H/H Split god module deta/cli.py (545L, 0 classes)
+  [3] H/H Split god module deta/web/app.py (1466L, 1 classes)
+  [4] H/H Split god module goal.yaml (512L, 0 classes)
+  [5] H/H Split god module infra-map.json (1043L, 0 classes)
 
 EVOLUTION:
-  2026-05-04 CC̄=2.0 crit=14 14005L // Automated analysis
+  2026-05-04 CC̄=2.1 crit=15 13980L // Automated analysis

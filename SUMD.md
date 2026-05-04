@@ -21,7 +21,7 @@ Infrastructure anomaly detection and monitoring tool
 ## Metadata
 
 - **name**: `deta`
-- **version**: `0.2.43`
+- **version**: `0.2.44`
 - **python_requires**: `>=3.8`
 - **license**: {'text': 'Apache-2.0'}
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
@@ -41,7 +41,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 app {
   name: deta;
-  version: 0.2.43;
+  version: 0.2.44;
 }
 
 dependencies {
@@ -115,7 +115,7 @@ ASSERT_EXIT_CODE 0
 ```yaml
 project:
   name: deta
-  version: 0.2.43
+  version: 0.2.44
   env: local
 ```
 
@@ -172,21 +172,21 @@ pip install -e .[dev]
 ### `project/map.toon.yaml`
 
 ```toon markpact:analysis path=project/map.toon.yaml
-# deta | 38f 5578L | python:35,shell:2,less:1 | 2026-05-04
-# stats: 171 func | 18 cls | 38 mod | CC̄=4.4 | critical:14 | cycles:0
-# alerts[5]: CC probe_port=13; CC format_probe_change=12; CC load_env_file=12; CC scan_openapi=12; CC _print_status_summary=11
-# hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; generate_toon fan=15
+# deta | 38f 6054L | python:35,shell:2,less:1 | 2026-05-04
+# stats: 192 func | 18 cls | 38 mod | CC̄=4.4 | critical:15 | cycles:0
+# alerts[5]: CC probe_port=13; CC scan_compose=13; CC format_probe_change=12; CC probe_all=12; CC load_env_file=12
+# hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; scan_compose fan=17
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
 M[38]:
   app.doql.less,33
   debug_deta.py,15
-  deta/__init__.py,24
+  deta/__init__.py,50
   deta/builder/__init__.py,8
   deta/builder/cache.py,84
-  deta/builder/topology.py,182
+  deta/builder/topology.py,213
   deta/cli.py,545
-  deta/config.py,275
+  deta/config.py,277
   deta/core.py,27
   deta/dsl/__init__.py,41
   deta/dsl/commands.py,258
@@ -196,11 +196,11 @@ M[38]:
   deta/integration/__init__.py,18
   deta/integration/semcod.py,130
   deta/monitor/__init__.py,21
-  deta/monitor/alerter.py,120
-  deta/monitor/prober.py,444
+  deta/monitor/alerter.py,127
+  deta/monitor/prober.py,443
   deta/monitor/watcher.py,117
   deta/scanner/__init__.py,18
-  deta/scanner/compose.py,279
+  deta/scanner/compose.py,515
   deta/scanner/env.py,141
   deta/scanner/npm.py,46
   deta/scanner/openapi.py,90
@@ -211,24 +211,28 @@ M[38]:
   project.sh,48
   scan-infra.sh,38
   tests/test_cache.py,88
-  tests/test_compose_env.py,123
+  tests/test_compose_env.py,281
   tests/test_dsl.py,90
   tests/test_env.py,60
-  tests/test_monitor_ports.py,68
+  tests/test_monitor_ports.py,85
   tests/test_ports.py,53
   tests/test_wup.py,12
 D:
   debug_deta.py:
   deta/__init__.py:
+    e: __getattr__,__dir__
+    __getattr__(name)
+    __dir__()
   deta/builder/__init__.py:
   deta/builder/cache.py:
     e: CachedTopology,TopologyCache
     CachedTopology:  # Cached topology with metadata.
     TopologyCache: __init__(1),_get_current_mtimes(2),_is_valid(3),get(3),invalidate(0)  # Cache for topology with mtime-based invalidation.
   deta/builder/topology.py:
-    e: build_topology,InfraTopology
+    e: _is_hardcoded_secret_value,build_topology,InfraTopology
     InfraTopology: __init__(0),add_services(1),add_endpoints(1),detect_cycles(0),find_hubs(1),detect_anomalies(0),to_json(0)  # Represents the infrastructure topology with services and dep
-    build_topology(root;max_depth)
+    _is_hardcoded_secret_value(value)
+    build_topology(root;max_depth;config)
   deta/cli.py:
     e: _port_in_use,_pid_on_port,_terminate_pid,_get_topology,_is_anomaly_enabled,_meets_severity_threshold,_filter_anomalies,_print_summary,_resolve_formats,_probe_once,_write_outputs,scan,monitor,_extract_ports_snapshot,_log_port_changes,_print_status_summary,_monitor_loop,diff,main
     _port_in_use(host;port)
@@ -358,16 +362,26 @@ D:
     _is_config_file(path)
   deta/scanner/__init__.py:
   deta/scanner/compose.py:
-    e: _deep_merge,_get_yaml_loader,_load_yaml_file,_collect_compose_files,_merge_services,_find_primary_source,_build_service_def,scan_compose,_resolve_env_files,_parse_ports,_parse_depends_on,_parse_env,_parse_labels,ServiceDef
+    e: _matches_any_pattern,_deep_merge,_get_yaml_loader,_load_yaml_file,_collect_compose_files,_compose_discovery_modes,_iter_discovered_compose_files,_should_collect_compose_file,_source_priority,_merge_services,_load_services_from_docker_compose_config,_docker_compose_config_commands,_run_compose_config_command,_parse_compose_config_payload,_extract_compose_services,_find_primary_source,_build_service_def,scan_compose,_resolve_env_files,_parse_ports,_parse_depends_on,_parse_env,_parse_labels,ServiceDef
     ServiceDef:  # Definition of a Docker Compose service.
+    _matches_any_pattern(path;root;patterns)
     _deep_merge(base;override)
     _get_yaml_loader()
     _load_yaml_file(file_path;yaml_loader)
-    _collect_compose_files(root;max_depth)
+    _collect_compose_files(root;max_depth;include_patterns;exclude_patterns)
+    _compose_discovery_modes(root;include_patterns)
+    _iter_discovered_compose_files(root)
+    _should_collect_compose_file(compose_file;root;max_depth;include_patterns;exclude_patterns;include_mode;root_only_mode;active_only_mode)
+    _source_priority(service;root)
     _merge_services(compose_files;yaml_loader)
+    _load_services_from_docker_compose_config(project_dir;compose_files;yaml_loader)
+    _docker_compose_config_commands(project_dir;compose_files)
+    _run_compose_config_command(cmd;project_dir)
+    _parse_compose_config_payload(payload;yaml_loader)
+    _extract_compose_services(data)
     _find_primary_source(svc_name;compose_files;yaml_loader;project_dir)
     _build_service_def(svc_name;svc;project_dir;compose_files;yaml_loader;root)
-    scan_compose(root;max_depth)
+    scan_compose(root;max_depth;include_patterns;exclude_patterns;use_docker_compose_config)
     _resolve_env_files(value;base_dir)
     _parse_ports(ports)
     _parse_depends_on(dep)
@@ -419,11 +433,18 @@ D:
     test_cache_mtime_invalidation(tmp_path)
     test_cache_ttl_expiration(tmp_path)
   tests/test_compose_env.py:
-    e: test_env_driven_ports,test_env_file_layering,test_port_conflict_detected,test_compose_override_merging
+    e: test_env_driven_ports,test_env_file_layering,test_port_conflict_detected,test_compose_override_merging,test_non_active_compose_variants_ignored_unless_included,test_scan_compose_respects_include_exclude_patterns,test_hardcoded_secret_detection_ignores_compose_interpolation,test_hardcoded_secret_detection_flags_literal_value,test_scan_compose_can_disable_docker_compose_runtime_resolution,test_config_parses_use_docker_compose_config_flag,test_config_defaults_use_docker_compose_config_to_true
     test_env_driven_ports(tmp_path)
     test_env_file_layering(tmp_path)
     test_port_conflict_detected(tmp_path)
     test_compose_override_merging(tmp_path)
+    test_non_active_compose_variants_ignored_unless_included(tmp_path)
+    test_scan_compose_respects_include_exclude_patterns(tmp_path)
+    test_hardcoded_secret_detection_ignores_compose_interpolation(tmp_path)
+    test_hardcoded_secret_detection_flags_literal_value(tmp_path)
+    test_scan_compose_can_disable_docker_compose_runtime_resolution(tmp_path;monkeypatch)
+    test_config_parses_use_docker_compose_config_flag(tmp_path)
+    test_config_defaults_use_docker_compose_config_to_true(tmp_path)
   tests/test_dsl.py:
     e: test_service_up,test_service_down,test_port_added,test_port_removed,test_service_added,test_service_removed,test_status_summary,test_format_probe_change_up,test_format_probe_change_down,test_format_probe_change_no_change
     test_service_up()
@@ -450,10 +471,11 @@ D:
     test_interpolate_embedded()
     test_load_env_file(tmp_path)
   tests/test_monitor_ports.py:
-    e: test_service_rows_port_fallback_to_raw,test_service_rows_port_single_port,test_service_rows_port_no_ports
+    e: test_service_rows_port_fallback_to_raw,test_service_rows_port_single_port,test_service_rows_port_no_ports,test_probe_all_skips_services_without_targets
     test_service_rows_port_fallback_to_raw()
     test_service_rows_port_single_port()
     test_service_rows_port_no_ports()
+    test_probe_all_skips_services_without_targets()
   tests/test_ports.py:
     e: test_parse_port_single,test_parse_port_mapping,test_parse_port_with_host,test_parse_port_with_protocol,test_parse_port_env,test_parse_port_env_default,test_published_url,test_published_url_fallback_host
     test_parse_port_single()
@@ -525,7 +547,7 @@ class Wup:  # Base class for wup operations.
 
 ## Call Graph
 
-*113 nodes · 125 edges · 16 modules · CC̄=2.0*
+*118 nodes · 132 edges · 16 modules · CC̄=2.1*
 
 ### Hubs (by degree)
 
@@ -533,17 +555,17 @@ class Wup:  # Base class for wup operations.
 |----------|----|----|-----|-------|
 | `create_app` *(in deta.web.app)* | 5 | 1 | 121 | **122** |
 | `_monitor_loop` *(in deta.cli)* | 7 | 1 | 48 | **49** |
-| `_parse_config` *(in deta.config)* | 9 | 1 | 46 | **47** |
+| `_parse_config` *(in deta.config)* | 9 | 1 | 47 | **48** |
 | `diff` *(in deta.cli)* | 9 | 1 | 27 | **28** |
-| `_build_service_def` *(in deta.scanner.compose)* | 5 | 1 | 23 | **24** |
+| `_build_service_def` *(in deta.scanner.compose)* | 7 | 1 | 25 | **26** |
+| `scan_compose` *(in deta.scanner.compose)* | 13 ⚠ | 0 | 24 | **24** |
 | `generate_mermaid` *(in deta.formatter.graph)* | 10 ⚠ | 3 | 21 | **24** |
 | `probe_port` *(in deta.monitor.prober)* | 13 ⚠ | 1 | 21 | **22** |
-| `generate_toon` *(in deta.formatter.toon)* | 2 | 1 | 21 | **22** |
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/semcod/deta
-# nodes: 113 | edges: 125 | modules: 16
-# CC̄=2.0
+# nodes: 118 | edges: 132 | modules: 16
+# CC̄=2.1
 
 HUBS[20]:
   deta.web.app.create_app
@@ -551,11 +573,13 @@ HUBS[20]:
   deta.cli._monitor_loop
     CC=7  in:1  out:48  total:49
   deta.config._parse_config
-    CC=9  in:1  out:46  total:47
+    CC=9  in:1  out:47  total:48
   deta.cli.diff
     CC=9  in:1  out:27  total:28
   deta.scanner.compose._build_service_def
-    CC=5  in:1  out:23  total:24
+    CC=7  in:1  out:25  total:26
+  deta.scanner.compose.scan_compose
+    CC=13  in:0  out:24  total:24
   deta.formatter.graph.generate_mermaid
     CC=10  in:3  out:21  total:24
   deta.monitor.prober.probe_port
@@ -569,23 +593,21 @@ HUBS[20]:
   deta.formatter.graph.save_png
     CC=11  in:1  out:19  total:20
   deta.monitor.alerter.print_topology_table
-    CC=8  in:0  out:19  total:19
-  deta.monitor.prober.probe_all
-    CC=11  in:4  out:14  total:18
+    CC=8  in:1  out:19  total:20
+  deta.monitor.alerter.alert_anomaly
+    CC=6  in:2  out:16  total:18
   deta.formatter.graph._graph_yaml_node
     CC=8  in:1  out:16  total:17
-  deta.web.app._topology_json_with_status
-    CC=6  in:1  out:15  total:16
   deta.scanner.env.load_env_file
     CC=12  in:2  out:14  total:16
-  deta.monitor.alerter.alert_anomaly
-    CC=6  in:0  out:16  total:16
+  deta.monitor.prober.probe_all
+    CC=12  in:4  out:12  total:16
+  deta.web.app._topology_json_with_status
+    CC=6  in:1  out:15  total:16
   deta.config.load_config
     CC=4  in:8  out:7  total:15
-  deta.cli._write_outputs
-    CC=8  in:3  out:12  total:15
-  deta.scanner.ports.parse_port
-    CC=10  in:2  out:12  total:14
+  deta.monitor.alerter.alert_probe_failure
+    CC=7  in:3  out:12  total:15
 
 MODULES:
   deta.cli  [12 funcs]
@@ -601,7 +623,7 @@ MODULES:
     diff  CC=9  out:27
   deta.config  [3 funcs]
     _load_yaml  CC=7  out:11
-    _parse_config  CC=9  out:46
+    _parse_config  CC=9  out:47
     load_config  CC=4  out:7
   deta.dsl.commands  [14 funcs]
     _diff_service_ports  CC=9  out:6
@@ -643,7 +665,7 @@ MODULES:
   deta.monitor.alerter  [5 funcs]
     _get_console  CC=3  out:1
     alert_anomaly  CC=6  out:16
-    alert_probe_failure  CC=6  out:9
+    alert_probe_failure  CC=7  out:12
     alert_probe_success  CC=2  out:3
     print_topology_table  CC=8  out:19
   deta.monitor.prober  [12 funcs]
@@ -655,7 +677,7 @@ MODULES:
     _is_database_port  CC=1  out:0
     _service_probe_targets  CC=8  out:10
     group_probes_by_service  CC=3  out:2
-    probe_all  CC=11  out:14
+    probe_all  CC=12  out:12
     probe_port  CC=13  out:21
   deta.monitor.watcher  [6 funcs]
     _detect_change_type  CC=8  out:0
@@ -664,17 +686,17 @@ MODULES:
     _poll_configs  CC=2  out:4
     _scan_file_mtimes  CC=4  out:3
     watch_configs  CC=6  out:10
-  deta.scanner.compose  [11 funcs]
-    _build_service_def  CC=5  out:23
-    _collect_compose_files  CC=6  out:10
+  deta.scanner.compose  [20 funcs]
+    _build_service_def  CC=7  out:25
+    _collect_compose_files  CC=5  out:9
+    _compose_discovery_modes  CC=3  out:3
     _deep_merge  CC=5  out:5
+    _docker_compose_config_commands  CC=2  out:4
+    _extract_compose_services  CC=4  out:6
     _find_primary_source  CC=4  out:4
     _get_yaml_loader  CC=2  out:1
-    _load_yaml_file  CC=5  out:3
-    _merge_services  CC=5  out:6
-    _parse_env  CC=6  out:4
-    _parse_ports  CC=7  out:7
-    _resolve_env_files  CC=7  out:6
+    _iter_discovered_compose_files  CC=4  out:3
+    _load_services_from_docker_compose_config  CC=6  out:4
   deta.scanner.env  [5 funcs]
     discover_env  CC=4  out:9
     interpolate  CC=3  out:6
@@ -702,12 +724,8 @@ MODULES:
     _topology_json_with_status  CC=6  out:15
     create_app  CC=5  out:121
     run_dashboard  CC=5  out:6
-  project.map.toon  [5 funcs]
-    alert_anomaly  CC=0  out:0
-    alert_probe_failure  CC=0  out:0
-    alert_probe_success  CC=0  out:0
+  project.map.toon  [1 funcs]
     build_topology  CC=0  out:0
-    print_topology_table  CC=0  out:0
 
 EDGES:
   deta.config.load_config → deta.config._load_yaml
@@ -715,11 +733,11 @@ EDGES:
   deta.cli._get_topology → project.map.toon.build_topology
   deta.cli._filter_anomalies → deta.cli._meets_severity_threshold
   deta.cli._filter_anomalies → deta.cli._is_anomaly_enabled
-  deta.cli._print_summary → project.map.toon.print_topology_table
-  deta.cli._print_summary → project.map.toon.alert_anomaly
+  deta.cli._print_summary → deta.monitor.alerter.print_topology_table
+  deta.cli._print_summary → deta.monitor.alerter.alert_anomaly
   deta.cli._probe_once → deta.monitor.prober.probe_all
-  deta.cli._probe_once → project.map.toon.alert_probe_success
-  deta.cli._probe_once → project.map.toon.alert_probe_failure
+  deta.cli._probe_once → deta.monitor.alerter.alert_probe_success
+  deta.cli._probe_once → deta.monitor.alerter.alert_probe_failure
   deta.cli._write_outputs → deta.formatter.toon.save_toon
   deta.cli._write_outputs → deta.formatter.graph.save_graph_yaml
   deta.cli._write_outputs → deta.formatter.graph.save_mermaid
@@ -750,16 +768,16 @@ EDGES:
   deta.web.app._compute_events → deta.web.app._probe_status_events
   deta.web.app.run_dashboard → deta.config.load_config
   deta.web.app.run_dashboard → deta.web.app.create_app
+  deta.monitor.alerter.alert_anomaly → deta.monitor.alerter._get_console
+  deta.monitor.alerter.alert_probe_failure → deta.monitor.alerter._get_console
+  deta.monitor.alerter.alert_probe_success → deta.monitor.alerter._get_console
+  deta.monitor.alerter.print_topology_table → deta.monitor.alerter._get_console
   deta.monitor.prober._first_resolved_binding → deta.scanner.ports.parse_port
   deta.monitor.prober._extract_health_url → deta.monitor.prober._first_resolved_binding
   deta.monitor.prober._extract_health_url → deta.scanner.ports.published_url
   deta.monitor.prober._service_probe_targets → deta.monitor.prober._first_resolved_binding
   deta.monitor.prober._service_probe_targets → deta.monitor.prober._extract_host_port_from_url
   deta.monitor.prober._service_probe_targets → deta.scanner.ports.published_url
-  deta.monitor.prober.probe_service → deta.monitor.prober._extract_health_url
-  deta.monitor.prober.probe_service → deta.monitor.prober._service_probe_targets
-  deta.monitor.prober.probe_service → deta.monitor.prober._get_client
-  deta.monitor.prober.probe_service → deta.monitor.prober._extract_host_port_from_url
 ```
 
 ## Test Contracts

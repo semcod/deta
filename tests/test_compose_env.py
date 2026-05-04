@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from deta.config import load_config
 from deta.scanner.compose import scan_compose
 
 
@@ -87,7 +88,7 @@ def test_port_conflict_detected(tmp_path: Path):
 
 
 def test_compose_override_merging(tmp_path: Path):
-    """Override files should merge with base, not replace."""
+    """Active override files should merge with base, not replace."""
     # Base file defines postgres with ports
     base = tmp_path / "docker-compose.yml"
     base.write_text(
@@ -100,8 +101,8 @@ def test_compose_override_merging(tmp_path: Path):
         '      POSTGRES_DB: app\n'
     )
 
-    # Override file redefines postgres with extra env but NO ports
-    override = tmp_path / "docker-compose.prod.yml"
+    # Active override file redefines postgres with extra env but NO ports
+    override = tmp_path / "docker-compose.override.yml"
     override.write_text(
         "services:\n"
         "  postgres:\n"
@@ -119,6 +120,32 @@ def test_compose_override_merging(tmp_path: Path):
     # Environment should be merged
     assert svc.environment.get("POSTGRES_DB") == "app"
     assert svc.environment.get("POSTGRES_PASSWORD") == "secret"
+
+
+def test_non_active_compose_variants_ignored_unless_included(tmp_path: Path):
+    base = tmp_path / "docker-compose.yml"
+    base.write_text(
+        "services:\n"
+        "  app:\n"
+        "    image: nginx\n"
+    )
+
+    variant = tmp_path / "docker-compose.prod.yml"
+    variant.write_text(
+        "services:\n"
+        "  prod-only:\n"
+        "    image: httpd\n"
+    )
+
+    default_services = scan_compose(tmp_path, max_depth=1)
+    assert {svc.name for svc in default_services} == {"app"}
+
+    included_services = scan_compose(
+        tmp_path,
+        max_depth=1,
+        include_patterns=["docker-compose*.yml"],
+    )
+    assert {svc.name for svc in included_services} == {"app", "prod-only"}
 
 
 def test_scan_compose_respects_include_exclude_patterns(tmp_path: Path):
@@ -193,3 +220,61 @@ def test_hardcoded_secret_detection_flags_literal_value(tmp_path: Path):
     hardcoded = [a for a in anomalies if a["type"] == "hardcoded_secret"]
     assert len(hardcoded) == 1
     assert hardcoded[0]["service"] == "app"
+
+
+def test_scan_compose_can_disable_dc_runtime_resolution(tmp_path: Path, monkeypatch):
+    compose = tmp_path / "docker-compose.yml"
+    compose.write_text(
+        "services:\n"
+        "  app:\n"
+        "    image: nginx\n"
+        "    ports:\n"
+        "      - \"1111:80\"\n"
+    )
+
+    import deta.scanner.compose as compose_scanner
+
+    def fake_runtime_services(*_args, **_kwargs):
+        return {
+            "app": {
+                "ports": [
+                    {"published": 2222, "target": 80},
+                ],
+            }
+        }
+
+    monkeypatch.setattr(
+        compose_scanner,
+        "_load_services_from_docker_compose_config",
+        fake_runtime_services,
+    )
+
+    enabled = scan_compose(tmp_path, max_depth=1, use_dc_config=True)
+    enabled_svc = next(s for s in enabled if s.name == "app")
+    assert enabled_svc.resolved_ports[0].host_port == "2222"
+
+    disabled = scan_compose(tmp_path, max_depth=1, use_dc_config=False)
+    disabled_svc = next(s for s in disabled if s.name == "app")
+    assert disabled_svc.resolved_ports[0].host_port == "1111"
+
+
+def test_config_parses_use_dc_config_flag(tmp_path: Path):
+    cfg = tmp_path / "deta.yaml"
+    cfg.write_text(
+        "scan:\n"
+        "  use_dc_config: false\n"
+    )
+
+    parsed = load_config(cfg)
+    assert parsed.scan.use_dc_config is False
+
+
+def test_config_defaults_use_dc_config_to_true(tmp_path: Path):
+    cfg = tmp_path / "deta.yaml"
+    cfg.write_text(
+        "scan:\n"
+        "  max_depth: 2\n"
+    )
+
+    parsed = load_config(cfg)
+    assert parsed.scan.use_dc_config is True

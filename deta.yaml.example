@@ -9,6 +9,7 @@ project:
 scan:
   enabled: true
   max_depth: 3
+  use_dc_config: true  # prefer `docker compose config` for resolved ports/healthcheck
   include_patterns:
     - "docker-compose*.yml"
     - "docker-compose*.yaml"

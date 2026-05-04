@@ -190,15 +190,18 @@ def build_topology(root: Path, max_depth: int = 3, config: Any = None) -> InfraT
     # Scan and add services
     include_patterns = None
     exclude_patterns = None
+    use_dc_config = True
     if config and getattr(config, "scan", None):
         include_patterns = getattr(config.scan, "include_patterns", None)
         exclude_patterns = getattr(config.scan, "exclude_patterns", None)
+        use_dc_config = getattr(config.scan, "use_dc_config", True)
 
     services = scan_compose(
         root,
         max_depth,
         include_patterns=include_patterns,
         exclude_patterns=exclude_patterns,
+        use_dc_config=use_dc_config,
     )
     topology.add_services(services)
     

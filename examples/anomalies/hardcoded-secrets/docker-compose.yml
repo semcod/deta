@@ -1,0 +1,30 @@
+version: "3.9"
+
+# Example: anomalies/hardcoded-secrets
+# Purpose: Demonstrate deta scan detection of hardcoded credential values.
+# Run:   deta scan .
+# Expected output: anomaly type=hardcoded_secret for SECRET_KEY in app
+
+services:
+  app:
+    image: myapp:latest
+    ports:
+      - "8080:80"
+    environment:
+      SECRET_KEY: super-secret-key-hardcoded
+      DB_HOST: postgres
+      DB_PORT: 5432
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: change-me-in-env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

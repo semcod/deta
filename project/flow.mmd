@@ -32,13 +32,13 @@ flowchart TD
         deta__web__app___probe_status["_probe_status"]
         deta__monitor__prober___get_client["_get_client"]
         deta__monitor__prober__close_client["close_client"]
+        deta__monitor__prober___noop_probe["_noop_probe"]
         deta__scanner__ports__parse_port("parse_port CC=10")
         deta__scanner__ports__parse_ports["parse_ports"]
         deta__scanner__npm__scan_npm["scan_npm"]
         deta__scanner__openapi__scan_openapi["scan_openapi"]
-        deta__scanner__compose__scan_compose["scan_compose"]
         deta__scanner__env__interpolate["interpolate"]
-        ...["+179 more"]
+        ...["+191 more"]
     end
 
     class deta__cli___port_in_use,deta__cli___pid_on_port,deta__cli___terminate_pid,deta__cli___get_topology,deta__cli___is_anomaly_enabled,deta__cli___meets_severity_threshold,deta__cli___filter_anomalies,deta__cli___print_summary,deta__cli___resolve_formats,deta__cli___probe_once entry

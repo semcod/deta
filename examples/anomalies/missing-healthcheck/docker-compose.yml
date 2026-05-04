@@ -1,0 +1,40 @@
+version: "3.9"
+
+# Example: anomalies/missing-healthcheck
+# Purpose: Demonstrate deta scan detection of services without healthcheck.
+# Run:   deta scan .
+# Expected output: anomaly type=missing_healthcheck for worker and cache
+
+services:
+  api:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: python:3.11-slim
+    # no healthcheck — will trigger missing_healthcheck anomaly
+    environment:
+      QUEUE_URL: amqp://rabbitmq:5672
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    # no healthcheck — will trigger missing_healthcheck anomaly
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5

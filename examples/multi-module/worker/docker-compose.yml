@@ -1,0 +1,31 @@
+version: "3.9"
+
+# Sub-module: worker
+# Discovered automatically by deta scan (recursive depth >= 2)
+
+services:
+  worker:
+    image: myapp/worker:latest
+    ports:
+      - "8102:8000"
+    environment:
+      DATABASE_URL: postgresql://app:${DB_PASSWORD:-dev}@localhost:5432/app
+      QUEUE_URL: amqp://rabbitmq:5672
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  scheduler:
+    image: myapp/scheduler:latest
+    ports:
+      - "8103:8000"
+    depends_on:
+      - worker
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

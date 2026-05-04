@@ -1,18 +1,18 @@
-# deta | 38f 5578L | python:35,shell:2,less:1 | 2026-05-04
-# stats: 171 func | 18 cls | 38 mod | CC̄=4.4 | critical:14 | cycles:0
-# alerts[5]: CC probe_port=13; CC format_probe_change=12; CC load_env_file=12; CC scan_openapi=12; CC _print_status_summary=11
-# hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; generate_toon fan=15
+# deta | 38f 6054L | python:35,shell:2,less:1 | 2026-05-04
+# stats: 192 func | 18 cls | 38 mod | CC̄=4.4 | critical:15 | cycles:0
+# alerts[5]: CC probe_port=13; CC scan_compose=13; CC format_probe_change=12; CC probe_all=12; CC load_env_file=12
+# hotspots[5]: create_app fan=64; _monitor_loop fan=27; main fan=20; save_png fan=17; scan_compose fan=17
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
 M[38]:
   app.doql.less,33
   debug_deta.py,15
-  deta/__init__.py,24
+  deta/__init__.py,50
   deta/builder/__init__.py,8
   deta/builder/cache.py,84
-  deta/builder/topology.py,182
+  deta/builder/topology.py,213
   deta/cli.py,545
-  deta/config.py,275
+  deta/config.py,277
   deta/core.py,27
   deta/dsl/__init__.py,41
   deta/dsl/commands.py,258
@@ -22,11 +22,11 @@ M[38]:
   deta/integration/__init__.py,18
   deta/integration/semcod.py,130
   deta/monitor/__init__.py,21
-  deta/monitor/alerter.py,120
-  deta/monitor/prober.py,444
+  deta/monitor/alerter.py,127
+  deta/monitor/prober.py,443
   deta/monitor/watcher.py,117
   deta/scanner/__init__.py,18
-  deta/scanner/compose.py,279
+  deta/scanner/compose.py,515
   deta/scanner/env.py,141
   deta/scanner/npm.py,46
   deta/scanner/openapi.py,90
@@ -37,24 +37,28 @@ M[38]:
   project.sh,48
   scan-infra.sh,38
   tests/test_cache.py,88
-  tests/test_compose_env.py,123
+  tests/test_compose_env.py,281
   tests/test_dsl.py,90
   tests/test_env.py,60
-  tests/test_monitor_ports.py,68
+  tests/test_monitor_ports.py,85
   tests/test_ports.py,53
   tests/test_wup.py,12
 D:
   debug_deta.py:
   deta/__init__.py:
+    e: __getattr__,__dir__
+    __getattr__(name)
+    __dir__()
   deta/builder/__init__.py:
   deta/builder/cache.py:
     e: CachedTopology,TopologyCache
     CachedTopology:  # Cached topology with metadata.
     TopologyCache: __init__(1),_get_current_mtimes(2),_is_valid(3),get(3),invalidate(0)  # Cache for topology with mtime-based invalidation.
   deta/builder/topology.py:
-    e: build_topology,InfraTopology
+    e: _is_hardcoded_secret_value,build_topology,InfraTopology
     InfraTopology: __init__(0),add_services(1),add_endpoints(1),detect_cycles(0),find_hubs(1),detect_anomalies(0),to_json(0)  # Represents the infrastructure topology with services and dep
-    build_topology(root;max_depth)
+    _is_hardcoded_secret_value(value)
+    build_topology(root;max_depth;config)
   deta/cli.py:
     e: _port_in_use,_pid_on_port,_terminate_pid,_get_topology,_is_anomaly_enabled,_meets_severity_threshold,_filter_anomalies,_print_summary,_resolve_formats,_probe_once,_write_outputs,scan,monitor,_extract_ports_snapshot,_log_port_changes,_print_status_summary,_monitor_loop,diff,main
     _port_in_use(host;port)
@@ -184,16 +188,26 @@ D:
     _is_config_file(path)
   deta/scanner/__init__.py:
   deta/scanner/compose.py:
-    e: _deep_merge,_get_yaml_loader,_load_yaml_file,_collect_compose_files,_merge_services,_find_primary_source,_build_service_def,scan_compose,_resolve_env_files,_parse_ports,_parse_depends_on,_parse_env,_parse_labels,ServiceDef
+    e: _matches_any_pattern,_deep_merge,_get_yaml_loader,_load_yaml_file,_collect_compose_files,_compose_discovery_modes,_iter_discovered_compose_files,_should_collect_compose_file,_source_priority,_merge_services,_load_services_from_docker_compose_config,_docker_compose_config_commands,_run_compose_config_command,_parse_compose_config_payload,_extract_compose_services,_find_primary_source,_build_service_def,scan_compose,_resolve_env_files,_parse_ports,_parse_depends_on,_parse_env,_parse_labels,ServiceDef
     ServiceDef:  # Definition of a Docker Compose service.
+    _matches_any_pattern(path;root;patterns)
     _deep_merge(base;override)
     _get_yaml_loader()
     _load_yaml_file(file_path;yaml_loader)
-    _collect_compose_files(root;max_depth)
+    _collect_compose_files(root;max_depth;include_patterns;exclude_patterns)
+    _compose_discovery_modes(root;include_patterns)
+    _iter_discovered_compose_files(root)
+    _should_collect_compose_file(compose_file;root;max_depth;include_patterns;exclude_patterns;include_mode;root_only_mode;active_only_mode)
+    _source_priority(service;root)
     _merge_services(compose_files;yaml_loader)
+    _load_services_from_docker_compose_config(project_dir;compose_files;yaml_loader)
+    _docker_compose_config_commands(project_dir;compose_files)
+    _run_compose_config_command(cmd;project_dir)
+    _parse_compose_config_payload(payload;yaml_loader)
+    _extract_compose_services(data)
     _find_primary_source(svc_name;compose_files;yaml_loader;project_dir)
     _build_service_def(svc_name;svc;project_dir;compose_files;yaml_loader;root)
-    scan_compose(root;max_depth)
+    scan_compose(root;max_depth;include_patterns;exclude_patterns;use_docker_compose_config)
     _resolve_env_files(value;base_dir)
     _parse_ports(ports)
     _parse_depends_on(dep)
@@ -245,11 +259,18 @@ D:
     test_cache_mtime_invalidation(tmp_path)
     test_cache_ttl_expiration(tmp_path)
   tests/test_compose_env.py:
-    e: test_env_driven_ports,test_env_file_layering,test_port_conflict_detected,test_compose_override_merging
+    e: test_env_driven_ports,test_env_file_layering,test_port_conflict_detected,test_compose_override_merging,test_non_active_compose_variants_ignored_unless_included,test_scan_compose_respects_include_exclude_patterns,test_hardcoded_secret_detection_ignores_compose_interpolation,test_hardcoded_secret_detection_flags_literal_value,test_scan_compose_can_disable_docker_compose_runtime_resolution,test_config_parses_use_docker_compose_config_flag,test_config_defaults_use_docker_compose_config_to_true
     test_env_driven_ports(tmp_path)
     test_env_file_layering(tmp_path)
     test_port_conflict_detected(tmp_path)
     test_compose_override_merging(tmp_path)
+    test_non_active_compose_variants_ignored_unless_included(tmp_path)
+    test_scan_compose_respects_include_exclude_patterns(tmp_path)
+    test_hardcoded_secret_detection_ignores_compose_interpolation(tmp_path)
+    test_hardcoded_secret_detection_flags_literal_value(tmp_path)
+    test_scan_compose_can_disable_docker_compose_runtime_resolution(tmp_path;monkeypatch)
+    test_config_parses_use_docker_compose_config_flag(tmp_path)
+    test_config_defaults_use_docker_compose_config_to_true(tmp_path)
   tests/test_dsl.py:
     e: test_service_up,test_service_down,test_port_added,test_port_removed,test_service_added,test_service_removed,test_status_summary,test_format_probe_change_up,test_format_probe_change_down,test_format_probe_change_no_change
     test_service_up()
@@ -276,10 +297,11 @@ D:
     test_interpolate_embedded()
     test_load_env_file(tmp_path)
   tests/test_monitor_ports.py:
-    e: test_service_rows_port_fallback_to_raw,test_service_rows_port_single_port,test_service_rows_port_no_ports
+    e: test_service_rows_port_fallback_to_raw,test_service_rows_port_single_port,test_service_rows_port_no_ports,test_probe_all_skips_services_without_targets
     test_service_rows_port_fallback_to_raw()
     test_service_rows_port_single_port()
     test_service_rows_port_no_ports()
+    test_probe_all_skips_services_without_targets()
   tests/test_ports.py:
     e: test_parse_port_single,test_parse_port_mapping,test_parse_port_with_host,test_parse_port_with_protocol,test_parse_port_env,test_parse_port_env_default,test_published_url,test_published_url_fallback_host
     test_parse_port_single()

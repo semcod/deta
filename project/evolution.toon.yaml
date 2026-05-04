@@ -1,23 +1,28 @@
-# code2llm/evolution | 309 func | 18f | 2026-05-04
+# code2llm/evolution | 331 func | 19f | 2026-05-04
 
-NEXT[2] (ranked by impact):
+NEXT[3] (ranked by impact):
   [1] !! SPLIT           deta/web/app.py
       WHY: 1466L, 1 classes, max CC=11
       EFFORT: ~4h  IMPACT: 16126
 
-  [2] !! SPLIT           deta/cli.py
+  [2] !! SPLIT           deta/scanner/compose.py
+      WHY: 514L, 1 classes, max CC=13
+      EFFORT: ~4h  IMPACT: 6682
+
+  [3] !! SPLIT           deta/cli.py
       WHY: 545L, 0 classes, max CC=11
       EFFORT: ~4h  IMPACT: 5995
 
 
-RISKS[2]:
+RISKS[3]:
   ⚠ Splitting deta/web/app.py may break 14 import paths
   ⚠ Splitting deta/cli.py may break 19 import paths
+  ⚠ Splitting deta/scanner/compose.py may break 23 import paths
 
 METRICS-TARGET:
-  CC̄:          2.0 → ≤1.4
+  CC̄:          2.1 → ≤1.5
   max-CC:      13 → ≤6
-  god-modules: 2 → 0
+  god-modules: 3 → 0
   high-CC(≥15): 0 → ≤0
   hub-types:   0 → ≤0
 
@@ -46,4 +51,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=2.0 → now CC̄=2.0
+  prev CC̄=2.1 → now CC̄=2.1
