@@ -384,7 +384,7 @@ async def _monitor_loop(
         print("\nMonitoring stopped")
 
 
-def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig = None):
+def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig = None, toon: bool = False):
     if config is None:
         config = load_config()
     
@@ -396,6 +396,14 @@ def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config
         baseline_data = json.loads(baseline.read_text())
         depth = config.scan.max_depth if config.scan else 3
         current_topology = _get_topology(root, depth, config)
+        
+        if toon:
+            from deta.formatter.toon import save_toon_diff
+            output_path = Path("infra-diff.toon.yaml")
+            save_toon_diff(baseline_data, current_topology, output_path, config.project.get("name"))
+            print(f"Saved changes to {output_path}")
+            return
+
         current_data = json.loads(current_topology.to_json())
         
         baseline_services = set(baseline_data.get("services", {}).keys())
@@ -490,9 +498,10 @@ def main():
         baseline: Path = typer.Option(Path("infra-map.json"), help="Baseline file"),
         root: Path = typer.Argument(Path("."), help="Root directory to scan"),
         config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
+        toon: bool = typer.Option(False, "--toon", help="Output only changed services in toon format"),
     ):
         config = load_config(config_file)
-        diff(baseline, root, config)
+        diff(baseline, root, config, toon)
 
     @app.command("web")
     def web_cmd(

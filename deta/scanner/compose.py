@@ -343,12 +343,12 @@ def _build_service_def(
         effective_env = {**layered_env, **interpolated_env}
 
         raw_ports = _parse_ports(svc.get("ports", []))
-        resolved_ports = parse_ports(raw_ports, effective_env)
+        resolved_ports = parse_ports(raw_ports, base_env)
         healthcheck = interpolate_recursive(
-            svc.get("healthcheck"), effective_env
+            svc.get("healthcheck"), base_env
         )
         image = interpolate(
-            str(svc.get("image") or ""), effective_env
+            str(svc.get("image") or ""), base_env
         ) or None
 
         primary_source = _find_primary_source(svc_name, compose_files, yaml_loader, project_dir)
