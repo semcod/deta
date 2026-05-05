@@ -9,7 +9,7 @@ project:
 scan:
   enabled: true
   max_depth: 3
-  use_dc_config: true  # prefer `docker compose config` for resolved ports/healthcheck
+  use_dc_config: false  # set to false for maximum parsing speed (bypasses `docker compose config`)
   include_patterns:
     - "docker-compose*.yml"
     - "docker-compose*.yaml"
@@ -82,7 +82,7 @@ monitor:
   probe_timeout_seconds: 5
   probe_retries: 3
   probe_online: true
-  max_concurrency: 20  # Max concurrent health checks (default: 20)
+  max_concurrency: 50  # Max concurrent health checks (default: 50)
 
 # Output configuration
 output:
@@ -110,7 +110,7 @@ web:
   enabled: true
   host: 127.0.0.1
   port: 8765
-  refresh_seconds: 5
+  refresh_seconds: 2
   title: deta dashboard
   push_events:
     - service_added
@@ -118,4 +118,4 @@ web:
     - service_up
     - service_down
   cache_ttl_seconds: 30.0  # Topology cache TTL in seconds (default: 30)
-  debounce_seconds: 0.5    # Debounce file change events (default: 0.5)
+  debounce_seconds: 0.1    # Debounce file change events (default: 0.1)

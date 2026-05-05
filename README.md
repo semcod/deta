@@ -3,19 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.45-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.20-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-9.9h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.35-yellow) ![AI Model](https://img.shields.io/badge/AI%20Model-openrouter%2Fqwen%2Fqwen3-coder-next-lightgrey)
 
-- 🤖 **LLM usage:** $7.2000 (48 commits)
-- 👤 **Human dev:** ~$991 (9.9h @ $100/h, 30min dedup)
+This project uses AI-generated code. Total cost: **$7.3500** with **49** AI commits.
 
-Generated on 2026-05-04 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
+Generated on 2026-05-05 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/models/openrouter/qwen/qwen3-coder-next)
 
 ---
 
 Infrastructure anomaly detection and monitoring tool for development environments.
 
-![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.45-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.46-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 ## Features
 
@@ -115,6 +113,28 @@ web:
 ```bash
 deta diff --baseline infra-map.json /path/to/project
 ```
+
+### Example Workflow (e.g., for c2004 project)
+
+Here is a complete example of how to use `deta` to scan, monitor, and visualize the `c2004` project:
+
+1. **Scan and export topology:**
+   ```bash
+   deta scan ../maskservice/c2004 --output infra-map.json
+   ```
+2. **Detect changes against the baseline:**
+   ```bash
+   deta diff --baseline infra-map.json ../maskservice/c2004
+   ```
+3. **Monitor infrastructure in real-time:**
+   ```bash
+   deta monitor ../maskservice/c2004 --interval 5
+   ```
+4. **Launch the interactive Web Dashboard:**
+   ```bash
+   # Ensure the web extra is installed: pip install '.[web]'
+   deta web ../maskservice/c2004 --host 127.0.0.1 --port 8765
+   ```
 
 ### Python API
 

@@ -498,7 +498,7 @@ HTML = """
       clone.style.maxWidth = 'none';
 
       clone.querySelectorAll('style').forEach(styleEl => {
-        styleEl.textContent = styleEl.textContent.replace(/@import\s+url\([^)]*\)[^;]*;?/gi, '');
+        styleEl.textContent = styleEl.textContent.replace(/@import\\s+url\\([^)]*\\)[^;]*;?/gi, '');
       });
       clone.querySelectorAll('a[href]').forEach(a => a.removeAttribute('href'));
 
