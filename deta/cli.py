@@ -384,7 +384,7 @@ async def _monitor_loop(
         print("\nMonitoring stopped")
 
 
-def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig = None, toon: bool = False):
+def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig = None, toon: bool = False, output: Path = None):
     if config is None:
         config = load_config()
     
@@ -398,10 +398,13 @@ def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config
         current_topology = _get_topology(root, depth, config)
         
         if toon:
-            from deta.formatter.toon import save_toon_diff
-            output_path = Path("infra-diff.toon.yaml")
-            save_toon_diff(baseline_data, current_topology, output_path, config.project.get("name"))
-            print(f"Saved changes to {output_path}")
+            from deta.formatter.toon import generate_toon_diff
+            content = generate_toon_diff(baseline_data, current_topology, config.project.get("name"))
+            print(content)
+            
+            out_file = output if output else Path("infra-diff.toon.yaml")
+            out_file.write_text(content)
+            print(f"Saved changes to {out_file}")
             return
 
         current_data = json.loads(current_topology.to_json())
@@ -442,7 +445,7 @@ def main():
     def scan_cmd(
         root: Path = typer.Argument(Path("."), help="Root directory to scan"),
         depth: int = typer.Option(None, help="Max scan depth (overrides deta.yaml)"),
-        output: Path = typer.Option(None, help="Output file (overrides deta.yaml)"),
+        output: Path = typer.Option(None, "-o", "--output", help="Output file (overrides deta.yaml)"),
         watch: bool = typer.Option(False, help="Run continuously and regenerate outputs on changes"),
         interval: int = typer.Option(None, help="Watch/probe interval in seconds"),
         online: bool = typer.Option(True, help="Check what is online via HTTP probes"),
@@ -473,7 +476,7 @@ def main():
         root: Path = typer.Argument(Path("."), help="Root directory to monitor"),
         interval: int = typer.Option(None, help="Probe interval in seconds"),
         depth: int = typer.Option(None, help="Max scan depth"),
-        output: Path = typer.Option(None, help="Output file (overrides deta.yaml)"),
+        output: Path = typer.Option(None, "-o", "--output", help="Output file (overrides deta.yaml)"),
         online: bool = typer.Option(True, help="Check what is online via HTTP probes"),
         formats: str = typer.Option(None, help="Comma-separated formats: json,toon,yaml,mermaid,png"),
         config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
@@ -499,9 +502,10 @@ def main():
         root: Path = typer.Argument(Path("."), help="Root directory to scan"),
         config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
         toon: bool = typer.Option(False, "--toon", help="Output only changed services in toon format"),
+        output: Path = typer.Option(None, "-o", "--output", help="Output file for toon format (optional)"),
     ):
         config = load_config(config_file)
-        diff(baseline, root, config, toon)
+        diff(baseline, root, config, toon, output)
 
     @app.command("web")
     def web_cmd(

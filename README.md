@@ -13,7 +13,7 @@ Generated on 2026-05-05 using [openrouter/qwen/qwen3-coder-next](https://openrou
 
 Infrastructure anomaly detection and monitoring tool for development environments.
 
-![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.47-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.48-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 ## Features
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.48] - 2026-05-05
+
+### Other
+- Update deta/cli.py
+
 ## [0.2.47] - 2026-05-05
 
 ### Docs
