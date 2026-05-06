@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.51] - 2026-05-06
+
+### Docs
+- Update README.md
+
+### Other
+- Update deta/formatter/toon.py
+- Update deta/monitor/prober.py
+
 ## [0.2.50] - 2026-05-06
 
 ### Docs

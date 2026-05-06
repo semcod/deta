@@ -197,13 +197,13 @@ def generate_toon_diff(baseline_data: dict, current_topology: InfraTopology, pro
         base = baseline_services.get(name)
         curr = current_services.get(name)
         
-        if not base:
+        if not base and curr:
             ports_str = ":".join(curr.ports) if curr.ports else "—"
             changed.append(f"  [+] {name:<12} :{ports_str:<15}")
-        elif not curr:
+        elif not curr and base:
             ports_str = ":".join(base.get("ports", [])) if base.get("ports") else "—"
             changed.append(f"  [-] {name:<12} :{ports_str:<15}")
-        else:
+        elif base and curr:
             base_ports = set(base.get("ports", []))
             curr_ports = set(curr.ports)
             if base_ports != curr_ports:

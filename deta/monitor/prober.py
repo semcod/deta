@@ -339,7 +339,7 @@ async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/he
     if client is None:
         return ProbeResult(
             service=service.name,
-            url=published_url(binding, path),
+            url=published_url(binding, path) or "",
             status=None,
             ok=False,
             latency_ms=0,
@@ -351,7 +351,7 @@ async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/he
     last_result: Optional[ProbeResult] = None
 
     for probe_path in paths_to_try:
-        url = published_url(binding, probe_path)
+        url = published_url(binding, probe_path) or ""
         start = asyncio.get_event_loop().time()
         try:
             resp = await client.get(url)

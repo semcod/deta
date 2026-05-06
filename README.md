@@ -5,7 +5,7 @@
 
 ![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-yellow) ![AI Model](https://img.shields.io/badge/AI%20Model-openrouter%2Fqwen%2Fqwen3-coder-next-lightgrey)
 
-This project uses AI-generated code. Total cost: **$7.5000** with **51** AI commits.
+This project uses AI-generated code. Total cost: **$7.5000** with **52** AI commits.
 
 Generated on 2026-05-06 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/models/openrouter/qwen/qwen3-coder-next)
 
@@ -13,7 +13,7 @@ Generated on 2026-05-06 using [openrouter/qwen/qwen3-coder-next](https://openrou
 
 Infrastructure anomaly detection and monitoring tool for development environments.
 
-![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.50-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-deta-blue) ![Version](https://img.shields.io/badge/version-0.2.51-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 ## Features
 
