@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.50] - 2026-05-06
+
+### Docs
+- Update README.md
+
+### Other
+- Update deta/builder/topology.py
+- Update deta/cli.py
+- Update deta/core.py
+- Update deta/monitor/prober.py
+- Update deta/web/app.py
+- Update infra-map.json
+- Update infra.toon.yaml
+
 ## [0.2.49] - 2026-05-05
 
 ### Docs

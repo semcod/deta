@@ -5,7 +5,7 @@ Core module for the wup package.
 class Wup:
     """Base class for wup operations."""
     
-    def __init__(self, name: str, dosage: str = None):
+    def __init__(self, name: str, dosage: str | None = None):
         """
         Initialize a Wup instance.
         

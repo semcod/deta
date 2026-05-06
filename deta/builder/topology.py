@@ -37,6 +37,7 @@ class InfraTopology:
             self.graph = nx.DiGraph()
         self.services: dict[str, ServiceDef] = {}
         self.endpoints: list[EndpointDef] = []
+        self._filtered_anomalies: list[dict] | None = None
     
     def add_services(self, services: list[ServiceDef]):
         """Add services to the topology graph."""

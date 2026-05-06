@@ -5,13 +5,13 @@ HTTP health check prober for services.
 import asyncio
 import re
 from dataclasses import dataclass
-from typing import Callable, Coroutine, Optional
+from typing import Callable, Coroutine, Optional, Any
 from urllib.parse import urlparse
 
 from deta.scanner.compose import ServiceDef
 from deta.scanner.ports import PortBinding, parse_port, published_url
 
-_shared_client: Optional["httpx.AsyncClient"] = None
+_shared_client: Any = None
 
 
 async def _get_client():

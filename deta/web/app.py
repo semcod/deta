@@ -1100,7 +1100,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
     manager = ConnectionManager()
     topology_cache = TopologyCache(ttl_seconds=config.web.cache_ttl_seconds)
 
-    state = {
+    state: dict[str, Any] = {
         "prev_services": set(),
         "prev_probes": None,
         "prev_service_status": {},
@@ -1360,7 +1360,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 delivered, message_size = await manager.broadcast(payload)
                 _record_telemetry(payload, delivered, message_size)
 
-        async def flush_changes_after_debounce(debounce_seconds: float = None):
+        async def flush_changes_after_debounce(debounce_seconds: float | None = None):
             if debounce_seconds is None:
                 debounce_seconds = config.web.debounce_seconds
             try:
@@ -1422,6 +1422,7 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 payload = await collect_payload()
             else:
                 payload = await collect_payload(force_rescan=True)
+            payload = payload or {}
             message = json.dumps(payload)
             print(f"[WS] Sending payload to {client}: {len(message)} bytes, {len(payload.get('summary', {}))} summary fields")
             await websocket.send_text(message)

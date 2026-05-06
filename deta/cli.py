@@ -9,6 +9,7 @@ import signal
 import socket
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from deta.builder.topology import build_topology, InfraTopology
@@ -276,7 +277,6 @@ async def _monitor_loop(
     formats: list[str] | None = None,
     online: bool | None = None,
 ):
-    from datetime import datetime
     if config is None:
         config = load_config()
 
@@ -384,7 +384,7 @@ async def _monitor_loop(
         print("\nMonitoring stopped")
 
 
-def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig = None, toon: bool = False, output: Path = None):
+def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig | None = None, toon: bool = False, output: Path | None = None):
     if config is None:
         config = load_config()
     
