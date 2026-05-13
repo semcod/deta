@@ -1,7 +1,5 @@
 """Tests for DSL command generators."""
 
-import pytest
-
 from deta.dsl import (
     service_up,
     service_down,
@@ -11,12 +9,8 @@ from deta.dsl import (
     service_removed,
     status_summary,
     format_probe_change,
-    format_port_changes,
-    format_service_changes,
 )
 from deta.monitor.prober import ProbeResult
-from deta.builder.topology import InfraTopology
-from deta.scanner.compose import ServiceDef
 
 
 def test_service_up():
@@ -67,23 +61,77 @@ def test_status_summary():
 
 
 def test_format_probe_change_up():
-    prev = [ProbeResult(service="api", url="http://api", status=None, ok=False, latency_ms=0, error="timeout")]
-    curr = [ProbeResult(service="api", url="http://api", status=200, ok=True, latency_ms=50, error=None)]
+    prev = [
+        ProbeResult(
+            service="api",
+            url="http://api",
+            status=None,
+            ok=False,
+            latency_ms=0,
+            error="timeout",
+        )
+    ]
+    curr = [
+        ProbeResult(
+            service="api",
+            url="http://api",
+            status=200,
+            ok=True,
+            latency_ms=50,
+            error=None,
+        )
+    ]
     changes = format_probe_change(prev, curr)
     assert len(changes) == 1
     assert changes[0].command == "SERVICE_UP"
 
 
 def test_format_probe_change_down():
-    prev = [ProbeResult(service="api", url="http://api", status=200, ok=True, latency_ms=50, error=None)]
-    curr = [ProbeResult(service="api", url="http://api", status=None, ok=False, latency_ms=0, error="timeout")]
+    prev = [
+        ProbeResult(
+            service="api",
+            url="http://api",
+            status=200,
+            ok=True,
+            latency_ms=50,
+            error=None,
+        )
+    ]
+    curr = [
+        ProbeResult(
+            service="api",
+            url="http://api",
+            status=None,
+            ok=False,
+            latency_ms=0,
+            error="timeout",
+        )
+    ]
     changes = format_probe_change(prev, curr)
     assert len(changes) == 1
     assert changes[0].command == "SERVICE_DOWN"
 
 
 def test_format_probe_change_no_change():
-    prev = [ProbeResult(service="api", url="http://api", status=200, ok=True, latency_ms=50, error=None)]
-    curr = [ProbeResult(service="api", url="http://api", status=200, ok=True, latency_ms=55, error=None)]
+    prev = [
+        ProbeResult(
+            service="api",
+            url="http://api",
+            status=200,
+            ok=True,
+            latency_ms=50,
+            error=None,
+        )
+    ]
+    curr = [
+        ProbeResult(
+            service="api",
+            url="http://api",
+            status=200,
+            ok=True,
+            latency_ms=55,
+            error=None,
+        )
+    ]
     changes = format_probe_change(prev, curr)
     assert len(changes) == 0

@@ -42,6 +42,7 @@ _DISCOVERY_GLOBS = [
 @dataclass
 class ServiceDef:
     """Definition of a Docker Compose service."""
+
     name: str
     image: str | None
     ports: list[str] = field(default_factory=list)
@@ -83,6 +84,7 @@ def _get_yaml_loader():
     """Get YAML loader (ruamel.yaml or fallback to pyyaml)."""
     try:
         from ruamel.yaml import YAML
+
         return YAML()
     except ImportError:
         return None
@@ -96,6 +98,7 @@ def _load_yaml_file(file_path: Path, yaml_loader) -> dict:
                 return yaml_loader.load(f) or {}
             else:
                 import yaml
+
                 return yaml.safe_load(f) or {}
     except Exception:
         return {}
@@ -112,7 +115,9 @@ def _collect_compose_files(
     Files in the same directory are merged (Docker Compose behavior).
     """
     project_files: dict[Path, list[Path]] = {}
-    include_mode, root_only_mode, active_only_mode = _compose_discovery_modes(root, include_patterns)
+    include_mode, root_only_mode, active_only_mode = _compose_discovery_modes(
+        root, include_patterns
+    )
 
     for compose_file in _iter_discovered_compose_files(root):
         if not _should_collect_compose_file(
@@ -147,7 +152,9 @@ def _compose_discovery_modes(
     include_patterns: list[str] | None,
 ) -> tuple[bool, bool, bool]:
     include_mode = bool(include_patterns)
-    has_root_active_compose = any((root / filename).exists() for filename in _ACTIVE_COMPOSE_FILENAMES)
+    has_root_active_compose = any(
+        (root / filename).exists() for filename in _ACTIVE_COMPOSE_FILENAMES
+    )
     root_only_mode = not include_mode and has_root_active_compose
     active_only_mode = not include_mode
     return include_mode, root_only_mode, active_only_mode
@@ -194,7 +201,9 @@ def _source_priority(service: ServiceDef, root: Path) -> tuple[int, int, int, st
     except ValueError:
         depth = 10_000
     has_healthcheck = 1 if service.healthcheck else 0
-    resolved_bindings = sum(1 for binding in service.resolved_ports if binding.is_resolved)
+    resolved_bindings = sum(
+        1 for binding in service.resolved_ports if binding.is_resolved
+    )
     return (depth, -has_healthcheck, -resolved_bindings, service.source_file)
 
 
@@ -206,7 +215,9 @@ def _merge_services(compose_files: list[Path], yaml_loader) -> dict[str, dict]:
         data = _load_yaml_file(compose_file, yaml_loader)
         for svc_name, svc in (data.get("services") or {}).items():
             if svc_name in merged_services:
-                merged_services[svc_name] = _deep_merge(merged_services[svc_name], dict(svc))
+                merged_services[svc_name] = _deep_merge(
+                    merged_services[svc_name], dict(svc)
+                )
             else:
                 merged_services[svc_name] = dict(svc)
 
@@ -239,7 +250,9 @@ def _load_services_from_docker_compose_config(
     return None
 
 
-def _docker_compose_config_commands(project_dir: Path, compose_files: list[Path]) -> list[list[str]]:
+def _docker_compose_config_commands(
+    project_dir: Path, compose_files: list[Path]
+) -> list[list[str]]:
     base_cmd = ["docker", "compose"]
     for compose_file in compose_files:
         base_cmd.extend(["-f", str(compose_file)])
@@ -327,31 +340,27 @@ def _build_service_def(
 ) -> ServiceDef | None:
     """Build ServiceDef from service dictionary."""
     try:
-        compose_env_source = compose_files[0] if compose_files else (project_dir / "docker-compose.yml")
+        compose_env_source = (
+            compose_files[0] if compose_files else (project_dir / "docker-compose.yml")
+        )
         base_env = discover_env(compose_env_source, root)
         service_env_files = _resolve_env_files(svc.get("env_file"), project_dir)
         layered_env = merge_env_files(base_env, service_env_files)
         raw_environment = _parse_env(svc.get("environment", {}))
         interpolated_env = {
-            k: interpolate(str(v), layered_env)
-            for k, v in raw_environment.items()
+            k: interpolate(str(v), layered_env) for k, v in raw_environment.items()
         }
-        raw_environment_as_str = {
-            k: str(v)
-            for k, v in raw_environment.items()
-        }
+        raw_environment_as_str = {k: str(v) for k, v in raw_environment.items()}
         effective_env = {**layered_env, **interpolated_env}
 
         raw_ports = _parse_ports(svc.get("ports", []))
         resolved_ports = parse_ports(raw_ports, base_env)
-        healthcheck = interpolate_recursive(
-            svc.get("healthcheck"), base_env
-        )
-        image = interpolate(
-            str(svc.get("image") or ""), base_env
-        ) or None
+        healthcheck = interpolate_recursive(svc.get("healthcheck"), base_env)
+        image = interpolate(str(svc.get("image") or ""), base_env) or None
 
-        primary_source = _find_primary_source(svc_name, compose_files, yaml_loader, project_dir)
+        primary_source = _find_primary_source(
+            svc_name, compose_files, yaml_loader, project_dir
+        )
 
         return ServiceDef(
             name=svc_name,
@@ -397,19 +406,25 @@ def scan_compose(
     deduplicated_services: dict[str, ServiceDef] = {}
 
     for project_dir in sorted(
-        project_files.keys(), key=lambda p: (len(p.relative_to(root).parts), p.as_posix())
+        project_files.keys(),
+        key=lambda p: (len(p.relative_to(root).parts), p.as_posix()),
     ):
         compose_files = project_files[project_dir]
         merged_services = _merge_services(compose_files, yaml_loader)
         resolved_services = {}
         if use_dc_config:
-            resolved_services = _load_services_from_docker_compose_config(
-                project_dir,
-                compose_files,
-                yaml_loader,
-            ) or {}
+            resolved_services = (
+                _load_services_from_docker_compose_config(
+                    project_dir,
+                    compose_files,
+                    yaml_loader,
+                )
+                or {}
+            )
 
-        all_names = list(dict.fromkeys([*merged_services.keys(), *resolved_services.keys()]))
+        all_names = list(
+            dict.fromkeys([*merged_services.keys(), *resolved_services.keys()])
+        )
 
         for svc_name in all_names:
             merged = merged_services.get(svc_name)
@@ -432,7 +447,9 @@ def scan_compose(
                     deduplicated_services[service_def.name] = service_def
                     continue
 
-                if _source_priority(service_def, root) < _source_priority(existing, root):
+                if _source_priority(service_def, root) < _source_priority(
+                    existing, root
+                ):
                     deduplicated_services[service_def.name] = service_def
 
     return list(deduplicated_services.values())

@@ -14,6 +14,7 @@ from deta.scanner.compose import ServiceDef
 @dataclass
 class ChangeDSL:
     """Represents a DSL command."""
+
     command: str
     target: str
     params: dict[str, str]
@@ -35,7 +36,9 @@ def _escape_value(value: str) -> str:
     return value
 
 
-def service_up(service: str, port: str = "", latency_ms: float = 0, url: str = "") -> ChangeDSL:
+def service_up(
+    service: str, port: str = "", latency_ms: float = 0, url: str = ""
+) -> ChangeDSL:
     """Generate SERVICE_UP command."""
     return ChangeDSL(
         command="SERVICE_UP",
@@ -70,24 +73,46 @@ def service_down(
     )
 
 
-def port_added(service: str, host_port: str, container_port: str, host: str = "") -> ChangeDSL:
+def port_added(
+    service: str, host_port: str, container_port: str, host: str = ""
+) -> ChangeDSL:
     """Generate PORT_ADDED command."""
-    port_mapping = f"{host}:{host_port}->{container_port}" if host else f"{host_port}->{container_port}"
+    port_mapping = (
+        f"{host}:{host_port}->{container_port}"
+        if host
+        else f"{host_port}->{container_port}"
+    )
     return ChangeDSL(
         command="PORT_ADDED",
         target=service,
-        params={"mapping": port_mapping, "host": host, "host_port": host_port, "container_port": container_port},
+        params={
+            "mapping": port_mapping,
+            "host": host,
+            "host_port": host_port,
+            "container_port": container_port,
+        },
         timestamp=datetime.now().strftime("%H:%M:%S"),
     )
 
 
-def port_removed(service: str, host_port: str, container_port: str, host: str = "") -> ChangeDSL:
+def port_removed(
+    service: str, host_port: str, container_port: str, host: str = ""
+) -> ChangeDSL:
     """Generate PORT_REMOVED command."""
-    port_mapping = f"{host}:{host_port}->{container_port}" if host else f"{host_port}->{container_port}"
+    port_mapping = (
+        f"{host}:{host_port}->{container_port}"
+        if host
+        else f"{host_port}->{container_port}"
+    )
     return ChangeDSL(
         command="PORT_REMOVED",
         target=service,
-        params={"mapping": port_mapping, "host": host, "host_port": host_port, "container_port": container_port},
+        params={
+            "mapping": port_mapping,
+            "host": host,
+            "host_port": host_port,
+            "container_port": container_port,
+        },
         timestamp=datetime.now().strftime("%H:%M:%S"),
     )
 
@@ -150,20 +175,24 @@ def format_probe_change(
         curr_probe = curr_list[0] if curr_list else None
 
         if not prev_ok and curr_ok and curr_probe:
-            commands.append(service_up(
-                svc,
-                port=curr_probe.host_port,
-                latency_ms=curr_probe.latency_ms,
-                url=curr_probe.url,
-            ))
+            commands.append(
+                service_up(
+                    svc,
+                    port=curr_probe.host_port,
+                    latency_ms=curr_probe.latency_ms,
+                    url=curr_probe.url,
+                )
+            )
         elif prev_ok and not curr_ok and curr_probe:
-            commands.append(service_down(
-                svc,
-                port=curr_probe.host_port,
-                error=curr_probe.error or "",
-                status=curr_probe.status,
-                url=curr_probe.url,
-            ))
+            commands.append(
+                service_down(
+                    svc,
+                    port=curr_probe.host_port,
+                    error=curr_probe.error or "",
+                    status=curr_probe.status,
+                    url=curr_probe.url,
+                )
+            )
 
     return commands
 
@@ -172,7 +201,9 @@ def _port_key(p) -> tuple[str, str, str]:
     return (p.host, p.host_port, p.container_port)
 
 
-def _ports_added(svc_name: str, ports, exclude_keys: set | None = None) -> list[ChangeDSL]:
+def _ports_added(
+    svc_name: str, ports, exclude_keys: set | None = None
+) -> list[ChangeDSL]:
     """Generate PORT_ADDED commands for ports not in exclude_keys."""
     return [
         port_added(svc_name, p.host_port, p.container_port, p.host)
@@ -181,7 +212,9 @@ def _ports_added(svc_name: str, ports, exclude_keys: set | None = None) -> list[
     ]
 
 
-def _ports_removed(svc_name: str, ports, exclude_keys: set | None = None) -> list[ChangeDSL]:
+def _ports_removed(
+    svc_name: str, ports, exclude_keys: set | None = None
+) -> list[ChangeDSL]:
     """Generate PORT_REMOVED commands for ports not in exclude_keys."""
     return [
         port_removed(svc_name, p.host_port, p.container_port, p.host)
@@ -206,8 +239,9 @@ def _diff_service_ports(
     old_keys = {_port_key(p) for p in old_svc.resolved_ports}
     new_keys = {_port_key(p) for p in new_svc.resolved_ports}
 
-    return _ports_added(svc_name, new_svc.resolved_ports, old_keys) + \
-           _ports_removed(svc_name, old_svc.resolved_ports, new_keys)
+    return _ports_added(svc_name, new_svc.resolved_ports, old_keys) + _ports_removed(
+        svc_name, old_svc.resolved_ports, new_keys
+    )
 
 
 def format_port_changes(
@@ -221,11 +255,13 @@ def format_port_changes(
     """
     commands: list[ChangeDSL] = []
     for svc_name in set(old_topology.services) | set(new_topology.services):
-        commands.extend(_diff_service_ports(
-            svc_name,
-            old_topology.services.get(svc_name),
-            new_topology.services.get(svc_name),
-        ))
+        commands.extend(
+            _diff_service_ports(
+                svc_name,
+                old_topology.services.get(svc_name),
+                new_topology.services.get(svc_name),
+            )
+        )
     return commands
 
 
@@ -245,11 +281,13 @@ def format_service_changes(
 
     for svc_name in new_services - old_services:
         svc = new_topology.services[svc_name]
-        commands.append(service_added(
-            svc_name,
-            image=svc.image or "",
-            source=svc.source_file,
-        ))
+        commands.append(
+            service_added(
+                svc_name,
+                image=svc.image or "",
+                source=svc.source_file,
+            )
+        )
 
     for svc_name in old_services - new_services:
         commands.append(service_removed(svc_name))

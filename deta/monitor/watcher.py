@@ -22,7 +22,7 @@ WATCHED_PATTERNS = {
 async def watch_configs(root: Path, on_change: Callable[[dict], Awaitable[None]]):
     """
     Watch for configuration file changes and emit events.
-    
+
     Args:
         root: Root directory to watch
         on_change: Async callback function that receives change events
@@ -31,19 +31,22 @@ async def watch_configs(root: Path, on_change: Callable[[dict], Awaitable[None]]
         from watchfiles import awatch
     except ImportError:
         # Fallback: simple polling if watchfiles not available
-        import asyncio
         print("[WARN] watchfiles not installed, using polling fallback")
         await _poll_configs(root, on_change)
         return
-    
+
     async for changes in awatch(root):
         for change_type, path in changes:
             if _is_config_file(path):
-                await on_change({
-                    "type": change_type.name if hasattr(change_type, "name") else str(change_type),
-                    "path": str(path),
-                    "timestamp": datetime.utcnow().isoformat(),
-                })
+                await on_change(
+                    {
+                        "type": change_type.name
+                        if hasattr(change_type, "name")
+                        else str(change_type),
+                        "path": str(path),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                )
 
 
 def _scan_file_mtimes(root: Path) -> dict[str, float]:
@@ -85,21 +88,25 @@ async def _emit_changes(
             new_mtimes.get(file_path),
         )
         if change_type:
-            await on_change({
-                "type": change_type,
-                "path": file_path,
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            await on_change(
+                {
+                    "type": change_type,
+                    "path": file_path,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
 
 
-async def _poll_configs(root: Path, on_change: Callable[[dict], Awaitable[None]], interval: int = 5):
+async def _poll_configs(
+    root: Path, on_change: Callable[[dict], Awaitable[None]], interval: int = 5
+):
     """
     Fallback polling implementation when watchfiles is not available.
     """
     import asyncio
-    
+
     file_mtimes = _scan_file_mtimes(root)
-    
+
     while True:
         await asyncio.sleep(interval)
         current_mtimes = _scan_file_mtimes(root)
@@ -110,7 +117,4 @@ async def _poll_configs(root: Path, on_change: Callable[[dict], Awaitable[None]]
 def _is_config_file(path: str) -> bool:
     """Check if a file matches watched configuration patterns."""
     name = Path(path).name
-    return any(
-        Path(name).match(pattern)
-        for pattern in WATCHED_PATTERNS
-    )
+    return any(Path(name).match(pattern) for pattern in WATCHED_PATTERNS)

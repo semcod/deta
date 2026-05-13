@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from deta.builder.topology import InfraTopology
-from deta.monitor.prober import ProbeResult, resolve_service_status, group_probes_by_service
+from deta.monitor.prober import (
+    ProbeResult,
+    resolve_service_status,
+    group_probes_by_service,
+)
 from deta.scanner.compose import ServiceDef
 from deta.scanner.ports import PortBinding, parse_ports
 
@@ -48,7 +52,14 @@ def _graph_yaml_node(
             lines.append(f"        - host: {_binding_host(binding)}")
             lines.append(f"          port: '{binding.host_port}'")
             lines.append(f"          container_port: '{binding.container_port}'")
-            port_probe = next((p for p in service_probes if p.host_port == binding.host_port), None) if binding.host_port else None
+            port_probe = (
+                next(
+                    (p for p in service_probes if p.host_port == binding.host_port),
+                    None,
+                )
+                if binding.host_port
+                else None
+            )
             port_status = _port_probe_status(port_probe)
             if port_status:
                 lines.append(f"          status: {port_status}")
@@ -69,7 +80,9 @@ def generate_graph_yaml(
     lines: list[str] = ["graph:", "  nodes:"]
 
     for service_name, svc in topology.services.items():
-        lines.extend(_graph_yaml_node(service_name, svc, probes_by_svc.get(service_name, [])))
+        lines.extend(
+            _graph_yaml_node(service_name, svc, probes_by_svc.get(service_name, []))
+        )
 
     lines.append("  edges:")
     for service_name, svc in topology.services.items():
@@ -120,8 +133,12 @@ def generate_mermaid(
 
     if probe_results:
         lines.append("    classDef online fill:#d1fae5,stroke:#059669,stroke-width:2px")
-        lines.append("    classDef offline fill:#fee2e2,stroke:#dc2626,stroke-width:2px")
-        lines.append("    classDef restarting fill:#fef3c7,stroke:#d97706,stroke-width:2px")
+        lines.append(
+            "    classDef offline fill:#fee2e2,stroke:#dc2626,stroke-width:2px"
+        )
+        lines.append(
+            "    classDef restarting fill:#fef3c7,stroke:#d97706,stroke-width:2px"
+        )
 
         probes_by_svc = group_probes_by_service(probe_results)
         for service_name in topology.services.keys():
@@ -177,6 +194,8 @@ def save_png(
         for dep in svc.depends_on:
             dot.edge(dep, service_name)
 
-    rendered_path = dot.render(filename=output_path.stem, directory=str(output_path.parent), cleanup=True)
+    rendered_path = dot.render(
+        filename=output_path.stem, directory=str(output_path.parent), cleanup=True
+    )
     if Path(rendered_path) != output_path:
         Path(rendered_path).rename(output_path)

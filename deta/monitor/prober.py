@@ -18,6 +18,7 @@ async def _get_client():
     global _shared_client
     try:
         import httpx
+
         if _shared_client is None or _shared_client.is_closed:
             limits = httpx.Limits(max_connections=50, max_keepalive_connections=20)
             _shared_client = httpx.AsyncClient(
@@ -39,20 +40,20 @@ async def close_client():
 
 # Known database ports that need TCP connect check instead of HTTP
 DATABASE_PORTS = {
-    "5432",   # PostgreSQL
-    "3306",   # MySQL
-    "3307",   # MySQL alternate
-    "6379",   # Redis
+    "5432",  # PostgreSQL
+    "3306",  # MySQL
+    "3307",  # MySQL alternate
+    "6379",  # Redis
     "27017",  # MongoDB
     "27018",  # MongoDB shard
     "27019",  # MongoDB config
-    "1433",   # SQL Server
-    "1521",   # Oracle
-    "5433",   # PostgreSQL alternate
-    "6378",   # Redis alternate
-    "5984",   # CouchDB
-    "9042",   # Cassandra
-    "8123",   # ClickHouse
+    "1433",  # SQL Server
+    "1521",  # Oracle
+    "5433",  # PostgreSQL alternate
+    "6378",  # Redis alternate
+    "5984",  # CouchDB
+    "9042",  # Cassandra
+    "8123",  # ClickHouse
 }
 
 
@@ -61,7 +62,9 @@ def _is_database_port(port: str) -> bool:
     return port in DATABASE_PORTS
 
 
-async def _tcp_connect_check(host: str, port: int, timeout: float = 2.0) -> tuple[bool, float, Optional[str]]:
+async def _tcp_connect_check(
+    host: str, port: int, timeout: float = 2.0
+) -> tuple[bool, float, Optional[str]]:
     """
     Perform TCP connect check.
 
@@ -70,8 +73,7 @@ async def _tcp_connect_check(host: str, port: int, timeout: float = 2.0) -> tupl
     start = asyncio.get_event_loop().time()
     try:
         reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(host, port),
-            timeout=timeout
+            asyncio.open_connection(host, port), timeout=timeout
         )
         latency = (asyncio.get_event_loop().time() - start) * 1000
         writer.close()
@@ -91,6 +93,7 @@ async def _tcp_connect_check(host: str, port: int, timeout: float = 2.0) -> tupl
 @dataclass
 class ProbeResult:
     """Result of a health check probe."""
+
     service: str
     url: str
     status: int | None
@@ -244,7 +247,7 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
             status=None,
             ok=False,
             latency_ms=0,
-            error="no healthcheck URL"
+            error="no healthcheck URL",
         )
 
     client = await _get_client()
@@ -302,7 +305,9 @@ async def probe_service(service: ServiceDef) -> ProbeResult:
     return last_result  # type: ignore[return-value]
 
 
-async def probe_port(service: ServiceDef, binding: PortBinding, path: str = "/health") -> ProbeResult:
+async def probe_port(
+    service: ServiceDef, binding: PortBinding, path: str = "/health"
+) -> ProbeResult:
     """Probe a specific port binding, trying /health, /healthz and / in order."""
     # Use TCP connect check for known database ports
     if binding.host_port and _is_database_port(binding.host_port):
@@ -428,12 +433,19 @@ async def probe_all(
             if not bindings and service.ports:
                 # Fallback to raw ports parsing
                 from deta.scanner.ports import parse_ports
-                bindings = [b for b in parse_ports(service.ports, service.env_resolved) if b.is_resolved]
+
+                bindings = [
+                    b
+                    for b in parse_ports(service.ports, service.env_resolved)
+                    if b.is_resolved
+                ]
 
             if bindings:
                 for binding in bindings:
                     probe_factories.append(
-                        lambda service=service, binding=binding: probe_port(service, binding)
+                        lambda service=service, binding=binding: probe_port(
+                            service, binding
+                        )
                     )
 
     tasks = [asyncio.create_task(_run_limited(factory)) for factory in probe_factories]

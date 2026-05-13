@@ -12,6 +12,7 @@ from deta.builder.topology import InfraTopology
 @dataclass
 class CachedTopology:
     """Cached topology with metadata."""
+
     topology: InfraTopology
     file_mtimes: dict[str, float]
     timestamp: float
@@ -67,9 +68,7 @@ class TopologyCache:
 
             # Run blocking scan in thread pool
             loop = asyncio.get_event_loop()
-            topology = await loop.run_in_executor(
-                None, builder_func, root, max_depth
-            )
+            topology = await loop.run_in_executor(None, builder_func, root, max_depth)
 
             self._cache = CachedTopology(
                 topology=topology,

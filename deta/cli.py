@@ -20,7 +20,6 @@ from deta.monitor.alerter import (
     alert_anomaly,
     alert_probe_failure,
     alert_probe_success,
-    print_topology_table,
 )
 from deta.monitor.prober import probe_all
 from deta.monitor.watcher import watch_configs
@@ -39,7 +38,9 @@ def _pid_on_port(host: str, port: int) -> int | None:
     try:
         proc = subprocess.run(
             ["ss", "-ltnp", f"( sport = :{port} )"],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         for m in _re.finditer(r"pid=(\d+)", proc.stdout or ""):
             pid = int(m.group(1))
@@ -52,7 +53,9 @@ def _pid_on_port(host: str, port: int) -> int | None:
     try:
         proc = subprocess.run(
             ["lsof", "-t", f"-iTCP@{host}:{port}", "-sTCP:LISTEN"],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         for line in (proc.stdout or "").splitlines():
             line = line.strip()
@@ -100,36 +103,47 @@ def _meets_severity_threshold(severity: str, min_severity: str) -> bool:
 def _filter_anomalies(anomalies: list, config: DetaConfig) -> list:
     if not config.anomaly:
         return anomalies
-    
+
     min_severity = config.alert.min_severity if config.alert else "info"
     filtered = []
     for anomaly in anomalies:
         anomaly_type = anomaly.get("type")
         if not _is_anomaly_enabled(anomaly_type, config.anomaly):
             continue
-        if config.anomaly.severity_levels and anomaly_type in config.anomaly.severity_levels:
+        if (
+            config.anomaly.severity_levels
+            and anomaly_type in config.anomaly.severity_levels
+        ):
             anomaly["severity"] = config.anomaly.severity_levels[anomaly_type]
         if _meets_severity_threshold(anomaly.get("severity", "info"), min_severity):
             filtered.append(anomaly)
-    
+
     return filtered
 
 
-def _print_summary(topology: InfraTopology, output: Path, config: DetaConfig = None, probe_results: dict | None = None):
+def _print_summary(
+    topology: InfraTopology,
+    output: Path,
+    config: DetaConfig = None,
+    probe_results: dict | None = None,
+):
     import json
     import yaml
+
     anomalies = getattr(topology, "_filtered_anomalies", None)
     if anomalies is None:
         anomalies = topology.detect_anomalies()
-    
+
     data = json.loads(topology.to_json())
     data["anomalies"] = anomalies
-    
+
     if probe_results:
         # inject probe results into services
         for svc_name, r in probe_results.items():
             if svc_name in data["services"]:
-                data["services"][svc_name]["probe_status"] = "online" if r.ok else "offline"
+                data["services"][svc_name]["probe_status"] = (
+                    "online" if r.ok else "offline"
+                )
                 data["services"][svc_name]["probe_latency_ms"] = r.latency_ms
                 if r.error:
                     data["services"][svc_name]["probe_error"] = r.error
@@ -196,17 +210,17 @@ def scan(
 
     selected_formats = _resolve_formats(formats, config)
     online_enabled = config.monitor.probe_online if online is None else online
-    
+
     topology = _get_topology(root, depth, config)
-    
+
     if config.anomaly:
         anomalies = topology.detect_anomalies()
         filtered_anomalies = _filter_anomalies(anomalies, config)
         topology._filtered_anomalies = filtered_anomalies
-    
+
     probe_results = _probe_once(topology) if online_enabled else None
     _write_outputs(topology, config, output, selected_formats, probe_results)
-    
+
     _print_summary(topology, output, config, probe_results)
 
 
@@ -226,7 +240,9 @@ def _extract_ports_snapshot(topology: InfraTopology) -> dict[str, list[str]]:
     """Extract port bindings snapshot for change detection."""
     snapshot: dict[str, list[str]] = {}
     for svc in topology.services.values():
-        ports = [f"{p.host}:{p.host_port}->{p.container_port}" for p in svc.resolved_ports]
+        ports = [
+            f"{p.host}:{p.host_port}->{p.container_port}" for p in svc.resolved_ports
+        ]
         snapshot[svc.name] = sorted(ports)
     return snapshot
 
@@ -285,7 +301,9 @@ async def _monitor_loop(
 
     print(f"Starting monitoring on {root} (interval: {interval}s)")
     print("Press Ctrl+C to stop\n")
-    print("DSL commands enabled: SERVICE_UP, SERVICE_DOWN, PORT_ADDED, PORT_REMOVED, SERVICE_ADDED, SERVICE_REMOVED\n")
+    print(
+        "DSL commands enabled: SERVICE_UP, SERVICE_DOWN, PORT_ADDED, PORT_REMOVED, SERVICE_ADDED, SERVICE_REMOVED\n"
+    )
 
     # State for change detection
     ports_snapshot: dict[str, list[str]] = {}
@@ -305,6 +323,7 @@ async def _monitor_loop(
         # DSL: Service changes (added/removed)
         if prev_topology:
             from deta.dsl import format_service_changes
+
             svc_changes = format_service_changes(prev_topology, topology)
             for cmd in svc_changes:
                 print(f"  DSL> {cmd}")
@@ -312,6 +331,7 @@ async def _monitor_loop(
         # DSL: Port changes
         if prev_topology:
             from deta.dsl import format_port_changes
+
             port_changes = format_port_changes(prev_topology, topology)
             for cmd in port_changes:
                 print(f"  DSL> {cmd}")
@@ -336,6 +356,7 @@ async def _monitor_loop(
             # DSL: Probe status changes
             if prev_probes:
                 from deta.dsl import format_probe_change
+
                 probe_changes = format_probe_change(prev_probes, probe_results)
                 for cmd in probe_changes:
                     print(f"  DSL> {cmd}")
@@ -350,6 +371,7 @@ async def _monitor_loop(
                 down = len(probe_results) - up
                 unknown = len(topology.services) - len(probe_results)
                 from deta.dsl import status_summary
+
                 sum_cmd = status_summary(up, down, unknown, len(topology.services))
                 print(f"  DSL> {sum_cmd}")
             last_status_time = now
@@ -357,7 +379,7 @@ async def _monitor_loop(
         _write_outputs(topology, config, output, selected_formats, probe_results)
         prev_topology = topology
         prev_probes = probe_results or []
-    
+
     topology = _get_topology(root, depth, config)
     anomalies = topology.detect_anomalies()
     topology._filtered_anomalies = _filter_anomalies(anomalies, config)
@@ -384,50 +406,59 @@ async def _monitor_loop(
         print("\nMonitoring stopped")
 
 
-def diff(baseline: Path = Path("infra-map.json"), root: Path = Path("."), config: DetaConfig | None = None, toon: bool = False, output: Path | None = None):
+def diff(
+    baseline: Path = Path("infra-map.json"),
+    root: Path = Path("."),
+    config: DetaConfig | None = None,
+    toon: bool = False,
+    output: Path | None = None,
+):
     if config is None:
         config = load_config()
-    
+
     if not baseline.exists():
         print(f"ERROR: Baseline file {baseline} not found")
         return
-    
+
     try:
         baseline_data = json.loads(baseline.read_text())
         depth = config.scan.max_depth if config.scan else 3
         current_topology = _get_topology(root, depth, config)
-        
+
         if toon:
             from deta.formatter.toon import generate_toon_diff
-            content = generate_toon_diff(baseline_data, current_topology, config.project.get("name"))
+
+            content = generate_toon_diff(
+                baseline_data, current_topology, config.project.get("name")
+            )
             print(content)
-            
+
             out_file = output if output else Path("infra-diff.toon.yaml")
             out_file.write_text(content)
             print(f"Saved changes to {out_file}")
             return
 
         current_data = json.loads(current_topology.to_json())
-        
+
         baseline_services = set(baseline_data.get("services", {}).keys())
         current_services = set(current_data.get("services", {}).keys())
-        
+
         added = current_services - baseline_services
         removed = baseline_services - current_services
-        
+
         if added:
             print(f"\n[+] Added services: {', '.join(added)}")
         if removed:
             print(f"[-] Removed services: {', '.join(removed)}")
-        
+
         if not added and not removed:
             print("\n✓ No service changes detected")
-        
+
         baseline_anomalies = len(baseline_data.get("anomalies", []))
         current_anomalies = len(current_data.get("anomalies", []))
-        
+
         print(f"\nAnomalies: {baseline_anomalies} → {current_anomalies}")
-        
+
     except json.JSONDecodeError:
         print(f"ERROR: Invalid JSON in baseline file {baseline}")
 
@@ -438,26 +469,38 @@ def main():
     except ImportError:
         print("ERROR: typer not installed. Install with: pip install typer")
         sys.exit(1)
-    
+
     app = typer.Typer(help="Infrastructure anomaly monitor")
-    
+
     @app.command("scan")
     def scan_cmd(
         root: Path = typer.Argument(Path("."), help="Root directory to scan"),
         depth: int = typer.Option(None, help="Max scan depth (overrides deta.yaml)"),
-        output: Path = typer.Option(None, "-o", "--output", help="Output file (overrides deta.yaml)"),
-        watch: bool = typer.Option(False, help="Run continuously and regenerate outputs on changes"),
+        output: Path = typer.Option(
+            None, "-o", "--output", help="Output file (overrides deta.yaml)"
+        ),
+        watch: bool = typer.Option(
+            False, help="Run continuously and regenerate outputs on changes"
+        ),
         interval: int = typer.Option(None, help="Watch/probe interval in seconds"),
         online: bool = typer.Option(True, help="Check what is online via HTTP probes"),
-        formats: str = typer.Option(None, help="Comma-separated formats: json,toon,yaml,mermaid,png"),
-        config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
+        formats: str = typer.Option(
+            None, help="Comma-separated formats: json,toon,yaml,mermaid,png"
+        ),
+        config_file: Path = typer.Option(
+            None, "--config", "-c", help="Path to deta.yaml config file"
+        ),
     ):
         config = load_config(config_file)
-        
+
         if depth is None:
             depth = config.scan.max_depth if config.scan else 3
         if output is None:
-            output = Path(config.output.json_path) if config.output else Path("infra-map.json")
+            output = (
+                Path(config.output.json_path)
+                if config.output
+                else Path("infra-map.json")
+            )
 
         selected_formats = None
         if formats:
@@ -468,41 +511,57 @@ def main():
                 interval = config.monitor.interval_seconds if config.monitor else 30
             monitor(root, interval, depth, config, output, selected_formats, online)
             return
-        
+
         scan(root, depth, output, config, selected_formats, online)
-    
+
     @app.command("monitor")
     def monitor_cmd(
         root: Path = typer.Argument(Path("."), help="Root directory to monitor"),
         interval: int = typer.Option(None, help="Probe interval in seconds"),
         depth: int = typer.Option(None, help="Max scan depth"),
-        output: Path = typer.Option(None, "-o", "--output", help="Output file (overrides deta.yaml)"),
+        output: Path = typer.Option(
+            None, "-o", "--output", help="Output file (overrides deta.yaml)"
+        ),
         online: bool = typer.Option(True, help="Check what is online via HTTP probes"),
-        formats: str = typer.Option(None, help="Comma-separated formats: json,toon,yaml,mermaid,png"),
-        config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
+        formats: str = typer.Option(
+            None, help="Comma-separated formats: json,toon,yaml,mermaid,png"
+        ),
+        config_file: Path = typer.Option(
+            None, "--config", "-c", help="Path to deta.yaml config file"
+        ),
     ):
         config = load_config(config_file)
-        
+
         if interval is None:
             interval = config.monitor.interval_seconds if config.monitor else 30
         if depth is None:
             depth = config.scan.max_depth if config.scan else 3
         if output is None:
-            output = Path(config.output.json_path) if config.output else Path("infra-map.json")
+            output = (
+                Path(config.output.json_path)
+                if config.output
+                else Path("infra-map.json")
+            )
 
         selected_formats = None
         if formats:
             selected_formats = [f.strip() for f in formats.split(",") if f.strip()]
-        
+
         monitor(root, interval, depth, config, output, selected_formats, online)
-    
+
     @app.command("diff")
     def diff_cmd(
         baseline: Path = typer.Option(Path("infra-map.json"), help="Baseline file"),
         root: Path = typer.Argument(Path("."), help="Root directory to scan"),
-        config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
-        toon: bool = typer.Option(False, "--toon", help="Output only changed services in toon format"),
-        output: Path = typer.Option(None, "-o", "--output", help="Output file for toon format (optional)"),
+        config_file: Path = typer.Option(
+            None, "--config", "-c", help="Path to deta.yaml config file"
+        ),
+        toon: bool = typer.Option(
+            False, "--toon", help="Output only changed services in toon format"
+        ),
+        output: Path = typer.Option(
+            None, "-o", "--output", help="Output file for toon format (optional)"
+        ),
     ):
         config = load_config(config_file)
         diff(baseline, root, config, toon, output)
@@ -513,7 +572,9 @@ def main():
         depth: int = typer.Option(None, help="Max scan depth"),
         host: str = typer.Option(None, help="Bind host"),
         port: int = typer.Option(None, help="Bind port"),
-        config_file: Path = typer.Option(None, "--config", "-c", help="Path to deta.yaml config file"),
+        config_file: Path = typer.Option(
+            None, "--config", "-c", help="Path to deta.yaml config file"
+        ),
     ):
         config = load_config(config_file)
         if depth is None:
@@ -534,13 +595,16 @@ def main():
                 if pid and _terminate_pid(pid):
                     print(f"Sent SIGTERM to PID {pid}")
                 else:
-                    print("Could not identify/terminate process automatically. Start aborted.")
+                    print(
+                        "Could not identify/terminate process automatically. Start aborted."
+                    )
                     raise typer.Exit(code=1)
             else:
                 print("Start aborted by user.")
                 raise typer.Exit(code=1)
 
         from deta.web import run_dashboard
+
         run_dashboard(
             root=root,
             depth=depth,
@@ -548,7 +612,7 @@ def main():
             host=bind_host,
             port=bind_port,
         )
-    
+
     app()
 
 

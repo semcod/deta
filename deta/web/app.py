@@ -15,7 +15,13 @@ from deta.builder.cache import TopologyCache
 from deta.builder.topology import InfraTopology, build_topology
 from deta.config import DetaConfig, load_config
 from deta.formatter.graph import generate_graph_yaml, generate_mermaid
-from deta.monitor.prober import ProbeResult, close_client, probe_all, resolve_service_status, group_probes_by_service
+from deta.monitor.prober import (
+    ProbeResult,
+    close_client,
+    probe_all,
+    resolve_service_status,
+    group_probes_by_service,
+)
 from deta.monitor.watcher import watch_configs
 
 HTML = """
@@ -1046,11 +1052,25 @@ def _probe_status_events(
 
         if was_online and not is_online:
             if curr_status == "restarting" and "service_restarting" in enabled:
-                events.append({"severity": "warning", "message": f"service restarting: {svc}", "timestamp": ts})
+                events.append(
+                    {
+                        "severity": "warning",
+                        "message": f"service restarting: {svc}",
+                        "timestamp": ts,
+                    }
+                )
             elif "service_down" in enabled:
-                events.append({"severity": "error", "message": f"service down: {svc}", "timestamp": ts})
+                events.append(
+                    {
+                        "severity": "error",
+                        "message": f"service down: {svc}",
+                        "timestamp": ts,
+                    }
+                )
         elif not was_online and is_online and "service_up" in enabled:
-            events.append({"severity": "info", "message": f"service up: {svc}", "timestamp": ts})
+            events.append(
+                {"severity": "info", "message": f"service up: {svc}", "timestamp": ts}
+            )
 
     return events
 
@@ -1068,11 +1088,23 @@ def _compute_events(
 
     for svc in sorted(current_services - prev_services):
         if "service_added" in enabled:
-            events.append({"severity": "info", "message": f"service added: {svc}", "timestamp": ts})
+            events.append(
+                {
+                    "severity": "info",
+                    "message": f"service added: {svc}",
+                    "timestamp": ts,
+                }
+            )
 
     for svc in sorted(prev_services - current_services):
         if "service_removed" in enabled:
-            events.append({"severity": "warning", "message": f"service removed: {svc}", "timestamp": ts})
+            events.append(
+                {
+                    "severity": "warning",
+                    "message": f"service removed: {svc}",
+                    "timestamp": ts,
+                }
+            )
 
     if probes and prev_probes is not None:
         events.extend(_probe_status_events(prev_probes, probes, enabled, ts))
@@ -1084,13 +1116,18 @@ def _compute_events(
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect
     from fastapi.responses import HTMLResponse
-except ImportError as exc:
+except ImportError:
     FastAPI = WebSocket = WebSocketDisconnect = None  # type: ignore
     HTMLResponse = None  # type: ignore
 
 
 def create_app(root: Path, depth: int, config: DetaConfig):
-    if FastAPI is None or WebSocket is None or WebSocketDisconnect is None or HTMLResponse is None:
+    if (
+        FastAPI is None
+        or WebSocket is None
+        or WebSocketDisconnect is None
+        or HTMLResponse is None
+    ):
         raise RuntimeError(
             "fastapi is not installed for this interpreter: "
             f"{sys.executable}. Install with: {sys.executable} -m pip install -e '.[web]'"
@@ -1218,7 +1255,10 @@ def create_app(root: Path, depth: int, config: DetaConfig):
             if state["probes_cache"] and (now - state["probes_cache_ts"]) < cache_ttl:
                 probes = state["probes_cache"]
             else:
-                probes = await probe_all(list(topology.services.values()), max_concurrency=config.monitor.max_concurrency)
+                probes = await probe_all(
+                    list(topology.services.values()),
+                    max_concurrency=config.monitor.max_concurrency,
+                )
                 state["probes_cache"] = probes
                 state["probes_cache_ts"] = now
 
@@ -1377,11 +1417,13 @@ def create_app(root: Path, depth: int, config: DetaConfig):
         async def on_change(change: dict):
             topology_cache.invalidate()
             state["topology_dirty"] = True
-            state["pending_change_events"].append({
-                "severity": "warning",
-                "message": f"config change: {change.get('path', '')}",
-                "timestamp": change.get("timestamp", ""),
-            })
+            state["pending_change_events"].append(
+                {
+                    "severity": "warning",
+                    "message": f"config change: {change.get('path', '')}",
+                    "timestamp": change.get("timestamp", ""),
+                }
+            )
 
             task = state.get("debounce_task")
             if task and not task.done():
@@ -1415,7 +1457,11 @@ def create_app(root: Path, depth: int, config: DetaConfig):
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         await manager.connect(websocket)
-        client = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
+        client = (
+            f"{websocket.client.host}:{websocket.client.port}"
+            if websocket.client
+            else "unknown"
+        )
         print(f"[WS] Client connected: {client}")
         try:
             if state["topology"] is not None:
@@ -1424,7 +1470,9 @@ def create_app(root: Path, depth: int, config: DetaConfig):
                 payload = await collect_payload(force_rescan=True)
             payload = payload or {}
             message = json.dumps(payload)
-            print(f"[WS] Sending payload to {client}: {len(message)} bytes, {len(payload.get('summary', {}))} summary fields")
+            print(
+                f"[WS] Sending payload to {client}: {len(message)} bytes, {len(payload.get('summary', {}))} summary fields"
+            )
             await websocket.send_text(message)
             _record_telemetry(payload, 1, len(message.encode("utf-8")))
             print(f"[WS] Payload sent to {client}")

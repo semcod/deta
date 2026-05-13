@@ -12,7 +12,6 @@ Tests cover:
 - Examples directory fixtures
 """
 
-import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -20,9 +19,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import yaml
 
-from deta.builder.topology import InfraTopology, build_topology
-from deta.cli import _print_summary, _filter_anomalies, _get_topology, scan
-from deta.config import load_config, DetaConfig, AnomalyConfig
+from deta.builder.topology import InfraTopology
+from deta.cli import _print_summary, _filter_anomalies, scan
+from deta.config import DetaConfig, AnomalyConfig
 from deta.scanner.compose import scan_compose
 from deta.monitor.prober import ProbeResult
 
@@ -30,6 +29,7 @@ from deta.monitor.prober import ProbeResult
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _compose(tmp_path: Path, content: str) -> Path:
     f = tmp_path / "docker-compose.yml"
@@ -48,17 +48,21 @@ def _scan_topo(tmp_path: Path, **kwargs) -> InfraTopology:
 # 1. YAML output — plain text, no icons
 # ---------------------------------------------------------------------------
 
+
 def test_print_summary_yaml_plain_text(tmp_path: Path, capsys):
-    _compose(tmp_path, (
-        "services:\n"
-        "  web:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
-        "    healthcheck:\n"
-        '      test: ["CMD", "wget", "-q", "http://localhost/health"]\n'
-        "      interval: 30s\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  web:\n"
+            "    image: nginx\n"
+            "    ports:\n"
+            '      - "8080:80"\n'
+            "    healthcheck:\n"
+            '      test: ["CMD", "wget", "-q", "http://localhost/health"]\n'
+            "      interval: 30s\n"
+        ),
+    )
     topo = _scan_topo(tmp_path)
     _print_summary(topo, tmp_path / "out.json")
     captured = capsys.readouterr().out
@@ -84,13 +88,10 @@ def test_print_summary_yaml_has_anomalies_key(tmp_path: Path, capsys):
 
 def test_print_summary_yaml_missing_healthcheck_in_anomalies(tmp_path: Path, capsys):
     """Service without healthcheck must appear in anomalies list."""
-    _compose(tmp_path, (
-        "services:\n"
-        "  no-hc:\n"
-        "    image: alpine\n"
-        "    ports:\n"
-        '      - "9000:80"\n'
-    ))
+    _compose(
+        tmp_path,
+        ('services:\n  no-hc:\n    image: alpine\n    ports:\n      - "9000:80"\n'),
+    )
     topo = _scan_topo(tmp_path)
     _print_summary(topo, tmp_path / "out.json")
     parsed = yaml.safe_load(capsys.readouterr().out)
@@ -102,19 +103,21 @@ def test_print_summary_yaml_missing_healthcheck_in_anomalies(tmp_path: Path, cap
 # 2. Probe injection into YAML output
 # ---------------------------------------------------------------------------
 
+
 def test_print_summary_injects_probe_status_online(tmp_path: Path, capsys):
-    _compose(tmp_path, (
-        "services:\n"
-        "  api:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
-    ))
+    _compose(
+        tmp_path,
+        ('services:\n  api:\n    image: nginx\n    ports:\n      - "8080:80"\n'),
+    )
     topo = _scan_topo(tmp_path)
     fake_probe = {
         "api": ProbeResult(
-            service="api", url="http://localhost:8080/health",
-            status=200, ok=True, latency_ms=12.5, error=None,
+            service="api",
+            url="http://localhost:8080/health",
+            status=200,
+            ok=True,
+            latency_ms=12.5,
+            error=None,
         )
     }
     _print_summary(topo, tmp_path / "out.json", probe_results=fake_probe)
@@ -125,18 +128,19 @@ def test_print_summary_injects_probe_status_online(tmp_path: Path, capsys):
 
 
 def test_print_summary_injects_probe_status_offline(tmp_path: Path, capsys):
-    _compose(tmp_path, (
-        "services:\n"
-        "  db:\n"
-        "    image: postgres\n"
-        "    ports:\n"
-        '      - "5432:5432"\n'
-    ))
+    _compose(
+        tmp_path,
+        ('services:\n  db:\n    image: postgres\n    ports:\n      - "5432:5432"\n'),
+    )
     topo = _scan_topo(tmp_path)
     fake_probe = {
         "db": ProbeResult(
-            service="db", url="tcp://localhost:5432",
-            status=None, ok=False, latency_ms=0, error="Connection refused",
+            service="db",
+            url="tcp://localhost:5432",
+            status=None,
+            ok=False,
+            latency_ms=0,
+            error="Connection refused",
         )
     }
     _print_summary(topo, tmp_path / "out.json", probe_results=fake_probe)
@@ -161,8 +165,12 @@ def test_print_summary_no_probe_results_has_no_probe_keys(tmp_path: Path, capsys
 # 3. Anomaly filtering via DetaConfig
 # ---------------------------------------------------------------------------
 
+
 def test_filter_anomalies_disables_missing_healthcheck(tmp_path: Path):
-    _compose(tmp_path, "services:\n  svc:\n    image: alpine\n    ports:\n      - \"9000:80\"\n")
+    _compose(
+        tmp_path,
+        'services:\n  svc:\n    image: alpine\n    ports:\n      - "9000:80"\n',
+    )
     topo = _scan_topo(tmp_path)
     anomalies = topo.detect_anomalies()
 
@@ -173,11 +181,14 @@ def test_filter_anomalies_disables_missing_healthcheck(tmp_path: Path):
 
 
 def test_filter_anomalies_disables_port_conflicts(tmp_path: Path):
-    _compose(tmp_path, (
-        "services:\n"
-        "  a:\n    image: nginx\n    ports:\n      - \"8080:80\"\n"
-        "  b:\n    image: httpd\n    ports:\n      - \"8080:80\"\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            '  a:\n    image: nginx\n    ports:\n      - "8080:80"\n'
+            '  b:\n    image: httpd\n    ports:\n      - "8080:80"\n'
+        ),
+    )
     topo = _scan_topo(tmp_path)
     anomalies = topo.detect_anomalies()
 
@@ -203,18 +214,22 @@ def test_filter_anomalies_min_severity_filters_warnings(tmp_path: Path):
 # 4. Dependency cycle detection
 # ---------------------------------------------------------------------------
 
+
 def test_dependency_cycle_detected(tmp_path: Path):
-    _compose(tmp_path, (
-        "services:\n"
-        "  a:\n"
-        "    image: alpine\n"
-        "    depends_on:\n"
-        "      - b\n"
-        "  b:\n"
-        "    image: alpine\n"
-        "    depends_on:\n"
-        "      - a\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  a:\n"
+            "    image: alpine\n"
+            "    depends_on:\n"
+            "      - b\n"
+            "  b:\n"
+            "    image: alpine\n"
+            "    depends_on:\n"
+            "      - a\n"
+        ),
+    )
     topo = _scan_topo(tmp_path)
     cycles = topo.detect_cycles()
     assert len(cycles) >= 1
@@ -224,11 +239,14 @@ def test_dependency_cycle_detected(tmp_path: Path):
 
 
 def test_dependency_cycle_in_anomalies(tmp_path: Path):
-    _compose(tmp_path, (
-        "services:\n"
-        "  x:\n    image: alpine\n    depends_on:\n      - y\n"
-        "  y:\n    image: alpine\n    depends_on:\n      - x\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  x:\n    image: alpine\n    depends_on:\n      - y\n"
+            "  y:\n    image: alpine\n    depends_on:\n      - x\n"
+        ),
+    )
     topo = _scan_topo(tmp_path)
     anomalies = topo.detect_anomalies()
     cycle_anomalies = [a for a in anomalies if a["type"] == "dependency_cycle"]
@@ -236,12 +254,15 @@ def test_dependency_cycle_in_anomalies(tmp_path: Path):
 
 
 def test_linear_dependency_no_cycle(tmp_path: Path):
-    _compose(tmp_path, (
-        "services:\n"
-        "  frontend:\n    image: nginx\n    depends_on:\n      - backend\n"
-        "  backend:\n    image: flask\n    depends_on:\n      - db\n"
-        "  db:\n    image: postgres\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  frontend:\n    image: nginx\n    depends_on:\n      - backend\n"
+            "  backend:\n    image: flask\n    depends_on:\n      - db\n"
+            "  db:\n    image: postgres\n"
+        ),
+    )
     topo = _scan_topo(tmp_path)
     cycles = topo.detect_cycles()
     assert cycles == []
@@ -251,23 +272,24 @@ def test_linear_dependency_no_cycle(tmp_path: Path):
 # 5. Multi-module recursive scanning
 # ---------------------------------------------------------------------------
 
+
 def test_multi_module_recursive_scan(tmp_path: Path):
     """Scanner finds services in nested subdirectories when include_patterns spans subdirs."""
     root_compose = tmp_path / "docker-compose.yml"
     root_compose.write_text(
-        "services:\n  frontend:\n    image: nginx\n    ports:\n      - \"8100:80\"\n"
+        'services:\n  frontend:\n    image: nginx\n    ports:\n      - "8100:80"\n'
     )
 
     mod_a = tmp_path / "module-a"
     mod_a.mkdir()
     (mod_a / "docker-compose.yml").write_text(
-        "services:\n  service-a:\n    image: python:3.11\n    ports:\n      - \"8200:8000\"\n"
+        'services:\n  service-a:\n    image: python:3.11\n    ports:\n      - "8200:8000"\n'
     )
 
     mod_b = tmp_path / "module-b"
     mod_b.mkdir()
     (mod_b / "docker-compose.yml").write_text(
-        "services:\n  service-b:\n    image: node:20\n    ports:\n      - \"8300:3000\"\n"
+        'services:\n  service-b:\n    image: node:20\n    ports:\n      - "8300:3000"\n'
     )
 
     # include_patterns forces scanning all sub-directories
@@ -286,12 +308,12 @@ def test_multi_module_port_conflicts_across_modules(tmp_path: Path):
     """Port conflicts detected across services in separate compose files (with explicit include)."""
     root_compose = tmp_path / "docker-compose.yml"
     root_compose.write_text(
-        "services:\n  svc-root:\n    image: nginx\n    ports:\n      - \"9000:80\"\n"
+        'services:\n  svc-root:\n    image: nginx\n    ports:\n      - "9000:80"\n'
     )
     sub = tmp_path / "module"
     sub.mkdir()
     (sub / "docker-compose.yml").write_text(
-        "services:\n  svc-sub:\n    image: httpd\n    ports:\n      - \"9000:80\"\n"
+        'services:\n  svc-sub:\n    image: httpd\n    ports:\n      - "9000:80"\n'
     )
 
     services = scan_compose(
@@ -313,15 +335,19 @@ def test_multi_module_port_conflicts_across_modules(tmp_path: Path):
 # 6. Hardcoded secrets
 # ---------------------------------------------------------------------------
 
+
 def test_hardcoded_secret_in_environment_map(tmp_path: Path):
-    _compose(tmp_path, (
-        "services:\n"
-        "  app:\n"
-        "    image: myapp\n"
-        "    environment:\n"
-        "      SECRET_KEY: super-secret-value\n"
-        "      DB_HOST: postgres\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  app:\n"
+            "    image: myapp\n"
+            "    environment:\n"
+            "      SECRET_KEY: super-secret-value\n"
+            "      DB_HOST: postgres\n"
+        ),
+    )
     topo = _scan_topo(tmp_path)
     anomalies = topo.detect_anomalies()
     secrets = [a for a in anomalies if a["type"] == "hardcoded_secret"]
@@ -331,13 +357,16 @@ def test_hardcoded_secret_in_environment_map(tmp_path: Path):
 
 
 def test_env_interpolation_not_flagged_as_hardcoded(tmp_path: Path):
-    _compose(tmp_path, (
-        "services:\n"
-        "  app:\n"
-        "    image: myapp\n"
-        "    environment:\n"
-        "      - SECRET_KEY=${SECRET_KEY:-change-me}\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  app:\n"
+            "    image: myapp\n"
+            "    environment:\n"
+            "      - SECRET_KEY=${SECRET_KEY:-change-me}\n"
+        ),
+    )
     topo = _scan_topo(tmp_path)
     anomalies = topo.detect_anomalies()
     assert not any(a["type"] == "hardcoded_secret" for a in anomalies)
@@ -347,17 +376,21 @@ def test_env_interpolation_not_flagged_as_hardcoded(tmp_path: Path):
 # 7. Offline mode — no probes performed
 # ---------------------------------------------------------------------------
 
+
 def test_scan_offline_mode_does_not_probe(tmp_path: Path, capsys):
-    _compose(tmp_path, (
-        "services:\n"
-        "  api:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
-        "    healthcheck:\n"
-        '      test: ["CMD", "wget", "-q", "http://localhost/health"]\n'
-        "      interval: 30s\n"
-    ))
+    _compose(
+        tmp_path,
+        (
+            "services:\n"
+            "  api:\n"
+            "    image: nginx\n"
+            "    ports:\n"
+            '      - "8080:80"\n'
+            "    healthcheck:\n"
+            '      test: ["CMD", "wget", "-q", "http://localhost/health"]\n'
+            "      interval: 30s\n"
+        ),
+    )
     output = tmp_path / "out.json"
     with patch("deta.cli.probe_all", new_callable=AsyncMock) as mock_probe:
         scan(root=tmp_path, depth=1, output=output, online=False)
@@ -365,13 +398,10 @@ def test_scan_offline_mode_does_not_probe(tmp_path: Path, capsys):
 
 
 def test_scan_online_false_yaml_has_no_probe_fields(tmp_path: Path, capsys):
-    _compose(tmp_path, (
-        "services:\n"
-        "  api:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
-    ))
+    _compose(
+        tmp_path,
+        ('services:\n  api:\n    image: nginx\n    ports:\n      - "8080:80"\n'),
+    )
     output = tmp_path / "out.json"
     with patch("deta.cli._probe_once", return_value=None):
         scan(root=tmp_path, depth=1, output=output, online=False)
@@ -383,14 +413,12 @@ def test_scan_online_false_yaml_has_no_probe_fields(tmp_path: Path, capsys):
 # 8. JSON output file written correctly
 # ---------------------------------------------------------------------------
 
+
 def test_scan_writes_json_output_file(tmp_path: Path, capsys):
-    _compose(tmp_path, (
-        "services:\n"
-        "  web:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
-    ))
+    _compose(
+        tmp_path,
+        ('services:\n  web:\n    image: nginx\n    ports:\n      - "8080:80"\n'),
+    )
     output_file = tmp_path / "result.json"
     scan(root=tmp_path, depth=1, output=output_file, online=False)
 
@@ -454,7 +482,9 @@ def test_example_env_driven_resolves_ports():
 
 
 @pytest.mark.skipif(
-    not (EXAMPLES_DIR / "anomalies" / "hardcoded-secrets" / "docker-compose.yml").exists(),
+    not (
+        EXAMPLES_DIR / "anomalies" / "hardcoded-secrets" / "docker-compose.yml"
+    ).exists(),
     reason="anomalies/hardcoded-secrets example not found",
 )
 def test_example_hardcoded_secrets_anomaly():
@@ -468,7 +498,9 @@ def test_example_hardcoded_secrets_anomaly():
 
 
 @pytest.mark.skipif(
-    not (EXAMPLES_DIR / "anomalies" / "missing-healthcheck" / "docker-compose.yml").exists(),
+    not (
+        EXAMPLES_DIR / "anomalies" / "missing-healthcheck" / "docker-compose.yml"
+    ).exists(),
     reason="anomalies/missing-healthcheck example not found",
 )
 def test_example_missing_healthcheck_anomaly():
@@ -496,13 +528,12 @@ def test_example_microservices_topology():
 # 10. Hub detection
 # ---------------------------------------------------------------------------
 
+
 def test_hub_detection_identifies_heavily_depended_service(tmp_path: Path):
     """Service depended on by >= 5 others is identified as a hub."""
     services_yaml = "services:\n  db:\n    image: postgres\n"
     for i in range(6):
-        services_yaml += (
-            f"  svc{i}:\n    image: alpine\n    depends_on:\n      - db\n"
-        )
+        services_yaml += f"  svc{i}:\n    image: alpine\n    depends_on:\n      - db\n"
     _compose(tmp_path, services_yaml)
     topo = _scan_topo(tmp_path)
     hubs = topo.find_hubs(threshold=5)

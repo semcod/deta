@@ -15,6 +15,7 @@ def _get_console():
     if _console is None:
         try:
             from rich.console import Console
+
             _console = Console()
         except ImportError:
             _console = False
@@ -32,19 +33,24 @@ SEVERITY_COLORS = {
 def alert_anomaly(anomaly: dict):
     """Display an anomaly with appropriate coloring."""
     console = _get_console()
-    
+
     if console:
         from rich import print as rprint
+
         color = SEVERITY_COLORS.get(anomaly["severity"], "white")
-        rprint(f"[{color}][{anomaly['severity'].upper()}][/{color}] "
-               f"{anomaly['type']} → {anomaly.get('service', anomaly.get('services'))}")
+        rprint(
+            f"[{color}][{anomaly['severity'].upper()}][/{color}] "
+            f"{anomaly['type']} → {anomaly.get('service', anomaly.get('services'))}"
+        )
         if "remediation_hints" in anomaly:
             rprint("   [cyan]➜ 🤖 Actionable for LLM (MCP hints):[/cyan]")
             for i, hint in enumerate(anomaly["remediation_hints"], 1):
                 rprint(f"      {i}. {hint}")
     else:
-        print(f"[{anomaly['severity'].upper()}] {anomaly['type']} → "
-              f"{anomaly.get('service', anomaly.get('services'))}")
+        print(
+            f"[{anomaly['severity'].upper()}] {anomaly['type']} → "
+            f"{anomaly.get('service', anomaly.get('services'))}"
+        )
         if "remediation_hints" in anomaly:
             print("   ➜ 🤖 Actionable for LLM (MCP hints):")
             for i, hint in enumerate(anomaly["remediation_hints"], 1):
@@ -70,14 +76,19 @@ def alert_probe_failure(result: ProbeResult):
 
     if console:
         from rich import print as rprint
-        rprint(f"[bold red][DOWN][/bold red] {result.service} "
-               f"({result.url}) — {result.error or f'HTTP {result.status}'}")
+
+        rprint(
+            f"[bold red][DOWN][/bold red] {result.service} "
+            f"({result.url}) — {result.error or f'HTTP {result.status}'}"
+        )
         rprint("   [cyan]➜ 🤖 Actionable for LLM (MCP hints):[/cyan]")
         for i, hint in enumerate(hints, 1):
             rprint(f"      {i}. {hint}")
     else:
-        print(f"[DOWN] {result.service} ({result.url}) — "
-              f"{result.error or f'HTTP {result.status}'}")
+        print(
+            f"[DOWN] {result.service} ({result.url}) — "
+            f"{result.error or f'HTTP {result.status}'}"
+        )
         print("   ➜ 🤖 Actionable for LLM (MCP hints):")
         for i, hint in enumerate(hints, 1):
             print(f"      {i}. {hint}")
@@ -86,11 +97,14 @@ def alert_probe_failure(result: ProbeResult):
 def alert_probe_success(result: ProbeResult):
     """Display a successful probe result."""
     console = _get_console()
-    
+
     if console:
         from rich import print as rprint
-        rprint(f"[green][UP][/green] {result.service} "
-               f"({result.url}) — {result.latency_ms:.0f}ms")
+
+        rprint(
+            f"[green][UP][/green] {result.service} "
+            f"({result.url}) — {result.latency_ms:.0f}ms"
+        )
     else:
         print(f"[UP] {result.service} ({result.url}) — {result.latency_ms:.0f}ms")
 
@@ -98,16 +112,17 @@ def alert_probe_success(result: ProbeResult):
 def print_topology_table(topology: InfraTopology):
     """Display infrastructure topology as a table."""
     console = _get_console()
-    
+
     if console:
         from rich.table import Table
+
         table = Table(title="Infrastructure Map")
         table.add_column("Service", style="cyan")
         table.add_column("Image/Build")
         table.add_column("Ports")
         table.add_column("Healthcheck", style="green")
         table.add_column("Depends On")
-        
+
         for name, svc in topology.services.items():
             table.add_row(
                 name,
@@ -119,8 +134,12 @@ def print_topology_table(topology: InfraTopology):
         console.print(table)
     else:
         print("\n=== Infrastructure Map ===")
-        print(f"{'Service':<20} {'Image/Build':<20} {'Ports':<15} {'Health':<10} {'Depends On'}")
+        print(
+            f"{'Service':<20} {'Image/Build':<20} {'Ports':<15} {'Health':<10} {'Depends On'}"
+        )
         print("-" * 80)
         for name, svc in topology.services.items():
-            print(f"{name:<20} {(svc.image or '[build]'):<20} {', '.join(svc.ports):<15} "
-                  f"{'✓' if svc.healthcheck else '✗':<10} {', '.join(svc.depends_on)}")
+            print(
+                f"{name:<20} {(svc.image or '[build]'):<20} {', '.join(svc.ports):<15} "
+                f"{'✓' if svc.healthcheck else '✗':<10} {', '.join(svc.depends_on)}"
+            )

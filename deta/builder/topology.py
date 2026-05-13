@@ -30,7 +30,7 @@ def _is_hardcoded_secret_value(value: str) -> bool:
 
 class InfraTopology:
     """Represents the infrastructure topology with services and dependencies."""
-    
+
     def __init__(self):
         self.graph = None
         if nx is not None:
@@ -38,7 +38,7 @@ class InfraTopology:
         self.services: dict[str, ServiceDef] = {}
         self.endpoints: list[EndpointDef] = []
         self._filtered_anomalies: list[dict] | None = None
-    
+
     def add_services(self, services: list[ServiceDef]):
         """Add services to the topology graph."""
         for svc in services:
@@ -47,52 +47,56 @@ class InfraTopology:
                 self.graph.add_node(svc.name, **asdict(svc))
                 for dep in svc.depends_on:
                     self.graph.add_edge(svc.name, dep)
-    
+
     def add_endpoints(self, endpoints: list[EndpointDef]):
         """Add endpoints to the topology."""
         self.endpoints.extend(endpoints)
-    
+
     def detect_cycles(self) -> list[list[str]]:
         """Detect dependency cycles in the graph."""
         if self.graph is None:
             return []
         return list(nx.simple_cycles(self.graph))
-    
+
     def find_hubs(self, threshold: int = 5) -> list[str]:
         """Find services with high fan-in (many dependents)."""
         if self.graph is None:
             return []
         return [n for n, d in self.graph.in_degree() if d >= threshold]
-    
+
     def detect_anomalies(self) -> list[dict]:
         """Detect various infrastructure anomalies."""
         anomalies = []
-        
+
         # Missing healthcheck
         for name, svc in self.services.items():
             if svc.healthcheck is None:
-                anomalies.append({
-                    "type": "missing_healthcheck",
-                    "service": name,
-                    "severity": "warning",
-                    "file": svc.source_file,
-                    "remediation_hints": [
-                        f"Add a 'healthcheck' block to {name} in {svc.source_file}",
-                        "Ensure the service implements a /health endpoint"
-                    ],
-                    "recommended_mcp_tools": [
-                        {"tool": "view_file", "args": {"path": svc.source_file}}
-                    ]
-                })
-        
+                anomalies.append(
+                    {
+                        "type": "missing_healthcheck",
+                        "service": name,
+                        "severity": "warning",
+                        "file": svc.source_file,
+                        "remediation_hints": [
+                            f"Add a 'healthcheck' block to {name} in {svc.source_file}",
+                            "Ensure the service implements a /health endpoint",
+                        ],
+                        "recommended_mcp_tools": [
+                            {"tool": "view_file", "args": {"path": svc.source_file}}
+                        ],
+                    }
+                )
+
         # Dependency cycles
         for cycle in self.detect_cycles():
-            anomalies.append({
-                "type": "dependency_cycle",
-                "services": cycle,
-                "severity": "error",
-            })
-        
+            anomalies.append(
+                {
+                    "type": "dependency_cycle",
+                    "services": cycle,
+                    "severity": "error",
+                }
+            )
+
         # Port conflicts (using resolved host:port pairs)
         port_map: dict[str, str] = {}
         for name, svc in self.services.items():
@@ -106,18 +110,23 @@ class InfraTopology:
                         continue
                     key = f"localhost:{raw_host_port}"
                     if key in port_map and port_map[key] != name:
-                        anomalies.append({
-                            "type": "port_conflict",
-                            "port": raw_host_port,
-                            "services": [port_map[key], name],
-                            "severity": "error",
-                            "remediation_hints": [
-                                f"Change the host port mapping for {name} or {port_map[key]} to avoid collision on port {raw_host_port}"
-                            ],
-                            "recommended_mcp_tools": [
-                                {"tool": "view_file", "args": {"path": svc.source_file}}
-                            ]
-                        })
+                        anomalies.append(
+                            {
+                                "type": "port_conflict",
+                                "port": raw_host_port,
+                                "services": [port_map[key], name],
+                                "severity": "error",
+                                "remediation_hints": [
+                                    f"Change the host port mapping for {name} or {port_map[key]} to avoid collision on port {raw_host_port}"
+                                ],
+                                "recommended_mcp_tools": [
+                                    {
+                                        "tool": "view_file",
+                                        "args": {"path": svc.source_file},
+                                    }
+                                ],
+                            }
+                        )
                     port_map[key] = name
                 continue
 
@@ -130,64 +139,71 @@ class InfraTopology:
                     continue
                 seen_keys.add(key)
                 if key in port_map and port_map[key] != name:
-                    anomalies.append({
-                        "type": "port_conflict",
-                        "port": binding.host_port,
-                        "host": host,
-                        "services": [port_map[key], name],
-                        "severity": "error",
-                        "remediation_hints": [
-                            f"Change the host port mapping for {name} or {port_map[key]} to avoid collision on port {binding.host_port}"
-                        ],
-                        "recommended_mcp_tools": [
-                            {"tool": "view_file", "args": {"path": svc.source_file}}
-                        ]
-                    })
+                    anomalies.append(
+                        {
+                            "type": "port_conflict",
+                            "port": binding.host_port,
+                            "host": host,
+                            "services": [port_map[key], name],
+                            "severity": "error",
+                            "remediation_hints": [
+                                f"Change the host port mapping for {name} or {port_map[key]} to avoid collision on port {binding.host_port}"
+                            ],
+                            "recommended_mcp_tools": [
+                                {"tool": "view_file", "args": {"path": svc.source_file}}
+                            ],
+                        }
+                    )
                 port_map[key] = name
-        
+
         # Hardcoded secrets
         for name, svc in self.services.items():
             raw_environment = svc.environment_raw or svc.environment
             for key, val in raw_environment.items():
                 if "secret" in key.lower() and _is_hardcoded_secret_value(str(val)):
-                    anomalies.append({
-                        "type": "hardcoded_secret",
-                        "service": name,
-                        "env_key": key,
-                        "severity": "critical",
-                        "file": svc.source_file,
-                        "remediation_hints": [
-                            f"Move {key} in {name} to environment/.env and reference it as ${{{key}}}",
-                            "Avoid literal secrets in docker-compose files."
-                        ],
-                    })
-        
+                    anomalies.append(
+                        {
+                            "type": "hardcoded_secret",
+                            "service": name,
+                            "env_key": key,
+                            "severity": "critical",
+                            "file": svc.source_file,
+                            "remediation_hints": [
+                                f"Move {key} in {name} to environment/.env and reference it as ${{{key}}}",
+                                "Avoid literal secrets in docker-compose files.",
+                            ],
+                        }
+                    )
+
         return anomalies
-    
+
     def to_json(self) -> str:
         """Export topology to JSON format."""
-        return json.dumps({
-            "services": {k: asdict(v) for k, v in self.services.items()},
-            "endpoints": [asdict(e) for e in self.endpoints],
-            "anomalies": self.detect_anomalies(),
-            "cycles": self.detect_cycles(),
-            "hubs": self.find_hubs(),
-        }, indent=2)
+        return json.dumps(
+            {
+                "services": {k: asdict(v) for k, v in self.services.items()},
+                "endpoints": [asdict(e) for e in self.endpoints],
+                "anomalies": self.detect_anomalies(),
+                "cycles": self.detect_cycles(),
+                "hubs": self.find_hubs(),
+            },
+            indent=2,
+        )
 
 
 def build_topology(root: Path, max_depth: int = 3, config: Any = None) -> InfraTopology:
     """
     Build complete infrastructure topology from scanned manifests.
-    
+
     Args:
         root: Root directory to scan
         max_depth: Maximum directory depth to scan
-        
+
     Returns:
         InfraTopology object with services, endpoints, and anomalies
     """
     topology = InfraTopology()
-    
+
     # Scan and add services
     include_patterns = None
     exclude_patterns = None
@@ -205,9 +221,9 @@ def build_topology(root: Path, max_depth: int = 3, config: Any = None) -> InfraT
         use_dc_config=use_dc_config,
     )
     topology.add_services(services)
-    
+
     # Scan and add endpoints
     endpoints = scan_openapi(root, max_depth)
     topology.add_endpoints(endpoints)
-    
+
     return topology

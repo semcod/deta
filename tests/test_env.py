@@ -42,17 +42,15 @@ def test_interpolate_bare_dollar():
 
 
 def test_interpolate_embedded():
-    assert interpolate("host=${HOST}:port=${PORT}", {"HOST": "127.0.0.1", "PORT": "3306"}) == "host=127.0.0.1:port=3306"
+    assert (
+        interpolate("host=${HOST}:port=${PORT}", {"HOST": "127.0.0.1", "PORT": "3306"})
+        == "host=127.0.0.1:port=3306"
+    )
 
 
 def test_load_env_file(tmp_path: Path):
     env_path = tmp_path / ".env"
-    env_path.write_text(
-        "# comment\n"
-        "FOO=bar\n"
-        'BAZ="quoted"\n'
-        "export QUX=1\n"
-    )
+    env_path.write_text('# comment\nFOO=bar\nBAZ="quoted"\nexport QUX=1\n')
     env = load_env_file(env_path)
     assert env["FOO"] == "bar"
     assert env["BAZ"] == "quoted"

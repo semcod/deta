@@ -12,11 +12,7 @@ def test_cache_basic(tmp_path: Path):
     """Basic cache test: first call scans, second call uses cache."""
     compose = tmp_path / "docker-compose.yml"
     compose.write_text(
-        "services:\n"
-        "  web:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
+        'services:\n  web:\n    image: nginx\n    ports:\n      - "8080:80"\n'
     )
 
     cache = TopologyCache(ttl_seconds=30.0)
@@ -34,11 +30,7 @@ def test_cache_mtime_invalidation(tmp_path: Path):
     """Cache is invalidated when file is modified."""
     compose = tmp_path / "docker-compose.yml"
     compose.write_text(
-        "services:\n"
-        "  web:\n"
-        "    image: nginx\n"
-        "    ports:\n"
-        '      - "8080:80"\n'
+        'services:\n  web:\n    image: nginx\n    ports:\n      - "8080:80"\n'
     )
 
     cache = TopologyCache(ttl_seconds=30.0)
@@ -68,11 +60,7 @@ def test_cache_mtime_invalidation(tmp_path: Path):
 def test_cache_ttl_expiration(tmp_path: Path):
     """Cache expires after TTL."""
     compose = tmp_path / "docker-compose.yml"
-    compose.write_text(
-        "services:\n"
-        "  web:\n"
-        "    image: nginx\n"
-    )
+    compose.write_text("services:\n  web:\n    image: nginx\n")
 
     cache = TopologyCache(ttl_seconds=0.1)
 

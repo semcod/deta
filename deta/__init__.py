@@ -35,6 +35,7 @@ def __getattr__(name: str):
 def __dir__() -> list[str]:
     return sorted([*globals().keys(), *_LAZY_EXPORTS.keys()])
 
+
 __all__ = [
     "__version__",
     "InfraTopology",
