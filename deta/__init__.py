@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import importlib
 
-__version__ = "0.2.51"
+__version__ = "0.2.52"
 
 _LAZY_EXPORTS = {
     "InfraTopology": ("deta.builder.topology", "InfraTopology"),
