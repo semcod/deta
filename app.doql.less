@@ -2,11 +2,20 @@
 
 app {
   name: deta;
-  version: 0.2.44;
+  version: 0.2.52;
+  description: "Infrastructure anomaly detection and monitoring tool";
+  license: Apache-2.0;
+  authors: "Tom Sapletta <tom@sapletta.com>";
+  keywords: "infrastructure, monitoring, docker, devops, anomaly-detection";
+  homepage: https://github.com/semcod/deta;
+  repository: https://github.com/semcod/deta;
 }
 
 dependencies {
   runtime: "ruamel.yaml>=0.17.0, pyyaml>=6.0, pydantic>=2.0, httpx>=0.24.0, watchfiles>=0.20.0, networkx>=3.0, rich>=13.0, typer>=0.9.0";
+  docker: docker>=6.0;
+  toml: "tomli>=2.0; python_version<'3.11'";
+  web: "fastapi>=0.104.0, uvicorn[standard]>=0.24.0";
 }
 
 interface[type="api"] {
@@ -18,7 +27,15 @@ interface[type="cli"] {
   framework: argparse;
 }
 interface[type="cli"] page[name="deta"] {
+  entry: deta.cli:main;
+}
 
+tests {
+  import: testql-scenarios/**/*.testql.toon.yaml;
+}
+
+env_vars {
+  keys: OPENROUTER_API_KEY, LLM_MODEL, PFIX_AUTO_APPLY, PFIX_AUTO_INSTALL_DEPS, PFIX_AUTO_RESTART, PFIX_MAX_RETRIES, PFIX_DRY_RUN, PFIX_ENABLED, PFIX_GIT_COMMIT, PFIX_GIT_PREFIX, PFIX_CREATE_BACKUPS;
 }
 
 deploy {
@@ -28,5 +45,9 @@ deploy {
 environment[name="local"] {
   runtime: python;
   env_file: .env;
+  template_file: .env.example;
   python_version: >=3.8;
+  vars: LLM_MODEL, OPENROUTER_API_KEY, PFIX_AUTO_APPLY, PFIX_AUTO_INSTALL_DEPS, PFIX_AUTO_RESTART, PFIX_CREATE_BACKUPS, PFIX_DRY_RUN, PFIX_ENABLED, PFIX_GIT_COMMIT, PFIX_GIT_PREFIX, PFIX_MAX_RETRIES;
+  runtime_llm: OPENROUTER_API_KEY;
+  runtime_pfix: PFIX_AUTO_APPLY, PFIX_AUTO_INSTALL_DEPS, PFIX_AUTO_RESTART, PFIX_CREATE_BACKUPS, PFIX_DRY_RUN, PFIX_ENABLED, PFIX_GIT_COMMIT, PFIX_GIT_PREFIX, PFIX_MAX_RETRIES;
 }
