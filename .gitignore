@@ -220,3 +220,12 @@ __marimo__/
 .streamlit/secrets.toml
 .code2llm_cache/
 .github/
+
+# Local ticket worktrees and private recovery state
+/.worktrees/
+/.subactor/leases/
+/.subactor/sessions/
+/.subactor/recovery/
+/.subactor/receipts/
+/.subactor/cache/
+/.subactor/snapshots/
