@@ -465,6 +465,15 @@ def diff(
 
 def main():
     try:
+        from .autoupdate import check_for_updates
+        check_for_updates("deta")
+    except Exception:
+        try:
+            from deta.autoupdate import check_for_updates
+            check_for_updates("deta")
+        except Exception:
+            pass
+    try:
         import typer
     except ImportError:
         print("ERROR: typer not installed. Install with: pip install typer")
